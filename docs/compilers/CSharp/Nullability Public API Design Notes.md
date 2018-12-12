@@ -2,29 +2,53 @@
 
 ## Guiding Principles
 
-When designing this API, there were a few core principles that we tried to keep in mind.
+When designing this API, there were a few core principles that we tried to keep in mind:
 
-1. First and foremost, we do not want to break existing analyzers and refactorings. This means that common patterns that used to work need to continue to work. These include reference equality for `ITypeSymbol`s that aren't generics, such as `String`.
-2. We'd like the ability to avoid computing nullability information if it's not required. Currently, the SemanticModel APIs do a good job of only causing the minimal amount of binding required to answer the question being asked, but attempting to compute nullability information will cause significantly more to need to be bound. To fully determine nullability, we must bind the entire method and run nullability analysis up to the point requested by the caller, unlike today where individual statements can get away with being bound by themselves. Even if the standard path calculates nullability info, we feel that some scenarios will be both perf sensitive and not care about results of nullability analysis. This includes things like intellisense.
-3. Users should be able to get at both declared nullability for variables, as well as seeing the current flow state of expressions based on flow analysis.
+1. First and foremost, we do not want to break existing analyzers and refactorings.
+This means that common patterns that used to work need to continue to work.
+These include reference equality for `ITypeSymbol`s that aren't generic, such as `string`.
+2. We'd like the ability to avoid computing nullability information if it's not required.
+Currently, the `SemanticModel` APIs do a good job of only causing the minimal amount of binding required to answer the question being asked, but attempting to compute nullability information will cause significantly more to be bound.
+To fully determine nullability, we must bind the entire method and run nullability analysis up to the point requested by the caller, unlike today where individual statements can get away with being bound by themselves.
+Even if the standard path calculates nullability info, we feel that some scenarios will be both perf sensitive and not care about results of nullability analysis.
+This includes features like intellisense.
+3. Users should be able to get at both declared nullability for variables, as well as seeing the inferred nullability at each expression from flow analysis.
 
 ## General Concepts
 
-Nullability information is exposed publicly as an enum, `Nullability`. There are 5 possible values:
+Nullability information is exposed publicly as an enum, `Nullability`.
+There are 5 possible values:
 
 * `NotApplicable` - This is used when nullability information is requested about something that does not have a nullability, such as a statement, directive, or other similar constructs.
-* `NotAnalyzed` - This is used to fulfill priority #2. If the user requests information while asking for nullability to not be calculated, we'll use this to stand in for nullability.
-* `Unknown` - This is used for legacy C# code that does not know about nullability. This can appear in modern C# code that calls unannoted C#. For use in this document, we represent unknown via `~`, but this symbol does not appear in source.
+* `NotAnalyzed` - This is used to fulfill priority #2.
+If the user requests information while asking for nullability to not be calculated, we'll use this to stand in for nullability.
+* `Unknown` - This is used for legacy C# code that does not know about nullability.
+This can appear in modern C# code that calls unannotated C#, or in certain generic variance scenarios where a common nullability cannot be inferred from the supplied arguments.
+For use in this document unknown is represented with the `~` character, but this character does not appear in source.
 * `NotNull` - This is used when we know the nullability is not null.
-* `MaybeNull` - This is used when we know the nullability might be null.
+* `MayBeNull` - This is used when we know the nullability may be null.
 
-Nullability information will be retreived from the `SemanticModel`, much like type information. `GetSemanticModel` will return a `SemanticModel` that is aware of nullability information, and will force binding and calculation of nullability information when queried. We will offer a method off of `SemanticModel`, `GetSingleStatementSemanticModel()`, which will return a `SemanticModel` that does not calculate nullability information, for particularly performance-sensitive scenarios. This `SemanticModel` will share a cache with its parent, much like speculative `SemanticModel`s, and all nullabilities accessed on symbols retrieved from this `SemanticModel` will be `NotAnalyzed`.
+Nullability information will be retrieved from the `SemanticModel`, much like type information.
+`GetSemanticModel` will return a `SemanticModel` that is aware of nullability information, and will force binding and calculation of nullability information when queried.
+We will offer a method off of `SemanticModel`, `GetSingleStatementSemanticModel()`, which will return a `SemanticModel` that does not calculate nullability information, for particularly performance-sensitive scenarios.
+This `SemanticModel` will share a cache with its parent, much like speculative `SemanticModel`s, and all nullabilities accessed on symbols retrieved from this `SemanticModel` will be `NotAnalyzed`.
 
-Generally speaking, when you want to determine the nullability of an `ITypeSymbol`, you need to check the containing context. The declaring symbol (e.g. `ILocalSymbol`, `IFieldSymbol`, etc.) will have the declared nullability of the type. `GetTypeInfo` will give you both the `ITypeSymbol` and the `Nullability` of an expression. Nested nullabilities for type parameters are contained on the containing `ITypeSymbol`. For example, if you wanted to know whether an array's contents are nullable, you will need to check the `IArrayTypeSymbol` for `ElementNullability`.
+Generally speaking, when you want to determine the nullability of an `ITypeSymbol`, you need to check the containing context.
+The declaring symbol (e.g. `ILocalSymbol`, `IFieldSymbol`, etc.) will have the declared nullability of the type.
+`GetTypeInfo` will give you both the `ITypeSymbol` and the `Nullability` of an expression.
+Nested nullabilities for type parameters are contained on the containing `ITypeSymbol`.
+For example, if you wanted to know whether an array's contents are nullable, you will need to check the `IArrayTypeSymbol` for `ElementNullability`.
+
+Value types are always considered `NotNull`.
+Nullable value types and reference types have their state tracked, and are either `NotNull` or `MayBeNull` depending on flow state.
+Unconstrained generic parameters are being tracked, but what they will return for flow state information before explicit null checks occur in source code has not yet been decided.
 
 ### Declared Nullability
 
-Declared nullability is the nullability that was explicitly typed in the source code by the programmer. There are some cases where this is inferred, such as lambda arguments/return types, `var` variables, and type parameter substitution. For these cases, flow state is necessary to compute the declared nullability. For example:
+Declared nullability is the nullability that was explicitly typed in the source code by the programmer.
+There are some cases where this is inferred, such as lambda arguments/return types, `var` variables, and type parameter substitution.
+For these cases, flow state is necessary to compute the declared nullability.
+For example:
 
 ```C#
 string? s1 = string.Empty;
@@ -32,17 +56,27 @@ var s2 = s1;
 s2 = null; // This will warn, because the type of s2 is string, not string?
 ```
 
-The declared nullability of `s1` is `MaybeNull`, even though it is being initialized with a non null value. However, because of the flow state of `s1` is `NotNull`, we will infer the declared nullability of `s2` to be `NotNull` as well.
+The declared nullability of `s1` is `MayBeNull`, even though it is being initialized with a non-null value.
+However, because of the flow state of `s1` is `NotNull`, we will infer the declared nullability of `s2` to be `NotNull` as well.
 
 Declared nullability can be retreived from the declaration symbol (e.g. `IFieldSymbol`, `IMethodSymbol`, etc.).
 
 ### Flow State
 
-When the nullable feature is enabled, Roslyn will track the flow state of expressions throughout a method, regardless of what the variable was declared as. `SemanticModel` can be used to request flow state information for individual expressions or sub-expressions through the `GetTypeInfo` APIs. The `TypeInfo` struct will be augmented with `Nullability` and `ConvertedNullability` information, similar to how it currently has `Type` and `ConvertedType`. Nullability of symbols at a location can be retrieved through the `GetSymbolInfo` API: if the expression successfully resolved to a single symbol, the `Symbol` property will have nullability calculated. `CandidateSymbols` will not have calculated nullabilities, as we cannot run nullable analysis on code that has failed overload resolution.
+When the nullable feature is enabled, Roslyn will track the flow state of expressions throughout a method, regardless of what the variable was declared as.
+`SemanticModel` can be used to request flow state information for individual expressions or sub-expressions through the `GetTypeInfo` APIs.
+The `TypeInfo` struct will be augmented with `Nullability` and `ConvertedNullability` information, similar to how it currently has `Type` and `ConvertedType`.
+Nullability of symbols at a location can be retrieved through the `GetSymbolInfo` API: if the expression successfully resolved to a single symbol, the `Symbol` property will have nullability calculated.
+`CandidateSymbols` will not have calculated nullabilities, as we cannot run nullable analysis on code that has failed overload resolution.
 
-### `GetSingleStatementSemanticModel`
+### `GetSemanticModel(bool skipNullabilityInformation)`
 
-This API proposal changes the way `SemanticModel` calls behave by default. Currently, if semantic information is requested for a `SyntaxNode`, we make an effort to bind as little as possible to provide semantic information about that statement, usually a single statement. However, if that semantic information will include `Nullability`, we must bind all statements that come before that statement and run nullability analysis up to and including that statement. We believe that this change will be ok for most scenarios, as things such as colorization and analyzers are already running in the background near-constantly, binding pretty much everything on screen and in the file anyway. There are a few specific scenarios that will be perf-sensitive, and `GetSingleStatementSemanticModel()` will be provided for these. It will share an initial-binding `BoundNode` cache with the standard semantic model, so it will get the benefits if something else with the same semantic model requests information, as it would have today.
+This API proposal changes the way `SemanticModel` calls behave by default.
+Currently, if semantic information is requested for a `SyntaxNode`, we make an effort to bind as little as possible to provide semantic information about that statement, usually a single statement.
+However, if that semantic information will include `Nullability`, we must bind all statements that come before that statement and run nullability analysis up to and including that statement.
+We believe that this change will be ok for most scenarios, as things such as colorization and analyzers are already running in the background near-constantly, binding pretty much everything on screen and in the file anyway.
+There are a few specific scenarios that will be perf-sensitive, and an overload for `GetSemanticModel()` that skips nullability information will be provided for these.
+It will share an initial-binding `BoundNode` cache with the standard semantic model, so it will get the benefits if something else with the same semantic model requests information, as it would have today.
 
 ## New APIs
 
@@ -53,8 +87,9 @@ public enum Nullability
 {
     NotApplicable,
     NotComputed,
+    Unknown,
     NotNull,
-    MaybeNull
+    MayBeNull
 }
 
 #region Declared Nullability
@@ -84,7 +119,7 @@ public interface ILocalSymbol : ISymbol
 public interface IMethodSymbol : ISymbol
 {
     Nullability ReturnNullability { get; }
-    Nullability TypeArgumentsNullabilities { get; }
+    ImmutableArray<Nullability> TypeArgumentsNullabilities { get; }
     Nullability ReceiverNullability { get; }
 }
 
@@ -110,7 +145,7 @@ public interface INamedTypeSymbol : ITypeSymbol
 public interface ITypeParameterSymbol : ITypeSymbol
 {
     Nullability ReferenceTypeConstraintNullability { get; }
-    Nullability ConstraintsNullabilities { get; }
+    ImmutableArray<Nullability> ConstraintsNullabilities { get; }
 }
 
 public struct TypeInfo
@@ -121,12 +156,13 @@ public struct TypeInfo
 
 #endregion
 
-#region SemanticModel
+#region Compilation
 
-public abstract class SemanticModel
+public class Compilation
 {
-    public SemanticModel GetSingleStatementSemanticModel();
+    public SemanticModel GetSemanticModel(bool skipNullabilityInformation);
 }
+
 
 #endregion
 
@@ -147,11 +183,12 @@ public interface ITypeSymbol
 #endregion
 ```
 
-## Alternatives
+## Considered Alternatives
 
-### Nullability on ITypeSymbol
+### `Nullability` on `ITypeSymbol`
 
-The basic principle of this proposal is to add `Nullability Nullability { get; }` to `ITypeSymbol`, and remove the rest of the proposed nullability retrieval APIs in the main section. This has a few benefits:
+The basic principle of this alternative proposal is to add `Nullability Nullability { get; }` to `ITypeSymbol`, and remove the rest of the proposed nullability retrieval APIs in the main section.
+This has a few benefits:
 
 1. Consumers of `ITypeSymbol`s won't have to keep track of where the type symbol came from to retrieve nullability information, they just have to ask the type.
 2. Printing APIs and code generation APIs do not need to have new overloads introduced to allow communication of top-level nullability information.
@@ -159,24 +196,46 @@ The basic principle of this proposal is to add `Nullability Nullability { get; }
 
 However, this approach has a few major issues that ultimately break our ability to do this design.
 
-1. This approach will violate principle #1 of our goals for this API, breaking existing analyzers and refactorings extensively. A common strategy for these APIs is to call `Compilation.GetTypeByMetadataName`, or one of the similar overloads, and then look for fields, locals, properties, or other similar symbols of the requested type. Up to this point, our guidance has been that, for non-generic types, it is perfectly fine to just compare these symbols via `==` if you're looking for exact matches, and that you only need to resort to `OriginalDefinition` for types with generics. This will no longer be possible if we were to add `Nullability` to `ITypeSymbol`.
-2. The default `Nullability` of symbols is another pain point. When a class is declared, it doesn't have a nullability. It's just an `INamedTypeSymbol`. It may have constraints that have nullabilities, but the top-level nullability is not a question that makes any sense. However, in order to not break analyzers on nullable-unaware code, we will have to make the default nullability `Unknown`, as old C# code will have this as the nullability when `GetTypeInfo` is called on an expression.
-3. This causes massive explosion in type heirarchies. If I had a `string?` and called `GetDeclaredMembers()`, the parent of each of these members must point back to `string?`, and not `string` or `string~`.
+1. This approach will violate principle #1 of our goals for this API, breaking existing analyzers and refactorings extensively.
+A common strategy for these APIs is to call `Compilation.GetTypeByMetadataName`, or one of the similar overloads, and then look for fields, locals, properties, or other similar symbols of the requested type.
+Up to this point, our guidance has been that, for non-generic types, it is perfectly fine to just compare these symbols via `==` if you're looking for exact matches, and that you only need to resort to `OriginalDefinition` for types with generics.
+This will no longer be possible if we were to add `Nullability` to `ITypeSymbol`.
+2. The default `Nullability` of symbols is another pain point.
+When a class is declared, it doesn't have a nullability.
+It's just an `INamedTypeSymbol`.
+It may have constraints that have nullabilities, but the top-level nullability is not a question that makes any sense.
+However, in order to not break analyzers on nullable-unaware code, we will have to make the default nullability `Unknown`, as old C# code will have this as the nullability when `GetTypeInfo` is called on an expression.
+This would further exacerbate issue #1.
+3. This causes massive explosion in type heirarchies.
+If a user got `string?` and called `GetDeclaredMembers()`, the parent of each of these members must point back to `string?`, and not `string` or `string~`.
 
 For these reasons, we have decided not take this approach.
 
-### GetNullabilityAwareSemanticModel
+### `GetSingleStatementSemanticModel`
 
-This proposal flipped the `GetSingleStatementSemanticModel` proposal on its head: instead of `SemanticModel` calculating nullability by default, it would only calculate when requested. We decided against this because we believe that, except for specific cases where perf is an issue, the savings gained from not calculating nullability would be moot as IDE features or analyzers will have already requested nullability anyway, and the time savings would be unused. Therefore, we are not taking this approach.
+Instead of an overload on `Compilation` to get a `SemanticModel` without nullability info calculated, we had a `GetSingleStatementSemanticModel()` method on `SemanticModel`, that would get a `SemanticModel` that shared the `BoundNode` cache with the existing `SemanticModel` and did not calculate nullability information.
+This was rejected for being too complicated a solution, and for not being very future-proof if we were to add more analyses that users would want to opt out of.
+
+### `GetNullabilityAwareSemanticModel`
+
+This alternative proposal flipped the `GetSingleStatementSemanticModel` proposal on its head: instead of `SemanticModel` calculating nullability by default, it would only calculate when requested.
+We decided against this because we believe that, except for specific cases where perf is an issue, the savings gained from not calculating nullability would be moot as IDE features or analyzers will have already requested nullability anyway, and the time savings would be unused.
+Therefore, we are not taking this approach.
 
 ### `GetNullabilityInfo`
 
-An early proposal had a parallel API to `GetTypeInfo()`, `GetNullabilityInfo()`, that would return a structure similar to `TypeInfo` that contained nullability information. We decided that this would provide no benefits: because of nested nullability, we would still need to run nullability analysis on calls to `GetTypeInfo`, and it would needlessly separate information that users will want to get access to in tandem. Additionally, we could not come up with a good set of APIs for `GetDeclaredSymbol` and `GetSymbolInfo` to go along with that API.
+An early alternative proposal had a parallel API to `GetTypeInfo()`, `GetNullabilityInfo()`, that would return a structure similar to `TypeInfo` that contained nullability information.
+We decided that this would provide no benefits: because of nested nullability, we would still need to run nullability analysis on calls to `GetTypeInfo`, and it would needlessly separate information that users will want to get access to in tandem.
+Additionally, we could not come up with a good set of APIs for `GetDeclaredSymbol` and `GetSymbolInfo` to go along with that API.
 
 ### Lazily calcualted `Nullability` properties
 
-This proposal added similar `Nullability` properties to the interfaces as the main proposal, but did not calculate them ahead of time. Rather, they would be calculated when requested by the user. The big problem with this is that suddenly symbols, `TypeInfo`, and `SymbolInfo` must suddenly start carrying around the context in which they were called to be able to lazily calculate these properties, which is a major breaking change.
+This alternative proposal added similar `Nullability` properties to the interfaces as the main proposal, but did not calculate them ahead of time.
+Rather, they would be calculated when requested by the user.
+The big problem with this is that suddenly symbols, `TypeInfo`, and `SymbolInfo` must suddenly start carrying around the context in which they were called to be able to lazily calculate these properties, which is a major breaking change.
 
 ### `ITypeReference`
 
-We briefly wandered down a thought experiment where we considered adding an `ITypeReference` API, which would contain an `ITypeSymbol` and a `Nullability`, plus potentially things like ref, custom modifiers, and other side car information we have today. This would be an extremely breaking change, requiring massive changes across the API surface area. It would also require revisiting an explicit design choice in the initial design of Roslyn.
+We briefly wandered down a thought experiment where we considered adding an `ITypeReference` API, which would contain an `ITypeSymbol` and a `Nullability`, plus potentially things like ref, custom modifiers, and other side car information we have today.
+This would be an *extremely* breaking change, requiring massive changes across the API surface area.
+It would also require revisiting an explicit design choice in the initial design of Roslyn.
