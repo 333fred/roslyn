@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using Microsoft.CodeAnalysis.CSharp.Symbols;
+using Microsoft.CodeAnalysis.Operations;
 using Microsoft.CodeAnalysis.PooledObjects;
 using Roslyn.Utilities;
 
@@ -19,12 +20,16 @@ namespace Microsoft.CodeAnalysis.CSharp
         private sealed class DebugVerifier : BoundTreeWalker
         {
             private readonly ImmutableDictionary<BoundExpression, (NullabilityInfo Info, TypeSymbol Type)> _analyzedNullabilityMap;
+            private readonly Dictionary<BoundNode, Checkpoint> _checkpointMapOpt;
             private readonly HashSet<BoundExpression> _visitedExpressions = new HashSet<BoundExpression>();
+            private readonly BoundNode _originalNode;
             private int _recursionDepth;
 
-            private DebugVerifier(ImmutableDictionary<BoundExpression, (NullabilityInfo Info, TypeSymbol Type)> analyzedNullabilityMap)
+            private DebugVerifier(ImmutableDictionary<BoundExpression, (NullabilityInfo Info, TypeSymbol Type)> analyzedNullabilityMap, Dictionary<BoundNode, Checkpoint> checkpointMapOpt, BoundNode originalNode)
             {
                 _analyzedNullabilityMap = analyzedNullabilityMap;
+                _checkpointMapOpt = checkpointMapOpt;
+                _originalNode = originalNode;
             }
 
             protected override bool ConvertInsufficientExecutionStackExceptionToCancelledByStackGuardException()
@@ -32,9 +37,9 @@ namespace Microsoft.CodeAnalysis.CSharp
                 return false; // Same behavior as NullableWalker
             }
 
-            public static void Verify(ImmutableDictionary<BoundExpression, (NullabilityInfo Info, TypeSymbol Type)> analyzedNullabilityMap, BoundNode node)
+            public static void Verify(ImmutableDictionary<BoundExpression, (NullabilityInfo Info, TypeSymbol Type)> analyzedNullabilityMap, Dictionary<BoundNode, Checkpoint> checkpointMapOpt, BoundNode node)
             {
-                var verifier = new DebugVerifier(analyzedNullabilityMap);
+                var verifier = new DebugVerifier(analyzedNullabilityMap, checkpointMapOpt, node);
                 verifier.Visit(node);
                 // Can't just remove nodes from _analyzedNullabilityMap and verify no nodes remaining because nodes can be reused.
                 Debug.Assert(verifier._analyzedNullabilityMap.Count == verifier._visitedExpressions.Count, $"Visited {verifier._visitedExpressions.Count} nodes, expected to visit {verifier._analyzedNullabilityMap.Count}");
@@ -57,6 +62,12 @@ namespace Microsoft.CodeAnalysis.CSharp
 
             public override BoundNode Visit(BoundNode node)
             {
+                // Ensure that we always have a checkpoint for every BoundExpression in the map
+                if (_checkpointMapOpt != null && node != _originalNode)
+                {
+                    Debug.Assert(_checkpointMapOpt.ContainsKey(node), $"Did not find a checkpoint for {node} `{node.Syntax}.`");
+                }
+
                 if (node is BoundExpression expr)
                 {
                     return VisitExpressionWithStackGuard(ref _recursionDepth, expr);

@@ -809,6 +809,7 @@ class C
             var conditional = root.DescendantNodes().OfType<ConditionalExpressionSyntax>().Single();
 
             var notNull = new NullabilityInfo(PublicNullableAnnotation.NotAnnotated, PublicNullableFlowState.NotNull);
+
             var @null = new NullabilityInfo(PublicNullableAnnotation.Annotated, PublicNullableFlowState.MaybeNull);
 
             var leftInfo = model.GetTypeInfo(conditional.WhenTrue);
