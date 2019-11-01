@@ -5701,6 +5701,11 @@ tryAgain:
                 }
             }
 
+            if (IsFunctionPointerStart())
+            {
+                return ScanFunctionPointerType(out lastTokenOfType);
+            }
+
             if (this.CurrentToken.Kind == SyntaxKind.IdentifierToken)
             {
                 result = this.ScanNamedTypePart(out lastTokenOfType);
@@ -5873,6 +5878,66 @@ done:
             return ScanTypeFlags.NotType;
         }
 
+        private ScanTypeFlags ScanFunctionPointerType(out SyntaxToken lastTokenOfType)
+        {
+            Debug.Assert(IsFunctionPointerStart());
+            _ = EatContextualToken(SyntaxKind.FuncKeyword);
+            _ = EatToken(SyntaxKind.AsteriskToken);
+
+            bool scannedCallingConvention = false;
+
+            switch (CurrentToken.ContextualKind)
+            {
+                case SyntaxKind.CdeclKeyword:
+                case SyntaxKind.ManagedKeyword:
+                case SyntaxKind.StdcallKeyword:
+                case SyntaxKind.ThiscallKeyword:
+                case SyntaxKind.UnmanagedKeyword:
+                    _ = EatContextualToken(CurrentToken.ContextualKind);
+                    scannedCallingConvention = true;
+                    break;
+            }
+
+            bool returnIsFunctionPointer = IsFunctionPointerStart();
+
+            ScanType(out _);
+
+            if (CurrentToken.Kind != SyntaxKind.OpenParenToken)
+            {
+                // In this case, the first "type" given must have been
+                // an invalid calling convention, so scan another type
+                scannedCallingConvention = true;
+                ScanType(out _);
+            }
+
+            _ = EatToken(SyntaxKind.OpenParenToken);
+
+            while (true)
+            {
+                ScanType(out _);
+                if (CurrentToken.Kind == SyntaxKind.CloseParenToken)
+                {
+                    break;
+                }
+
+                _ = EatToken(SyntaxKind.CommaToken);
+            }
+
+            lastTokenOfType = EatToken(SyntaxKind.CloseParenToken);
+
+            if (CurrentToken.Kind == SyntaxKind.OpenParenToken && !scannedCallingConvention)
+            {
+                // In this case, we must have a tuple-type return type for the function
+                // pointer, like:
+                //
+                //    func* invalidcallingconvetion (int, int)()
+                //
+                // There are no valid cases where a ( can come after a function pointer type,
+            }
+
+            return ScanTypeFlags.MustBeType;
+        }
+
         private static bool IsPredefinedType(SyntaxKind keyword)
         {
             return SyntaxFacts.IsPredefinedType(keyword);
@@ -5904,7 +5969,8 @@ done:
             AfterTupleComma,
             AsExpression,
             NewExpression,
-            FirstElementOfPossibleTupleLiteral
+            FirstElementOfPossibleTupleLiteral,
+            ReturnTypeOfFunctionPointer
         }
 
         private TypeSyntax ParseType(ParseTypeMode mode = ParseTypeMode.Normal)
@@ -5952,6 +6018,7 @@ done:
                 case ParseTypeMode.AsExpression:
                 case ParseTypeMode.Normal:
                 case ParseTypeMode.Parameter:
+                case ParseTypeMode.ReturnTypeOfFunctionPointer:
                     nameOptions = NameOptions.None;
                     break;
                 default:
@@ -5962,6 +6029,7 @@ done:
             Debug.Assert(type != null);
 
             int lastTokenPosition = -1;
+            ResetPoint beforeTypeReset = GetResetPoint();
             while (IsMakingProgress(ref lastTokenPosition))
             {
                 switch (this.CurrentToken.Kind)
@@ -5992,6 +6060,12 @@ done:
                             return true;
                         }
                     case SyntaxKind.AsteriskToken when type.Kind != SyntaxKind.ArrayType:
+                        if (PeekToken(1).Kind == SyntaxKind.LessThanToken)
+                        {
+                            type = parseFunctionPointerType(type, ref beforeTypeReset);
+                            continue;
+                        }
+
                         switch (mode)
                         {
                             case ParseTypeMode.AfterIs:
@@ -6010,6 +6084,7 @@ done:
                             case ParseTypeMode.AfterOut:
                             case ParseTypeMode.AsExpression:
                             case ParseTypeMode.NewExpression:
+                            case ParseTypeMode.ReturnTypeOfFunctionPointer:
                                 type = this.ParsePointerTypeMods(type);
                                 continue;
                         }
@@ -6041,8 +6116,75 @@ done:
 done:;
 
             Debug.Assert(type != null);
+            Release(ref beforeTypeReset);
             return type;
+
+            FunctionPointerTypeSyntax parseFunctionPointerType(TypeSyntax alreadyParsedType, ref ResetPoint resetPoint)
+            {
+                Debug.Assert(CurrentToken.Kind == SyntaxKind.AsteriskToken &&
+                             PeekToken(1).Kind == SyntaxKind.LessThanToken);
+
+                SyntaxToken callingConvention;
+
+                // If the already parsed type can be reparsed as a calling convention, then
+                // attempt to reparse. If it cannot be reparsed, just create a missing token
+                // to wrap
+                if (alreadyParsedType.Kind == SyntaxKind.IdentifierName)
+                {
+                    Reset(ref resetPoint);
+
+                    switch (CurrentToken.ContextualKind)
+                    {
+                        case SyntaxKind.FuncKeyword:
+                        case SyntaxKind.CdeclKeyword:
+                        case SyntaxKind.ManagedKeyword:
+                        case SyntaxKind.StdcallKeyword:
+                        case SyntaxKind.ThiscallKeyword:
+                        case SyntaxKind.UnmanagedKeyword:
+                            callingConvention = EatContextualToken(CurrentToken.ContextualKind);
+                            break;
+
+                        default:
+                            callingConvention = EatContextualToken(SyntaxKind.FuncKeyword, reportError: false);
+                            break;
+                    }
+                }
+                else
+                {
+                    callingConvention = SyntaxFactory.MissingToken(SyntaxKind.FuncKeyword);
+                    callingConvention = AddTrailingSkippedSyntax(callingConvention, alreadyParsedType);
+                }
+
+                if (callingConvention is SyntaxToken.MissingTokenWithTrivia)
+                {
+                    AddError(callingConvention, ErrorCode.ERR_InvalidFunctionPointerCallingConvention, callingConvention.ToFullString());
+                }
+
+                var asteriskToken = EatToken(SyntaxKind.AsteriskToken);
+                var lessThanToken = EatToken(SyntaxKind.LessThanToken);
+                var argumentTypes = _pool.AllocateSeparated<TypeSyntax>();
+
+                while (true)
+                {
+                    // PROTOTYPE: Handle bad tokens
+                    if (CurrentToken.Kind == SyntaxKind.GreaterThanToken)
+                    {
+                        break;
+                    }
+
+                    argumentTypes.AddSeparator(EatToken(SyntaxKind.CommaToken));
+                    argumentTypes.Add(ParseTypeOrVoid());
+                }
+
+                var greaterThanToken = EatToken(SyntaxKind.GreaterThanToken);
+
+                return SyntaxFactory.FunctionPointerType(callingConvention, asteriskToken, lessThanToken, argumentTypes, greaterThanToken);
+            }
         }
+
+        private bool IsFunctionPointerStart() => CurrentToken.ContextualKind == SyntaxKind.FuncKeyword
+                                                 && PeekToken(1).Kind == SyntaxKind.AsteriskToken
+                                                 && IsFeatureEnabled(MessageID.IDS_FeatureFunctionPointers);
 
         private SyntaxToken EatNullableQualifierIfApplicable(ParseTypeMode mode)
         {

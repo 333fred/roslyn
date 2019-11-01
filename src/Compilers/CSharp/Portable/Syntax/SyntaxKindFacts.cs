@@ -1061,7 +1061,7 @@ namespace Microsoft.CodeAnalysis.CSharp
 
         public static IEnumerable<SyntaxKind> GetContextualKeywordKinds()
         {
-            for (int i = (int)SyntaxKind.YieldKeyword; i <= (int)SyntaxKind.WhenKeyword; i++)
+            for (int i = (int)SyntaxKind.YieldKeyword; i <= (int)SyntaxKind.UnmanagedKeyword; i++)
             {
                 yield return (SyntaxKind)i;
             }
@@ -1106,6 +1106,12 @@ namespace Microsoft.CodeAnalysis.CSharp
                 case SyntaxKind.WhenKeyword:
                 case SyntaxKind.UnderscoreToken:
                 case SyntaxKind.VarKeyword:
+                case SyntaxKind.FuncKeyword:
+                case SyntaxKind.CdeclKeyword:
+                case SyntaxKind.ManagedKeyword:
+                case SyntaxKind.StdcallKeyword:
+                case SyntaxKind.ThiscallKeyword:
+                case SyntaxKind.UnmanagedKeyword:
                     return true;
                 default:
                     return false;
@@ -1209,6 +1215,18 @@ namespace Microsoft.CodeAnalysis.CSharp
                     return SyntaxKind.UnderscoreToken;
                 case "var":
                     return SyntaxKind.VarKeyword;
+                case "func":
+                    return SyntaxKind.FuncKeyword;
+                case "cdecl":
+                    return SyntaxKind.CdeclKeyword;
+                case "managed":
+                    return SyntaxKind.ManagedKeyword;
+                case "stdcall":
+                    return SyntaxKind.StdcallKeyword;
+                case "thiscall":
+                    return SyntaxKind.ThiscallKeyword;
+                case "unmanaged":
+                    return SyntaxKind.UnmanagedKeyword;
                 default:
                     return SyntaxKind.None;
             }
@@ -1628,6 +1646,18 @@ namespace Microsoft.CodeAnalysis.CSharp
                     return "_";
                 case SyntaxKind.VarKeyword:
                     return "var";
+                case SyntaxKind.FuncKeyword:
+                    return "func";
+                case SyntaxKind.CdeclKeyword:
+                    return "cdecl";
+                case SyntaxKind.ManagedKeyword:
+                    return "managed";
+                case SyntaxKind.StdcallKeyword:
+                    return "stdcall";
+                case SyntaxKind.ThiscallKeyword:
+                    return "thiscall";
+                case SyntaxKind.UnmanagedKeyword:
+                    return "unmanaged";
                 default:
                     return string.Empty;
             }

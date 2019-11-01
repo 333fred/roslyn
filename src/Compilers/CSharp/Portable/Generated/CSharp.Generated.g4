@@ -318,6 +318,7 @@ namespace_declaration
 
 type
   : array_type
+  | function_pointer_type
   | name
   | nullable_type
   | omitted_type_argument
@@ -333,6 +334,15 @@ array_type
 
 array_rank_specifier
   : '[' (expression (',' expression)*)? ']'
+  ;
+
+function_pointer_type
+  : 'cdecl' '*' '<' type (',' type)* '>'
+  | 'func' '*' '<' type (',' type)* '>'
+  | 'managed' '*' '<' type (',' type)* '>'
+  | 'stdcall' '*' '<' type (',' type)* '>'
+  | 'thiscall' '*' '<' type (',' type)* '>'
+  | 'unmanaged' '*' '<' type (',' type)* '>'
   ;
 
 nullable_type

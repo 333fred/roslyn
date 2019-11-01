@@ -223,6 +223,43 @@
       <summary>Creates a PointerTypeSyntax node.</summary>
     </FactoryComment>
   </Node>
+  <Node Name="FunctionPointerTypeSyntax" Base="TypeSyntax">
+    <Kind Name="FunctionPointerType"/>
+    <Field Name="CallingConvention" Type="SyntaxToken">
+      <Kind Name="FuncKeyword"/>
+      <Kind Name="CdeclKeyword" />
+      <Kind Name="ManagedKeyword" />
+      <Kind Name="StdcallKeyword" />
+      <Kind Name="ThiscallKeyword" />
+      <Kind Name="UnmanagedKeyword" />
+      <PropertyComment>
+        <summary>SyntaxToken representing the func keyword.</summary>
+      </PropertyComment>
+    </Field>
+    <Field Name="AsteriskToken" Type="SyntaxToken">
+      <Kind Name="AsteriskToken"/>
+      <PropertyComment>
+        <summary>SyntaxToken representing the asterisk.</summary>
+      </PropertyComment>
+    </Field>
+    <Field Name="LessThanToken" Type="SyntaxToken">
+      <Kind Name="LessThanToken"/>
+      <PropertyComment>
+        <summary>SyntaxToken representing the less than token.</summary>
+      </PropertyComment>
+    </Field>
+    <Field Name="Arguments" Type="SeparatedSyntaxList&lt;TypeSyntax&gt;" MinCount="1">
+      <PropertyComment>
+        <summary>SeparatedSyntaxList of TypeSyntax representing the list of parameters and return type.</summary>
+      </PropertyComment>
+    </Field>
+    <Field Name="GreaterThanToken" Type="SyntaxToken">
+      <Kind Name="GreaterThanToken"/>
+      <PropertyComment>
+        <summary>SyntaxToken representing the greater than token.</summary>
+      </PropertyComment>
+    </Field>
+  </Node>
   <Node Name="NullableTypeSyntax" Base="TypeSyntax">
     <Kind Name="NullableType"/>
     <Field Name="ElementType" Type="TypeSyntax">
