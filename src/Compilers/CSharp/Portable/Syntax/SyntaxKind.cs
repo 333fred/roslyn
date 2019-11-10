@@ -601,5 +601,6 @@ namespace Microsoft.CodeAnalysis.CSharp
         SuppressNullableWarningExpression = 9054,
         NullableDirectiveTrivia = 9055,
         FunctionPointerType = 9056,
+        FunctionPointerParameterOrReturnType = 9057,
     }
 }

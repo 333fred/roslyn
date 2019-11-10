@@ -1856,7 +1856,7 @@ tryAgain:
             switch (this.CurrentToken.Kind)
             {
                 case SyntaxKind.ClassKeyword:
-                case SyntaxKind.DelegateKeyword:
+                case SyntaxKind.DelegateKeyword when PeekToken(1) != SyntaxKind.AsteriskToken:
                 case SyntaxKind.EnumKeyword:
                 case SyntaxKind.InterfaceKeyword:
                 case SyntaxKind.StructKeyword:
@@ -5989,7 +5989,7 @@ done:
 
                 var type = ParseTypeCore(mode);
                 return _syntaxFactory.RefType(refKeyword, readonlyKeyword, type);
-            }
+           }
 
             return ParseTypeCore(mode);
         }
@@ -6182,9 +6182,8 @@ done:;
             }
         }
 
-        private bool IsFunctionPointerStart() => CurrentToken.ContextualKind == SyntaxKind.FuncKeyword
-                                                 && PeekToken(1).Kind == SyntaxKind.AsteriskToken
-                                                 && IsFeatureEnabled(MessageID.IDS_FeatureFunctionPointers);
+        private bool IsFunctionPointerStart() => CurrentToken.Kind == SyntaxKind.DelegateKeyword
+                                                 && PeekToken(1).Kind == SyntaxKind.AsteriskToken;
 
         private SyntaxToken EatNullableQualifierIfApplicable(ParseTypeMode mode)
         {
@@ -6407,10 +6406,50 @@ done:;
             {
                 return this.ParseTupleType();
             }
+            else if (IsFunctionPointerStart())
+            {
+                return ParseFunctionPointerTypeSyntax();
+            }
             else
             {
                 var name = this.CreateMissingIdentifierName();
                 return this.AddError(name, ErrorCode.ERR_TypeExpected);
+            }
+        }
+
+        private FunctionPointerTypeSyntax ParseFunctionPointerTypeSyntax()
+        {
+            Debug.Assert(IsFunctionPointerStart());
+            var @delegate = EatToken(SyntaxKind.DelegateKeyword);
+            var asterisk = EatToken(SyntaxKind.AsteriskToken);
+            var callingConvention = CurrentToken.Kind != SyntaxKind.LessThanToken
+                ? CurrentToken.ContextualKind switch
+                {
+                    SyntaxKind.CdeclKeyword => EatContextualToken(SyntaxKind.CdeclKeyword),
+                    SyntaxKind.ManagedKeyword => EatContextualToken(SyntaxKind.ManagedKeyword),
+                    SyntaxKind.UnmanagedKeyword => EatContextualToken(SyntaxKind.UnmanagedKeyword),
+                    SyntaxKind.ThiscallKeyword => EatContextualToken(SyntaxKind.ThiscallKeyword),
+                    SyntaxKind.StdcallKeyword => EatContextualToken(SyntaxKind.StdcallKeyword),
+                    _ => EatContextualToken(SyntaxKind.CdeclKeyword),
+                }
+                : null;
+
+            var lessThanToken = EatToken(SyntaxKind.LessThanToken);
+            var types = _pool.AllocateSeparated<FunctionPointerParameterOrReturnTypeSyntax>();
+
+            while (CurrentToken.Kind != SyntaxKind.GreaterThanToken)
+            {
+                switch (CurrentToken.Kind)
+                {
+                    case SyntaxKind.RefKeyword:
+                    case SyntaxKind.OutKeyword:
+                    case SyntaxKind.InKeyword:
+                }
+
+                void parseModifier(SyntaxKind expected, SyntaxListBuilder modifiers)
+                {
+                    modifiers.Add(EatToken(expected));
+                }
             }
         }
 

@@ -76,6 +76,12 @@ namespace Microsoft.CodeAnalysis.CSharp
       return this.DefaultVisit(node);
     }
 
+    /// <summary>Called when the visitor visits a FunctionPointerParameterOrReturnTypeSyntax node.</summary>
+    public virtual TResult VisitFunctionPointerParameterOrReturnType(FunctionPointerParameterOrReturnTypeSyntax node)
+    {
+      return this.DefaultVisit(node);
+    }
+
     /// <summary>Called when the visitor visits a NullableTypeSyntax node.</summary>
     public virtual TResult VisitNullableType(NullableTypeSyntax node)
     {
@@ -1371,6 +1377,12 @@ namespace Microsoft.CodeAnalysis.CSharp
 
     /// <summary>Called when the visitor visits a FunctionPointerTypeSyntax node.</summary>
     public virtual void VisitFunctionPointerType(FunctionPointerTypeSyntax node)
+    {
+      this.DefaultVisit(node);
+    }
+
+    /// <summary>Called when the visitor visits a FunctionPointerParameterOrReturnTypeSyntax node.</summary>
+    public virtual void VisitFunctionPointerParameterOrReturnType(FunctionPointerParameterOrReturnTypeSyntax node)
     {
       this.DefaultVisit(node);
     }
@@ -2681,12 +2693,20 @@ namespace Microsoft.CodeAnalysis.CSharp
 
     public override SyntaxNode VisitFunctionPointerType(FunctionPointerTypeSyntax node)
     {
-      var callingConvention = this.VisitToken(node.CallingConvention);
+      var delegateKeyword = this.VisitToken(node.DelegateKeyword);
       var asteriskToken = this.VisitToken(node.AsteriskToken);
+      var callingConvention = this.VisitToken(node.CallingConvention);
       var lessThanToken = this.VisitToken(node.LessThanToken);
       var arguments = this.VisitList(node.Arguments);
       var greaterThanToken = this.VisitToken(node.GreaterThanToken);
-      return node.Update(callingConvention, asteriskToken, lessThanToken, arguments, greaterThanToken);
+      return node.Update(delegateKeyword, asteriskToken, callingConvention, lessThanToken, arguments, greaterThanToken);
+    }
+
+    public override SyntaxNode VisitFunctionPointerParameterOrReturnType(FunctionPointerParameterOrReturnTypeSyntax node)
+    {
+      var modifiers = this.VisitList(node.Modifiers);
+      var type = (TypeSyntax)this.Visit(node.Type);
+      return node.Update(modifiers, type);
     }
 
     public override SyntaxNode VisitNullableType(NullableTypeSyntax node)
@@ -4700,19 +4720,14 @@ namespace Microsoft.CodeAnalysis.CSharp
     }
 
     /// <summary>Creates a new FunctionPointerTypeSyntax instance.</summary>
-    public static FunctionPointerTypeSyntax FunctionPointerType(SyntaxToken callingConvention, SyntaxToken asteriskToken, SyntaxToken lessThanToken, SeparatedSyntaxList<TypeSyntax> arguments, SyntaxToken greaterThanToken)
+    public static FunctionPointerTypeSyntax FunctionPointerType(SyntaxToken delegateKeyword, SyntaxToken asteriskToken, SyntaxToken callingConvention, SyntaxToken lessThanToken, SeparatedSyntaxList<FunctionPointerParameterOrReturnTypeSyntax> arguments, SyntaxToken greaterThanToken)
     {
-      switch (callingConvention.Kind())
+      switch (delegateKeyword.Kind())
       {
-        case SyntaxKind.FuncKeyword:
-        case SyntaxKind.CdeclKeyword:
-        case SyntaxKind.ManagedKeyword:
-        case SyntaxKind.StdcallKeyword:
-        case SyntaxKind.ThiscallKeyword:
-        case SyntaxKind.UnmanagedKeyword:
+        case SyntaxKind.DelegateKeyword:
           break;
         default:
-          throw new ArgumentException(nameof(callingConvention));
+          throw new ArgumentException(nameof(delegateKeyword));
       }
       switch (asteriskToken.Kind())
       {
@@ -4720,6 +4735,18 @@ namespace Microsoft.CodeAnalysis.CSharp
           break;
         default:
           throw new ArgumentException(nameof(asteriskToken));
+      }
+      switch (callingConvention.Kind())
+      {
+        case SyntaxKind.CdeclKeyword:
+        case SyntaxKind.ManagedKeyword:
+        case SyntaxKind.StdcallKeyword:
+        case SyntaxKind.ThiscallKeyword:
+        case SyntaxKind.UnmanagedKeyword:
+        case SyntaxKind.None:
+          break;
+        default:
+          throw new ArgumentException(nameof(callingConvention));
       }
       switch (lessThanToken.Kind())
       {
@@ -4735,20 +4762,35 @@ namespace Microsoft.CodeAnalysis.CSharp
         default:
           throw new ArgumentException(nameof(greaterThanToken));
       }
-      return (FunctionPointerTypeSyntax)Microsoft.CodeAnalysis.CSharp.Syntax.InternalSyntax.SyntaxFactory.FunctionPointerType((Syntax.InternalSyntax.SyntaxToken)callingConvention.Node, (Syntax.InternalSyntax.SyntaxToken)asteriskToken.Node, (Syntax.InternalSyntax.SyntaxToken)lessThanToken.Node, arguments.Node.ToGreenSeparatedList<Microsoft.CodeAnalysis.CSharp.Syntax.InternalSyntax.TypeSyntax>(), (Syntax.InternalSyntax.SyntaxToken)greaterThanToken.Node).CreateRed();
+      return (FunctionPointerTypeSyntax)Microsoft.CodeAnalysis.CSharp.Syntax.InternalSyntax.SyntaxFactory.FunctionPointerType((Syntax.InternalSyntax.SyntaxToken)delegateKeyword.Node, (Syntax.InternalSyntax.SyntaxToken)asteriskToken.Node, (Syntax.InternalSyntax.SyntaxToken)callingConvention.Node, (Syntax.InternalSyntax.SyntaxToken)lessThanToken.Node, arguments.Node.ToGreenSeparatedList<Microsoft.CodeAnalysis.CSharp.Syntax.InternalSyntax.FunctionPointerParameterOrReturnTypeSyntax>(), (Syntax.InternalSyntax.SyntaxToken)greaterThanToken.Node).CreateRed();
     }
 
 
     /// <summary>Creates a new FunctionPointerTypeSyntax instance.</summary>
-    public static FunctionPointerTypeSyntax FunctionPointerType(SyntaxToken callingConvention, SeparatedSyntaxList<TypeSyntax> arguments)
+    public static FunctionPointerTypeSyntax FunctionPointerType(SyntaxToken callingConvention, SeparatedSyntaxList<FunctionPointerParameterOrReturnTypeSyntax> arguments)
     {
-      return SyntaxFactory.FunctionPointerType(callingConvention, SyntaxFactory.Token(SyntaxKind.AsteriskToken), SyntaxFactory.Token(SyntaxKind.LessThanToken), arguments, SyntaxFactory.Token(SyntaxKind.GreaterThanToken));
+      return SyntaxFactory.FunctionPointerType(SyntaxFactory.Token(SyntaxKind.DelegateKeyword), SyntaxFactory.Token(SyntaxKind.AsteriskToken), callingConvention, SyntaxFactory.Token(SyntaxKind.LessThanToken), arguments, SyntaxFactory.Token(SyntaxKind.GreaterThanToken));
     }
 
     /// <summary>Creates a new FunctionPointerTypeSyntax instance.</summary>
-    public static FunctionPointerTypeSyntax FunctionPointerType(SyntaxToken callingConvention)
+    public static FunctionPointerTypeSyntax FunctionPointerType(SeparatedSyntaxList<FunctionPointerParameterOrReturnTypeSyntax> arguments = default(SeparatedSyntaxList<FunctionPointerParameterOrReturnTypeSyntax>))
     {
-      return SyntaxFactory.FunctionPointerType(callingConvention, SyntaxFactory.Token(SyntaxKind.AsteriskToken), SyntaxFactory.Token(SyntaxKind.LessThanToken), default(SeparatedSyntaxList<TypeSyntax>), SyntaxFactory.Token(SyntaxKind.GreaterThanToken));
+      return SyntaxFactory.FunctionPointerType(SyntaxFactory.Token(SyntaxKind.DelegateKeyword), SyntaxFactory.Token(SyntaxKind.AsteriskToken), default(SyntaxToken), SyntaxFactory.Token(SyntaxKind.LessThanToken), arguments, SyntaxFactory.Token(SyntaxKind.GreaterThanToken));
+    }
+
+    /// <summary>Creates a new FunctionPointerParameterOrReturnTypeSyntax instance.</summary>
+    public static FunctionPointerParameterOrReturnTypeSyntax FunctionPointerParameterOrReturnType(SyntaxTokenList modifiers, TypeSyntax type)
+    {
+      if (type == null)
+        throw new ArgumentNullException(nameof(type));
+      return (FunctionPointerParameterOrReturnTypeSyntax)Microsoft.CodeAnalysis.CSharp.Syntax.InternalSyntax.SyntaxFactory.FunctionPointerParameterOrReturnType(modifiers.Node.ToGreenList<Microsoft.CodeAnalysis.CSharp.Syntax.InternalSyntax.SyntaxToken>(), type == null ? null : (Microsoft.CodeAnalysis.CSharp.Syntax.InternalSyntax.TypeSyntax)type.Green).CreateRed();
+    }
+
+
+    /// <summary>Creates a new FunctionPointerParameterOrReturnTypeSyntax instance.</summary>
+    public static FunctionPointerParameterOrReturnTypeSyntax FunctionPointerParameterOrReturnType(TypeSyntax type)
+    {
+      return SyntaxFactory.FunctionPointerParameterOrReturnType(default(SyntaxTokenList), type);
     }
 
     /// <summary>Creates a new NullableTypeSyntax instance.</summary>

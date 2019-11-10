@@ -337,12 +337,11 @@ array_rank_specifier
   ;
 
 function_pointer_type
-  : 'cdecl' '*' '<' type (',' type)* '>'
-  | 'func' '*' '<' type (',' type)* '>'
-  | 'managed' '*' '<' type (',' type)* '>'
-  | 'stdcall' '*' '<' type (',' type)* '>'
-  | 'thiscall' '*' '<' type (',' type)* '>'
-  | 'unmanaged' '*' '<' type (',' type)* '>'
+  : 'delegate' '*' ('cdecl' | 'managed' | 'stdcall' | 'thiscall' | 'unmanaged')? '<' function_pointer_parameter_or_return_type (',' function_pointer_parameter_or_return_type)* '>'
+  ;
+
+function_pointer_parameter_or_return_type
+  : modifier* type
   ;
 
 nullable_type
