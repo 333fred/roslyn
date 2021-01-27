@@ -5,11 +5,12 @@
 #nullable disable
 
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.Collections;
 using Microsoft.CodeAnalysis.Emit;
 using Microsoft.CodeAnalysis.PooledObjects;
 using System.Text;
 using System.Diagnostics;
+using System.Reflection.Metadata;
+using System.Collections.Immutable;
 
 namespace Microsoft.Cci
 {
@@ -60,6 +61,64 @@ namespace Microsoft.Cci
                 sb.Append('*');
                 goto done;
             }
+
+            if (typeReference is IFunctionPointerTypeReference { Signature: { } functionPointerSignature })
+            {
+                // type
+                //   : methodspec callConv type '*' '(' sigArgs0 ')'
+
+                // methodspec
+                //   : 'method'
+                //   ;
+                sb.Append("method ");
+
+                serializeCallingConvention(sb, functionPointerSignature);
+
+                serializeReturnOrParameter(
+                    context,
+                    sb,
+                    functionPointerSignature.GetType(context),
+                    functionPointerSignature.ReturnValueCustomModifiers,
+                    functionPointerSignature.ReturnValueIsByRef,
+                    functionPointerSignature.RefCustomModifiers);
+
+                sb.Append("*(");
+
+                // sigArgs0
+                //   : /* EMPTY */
+                //   | sigArgs1
+                //   ;
+
+                // sigArgs1
+                //   : sigArg
+                //   | sigArgs1 ',' sigArg
+                //   ;
+
+                // sigArg
+                //   : paramAttr type
+                //   ... /* Not supported in function pointers */
+                //   ;
+
+                // paramAttr
+                //   : /* EMPTY */
+                //   ... /* Not supported in function pointers */
+                //   ;
+
+                // We don't support paramAttrs on function pointer types or marshall clauses, so we ignore those bits.
+
+                foreach (var param in functionPointerSignature.GetParameters(context))
+                {
+                    if (param.Index != 0)
+                    {
+                        sb.Append(", ");
+                    }
+
+                    serializeReturnOrParameter(context, sb, param.GetType(context), param.CustomModifiers, param.IsByReference, param.RefCustomModifiers);
+                }
+
+                sb.Append(')');
+            }
+
 
             INamespaceTypeReference namespaceType = typeReference.AsNamespaceTypeReference;
             if (namespaceType != null)
@@ -125,6 +184,112 @@ done:
             }
 
             return pooled.ToStringAndFree();
+
+            static void serializeCallingConvention(StringBuilder sb, ISignature functionPointerSignature)
+            {
+                // callConv
+                //   : 'explicit' callKind
+                //   | 'instance' callKind
+                //   | callKind
+                //   ;
+                if ((functionPointerSignature.CallingConvention & CallingConvention.ExplicitThis) == CallingConvention.ExplicitThis)
+                {
+                    sb.Append("explicit ");
+                }
+                else if ((functionPointerSignature.CallingConvention & CallingConvention.HasThis) == CallingConvention.HasThis)
+                {
+                    sb.Append("instance ");
+                }
+
+                // callKind
+                //   : /* EMPTY */
+                //   | 'default' /* Equivalent to EMPTY */
+                //   | 'vararg'
+                //   | 'unmanaged' 'cdecl'
+                //   | 'unmanaged' 'stdcall'
+                //   | 'unmanaged' 'thiscall'
+                //   | 'unmanaged' 'fastcall'
+                //   | 'unmanaged'
+                //   ;
+                switch (functionPointerSignature.CallingConvention.ToSignatureConvention())
+                {
+                    case SignatureCallingConvention.Default:
+                        // Empty is equivalent to default, so skip on encoding it.
+                        break;
+                    case SignatureCallingConvention.CDecl:
+                        sb.Append("unmanaged cdecl ");
+                        break;
+                    case SignatureCallingConvention.StdCall:
+                        sb.Append("unmanaged stdcall ");
+                        break;
+                    case SignatureCallingConvention.ThisCall:
+                        sb.Append("unmanaged thiscall ");
+                        break;
+                    case SignatureCallingConvention.FastCall:
+                        sb.Append("unmanaged fastcall ");
+                        break;
+                    case SignatureCallingConvention.Unmanaged:
+                        sb.Append("unmanaged ");
+                        break;
+                    case SignatureCallingConvention.VarArgs:
+                        sb.Append("vararg ");
+                        break;
+                    default:
+                        // Calling convention is invalid (probably a combination of other bits).
+                        // Treat it as default
+                        break;
+                }
+            }
+
+            static void serializeReturnOrParameter(
+                EmitContext context,
+                StringBuilder sb,
+                ITypeReference type,
+                ImmutableArray<ICustomModifier> typeCustomModifiers,
+                bool byRef,
+                ImmutableArray<ICustomModifier> refCustomModifiers)
+            {
+                // type
+                //   : type '&'
+                //   | type 'modreq' '(' className ')'
+                //   | type 'modopt' '(' className ')'
+                //   ... /* All the other type formats */
+                //   ;
+
+                // To serialize the return or parameter type correctly, we start serializing the type itself.
+                // Then, all the modopts/reqs on the type.
+                // Then, the ref specifier, if it exists.
+                // Then, all the modopts/reqs on the ref.
+
+                // This order may seem counter-intuitive: after all, we consider the ref to come before the type, and indeed when deserializing
+                // metadata the order is ref custom modifiers, ref specifier, custom modifiers, type. However, there is no expansion of the grammar
+                // that allows that order in textual format, and this is the order that ILAsm/ILDAsm print and understand.
+
+                bool isAssemQual = false;
+                AppendSerializedTypeName(sb, type, ref isAssemQual, context);
+                serializeCustomModifiers(context, sb, typeCustomModifiers);
+
+                Debug.Assert(refCustomModifiers.IsEmpty || byRef);
+                if (byRef)
+                {
+                    sb.Append("& ");
+                }
+
+                serializeCustomModifiers(context, sb, refCustomModifiers);
+
+                static void serializeCustomModifiers(EmitContext context, StringBuilder sb, ImmutableArray<ICustomModifier> customModifiers)
+                {
+                    foreach (var mod in customModifiers)
+                    {
+                        sb.Append(mod.IsOptional ? "modopt" : "modreq");
+                        sb.Append("(");
+                        bool isAssemQual1 = false;
+                        var modType = mod.GetModifier(context);
+                        AppendSerializedTypeName(sb, modType, ref isAssemQual1, context);
+                        sb.Append(") ");
+                    }
+                }
+            }
         }
 
         private static void AppendSerializedTypeName(StringBuilder sb, ITypeReference type, ref bool isAssemQualified, EmitContext context)
