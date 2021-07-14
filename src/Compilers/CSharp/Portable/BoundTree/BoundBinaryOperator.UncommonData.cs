@@ -11,11 +11,18 @@ namespace Microsoft.CodeAnalysis.CSharp
     {
         internal class UncommonData
         {
+            public static readonly UncommonData UnconvertedInterpolatedStringAddition = new UncommonData(
+                constantValue: null,
+                method: null,
+                constrainedToType: null,
+                originalUserDefinedOperatorsOpt: default,
+                isUnconvertedInterpolatedStringAddition: true);
+
             public static UncommonData? CreateIfNeeded(ConstantValue? constantValue, MethodSymbol? method, TypeSymbol? constrainedToType, ImmutableArray<MethodSymbol> originalUserDefinedOperatorsOpt)
             {
                 if (constantValue != null || method is not null || constrainedToType is not null || !originalUserDefinedOperatorsOpt.IsDefault)
                 {
-                    return new UncommonData(constantValue, method, constrainedToType, originalUserDefinedOperatorsOpt);
+                    return new UncommonData(constantValue, method, constrainedToType, originalUserDefinedOperatorsOpt, isUnconvertedInterpolatedStringAddition: false);
                 }
 
                 return null;
@@ -24,18 +31,20 @@ namespace Microsoft.CodeAnalysis.CSharp
             public readonly ConstantValue? ConstantValue;
             public readonly MethodSymbol? Method;
             public readonly TypeSymbol? ConstrainedToType;
+            public readonly bool IsUnconvertedInterpolatedStringAddition;
 
             // The set of method symbols from which this operator's method was chosen.
             // Only kept in the tree if the operator was an error and overload resolution
             // was unable to choose a best method.
             public readonly ImmutableArray<MethodSymbol> OriginalUserDefinedOperatorsOpt;
 
-            private UncommonData(ConstantValue? constantValue, MethodSymbol? method, TypeSymbol? constrainedToType, ImmutableArray<MethodSymbol> originalUserDefinedOperatorsOpt)
+            private UncommonData(ConstantValue? constantValue, MethodSymbol? method, TypeSymbol? constrainedToType, ImmutableArray<MethodSymbol> originalUserDefinedOperatorsOpt, bool isUnconvertedInterpolatedStringAddition)
             {
                 ConstantValue = constantValue;
                 Method = method;
                 ConstrainedToType = constrainedToType;
                 OriginalUserDefinedOperatorsOpt = originalUserDefinedOperatorsOpt;
+                IsUnconvertedInterpolatedStringAddition = isUnconvertedInterpolatedStringAddition;
             }
         }
     }
