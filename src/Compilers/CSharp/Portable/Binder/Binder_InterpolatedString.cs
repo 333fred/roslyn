@@ -205,6 +205,62 @@ namespace Microsoft.CodeAnalysis.CSharp
             }
         }
 
+        private bool TryBindUnconvertedBinaryOperatorToDefaultInterpolatedStringHandler(BoundBinaryOperator binaryOperator, BindingDiagnosticBag diagnostics, [NotNullWhen(true)] out BoundBinaryOperator? convertedBinaryOperator)
+        {
+            // Much like BindUnconvertedInterpolatedStringToString above, we only want to use DefaultInterpolatedStringHandler if it's worth it. We therefore
+            // check for cases 1 and 2: if they are present, we let normal string binary operator binding machinery handle it. Otherwise, we take care of it ourselves.
+            Debug.Assert(binaryOperator.IsUnconvertedInterpolatedStringAddition);
+            convertedBinaryOperator = null;
+
+            var interpolatedStringHandlerType = Compilation.GetWellKnownType(WellKnownType.System_Runtime_CompilerServices_DefaultInterpolatedStringHandler);
+            if (interpolatedStringHandlerType is null)
+            {
+                // Can't ever bind to the handler no matter what, so just let the default handling take care of it.
+                return false;
+            }
+
+            bool isConstant = true;
+            var stack = ArrayBuilder<BoundBinaryOperator>.GetInstance();
+            var partsArrayBuilder = ArrayBuilder<ImmutableArray<BoundExpression>>.GetInstance();
+            int partsCount = 0;
+
+            BoundBinaryOperator? current = binaryOperator;
+
+            while (current != null)
+            {
+                Debug.Assert(current.IsUnconvertedInterpolatedStringAddition);
+                stack.Push(current);
+                isConstant = isConstant && current.Right.ConstantValue is not null;
+                var rightInterpolatedString = (BoundUnconvertedInterpolatedString)current.Right;
+                partsCount += rightInterpolatedString.Parts.Length;
+                partsArrayBuilder.Push(rightInterpolatedString.Parts);
+
+                switch (current.Left)
+                {
+                    case BoundBinaryOperator leftOperator:
+                        current = leftOperator;
+                        continue;
+                    case BoundUnconvertedInterpolatedString interpolatedString:
+                        isConstant = isConstant && interpolatedString.ConstantValue is not null;
+                        partsCount += interpolatedString.Parts.Length;
+                        partsArrayBuilder.Push(interpolatedString.Parts);
+                        break;
+                    default:
+                        throw ExceptionUtilities.UnexpectedValue(current.Left.Kind);
+                }
+            }
+
+            if (isConstant || partsCount <= 4)
+            {
+                // This is case 1 and 2. Let the standard machinery handle it
+                stack.Free();
+                partsArrayBuilder.Free();
+                return false;
+            }
+
+            // Case 3. Delegate to standard binding
+        }
+
         private BoundInterpolatedString BindUnconvertedInterpolatedStringToHandlerType(
             BoundUnconvertedInterpolatedString unconvertedInterpolatedString,
             NamedTypeSymbol interpolatedStringHandlerType,
