@@ -1,4 +1,4 @@
-Microsoft Visual Studio Solution File, Format Version 12.00
+﻿Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.1.32228.430
 MinimumVisualStudioVersion = 10.0.40219.1
@@ -163,6 +163,8 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.CodeAnalysis.CSharp.EndToEnd.UnitTests", "src\Compilers\CSharp\Test\EndToEnd\Microsoft.CodeAnalysis.CSharp.EndToEnd.UnitTests.csproj", "{F3D9264A-7CAE-4265-AF48-0C863301F51E}"
 EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Microsoft.CodeAnalysis.SyntaxNode", "src\Compilers\Core\SyntaxNode\Microsoft.CodeAnalysis.SyntaxNode.shproj", "{F54EE902-0DE1-4E01-8532-52DDDFE0186E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.CodeAnalysis.SyntaxNode.Package", "src\Compilers\Core\SyntaxNode\Microsoft.CodeAnalysis.SyntaxNode.Package.csproj", "{63A62279-8EFB-4AB2-92C2-D4DF05663F07}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -418,6 +420,10 @@ Global
 		{F3D9264A-7CAE-4265-AF48-0C863301F51E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F3D9264A-7CAE-4265-AF48-0C863301F51E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F3D9264A-7CAE-4265-AF48-0C863301F51E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{63A62279-8EFB-4AB2-92C2-D4DF05663F07}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{63A62279-8EFB-4AB2-92C2-D4DF05663F07}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{63A62279-8EFB-4AB2-92C2-D4DF05663F07}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{63A62279-8EFB-4AB2-92C2-D4DF05663F07}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -494,6 +500,7 @@ Global
 		{48C93F90-8776-4847-96D8-127B896D6C80} = {C65C6143-BED3-46E6-869E-9F0BE6E84C37}
 		{F3D9264A-7CAE-4265-AF48-0C863301F51E} = {32A48625-F0AD-419D-828B-A50BDABA38EA}
 		{F54EE902-0DE1-4E01-8532-52DDDFE0186E} = {A41D1B99-F489-4C43-BBDF-96D61B19A6B9}
+		{63A62279-8EFB-4AB2-92C2-D4DF05663F07} = {A41D1B99-F489-4C43-BBDF-96D61B19A6B9}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6F599E08-A9EA-4FAA-897F-5D824B0210E6}
