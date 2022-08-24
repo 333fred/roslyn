@@ -18,8 +18,13 @@
     <!-- Remove once https://github.com/NuGet/Home/issues/8583 is fixed -->
     <NoWarn>$(NoWarn);NU5128</NoWarn>
     <IsShipping>false</IsShipping>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="System.Collections.Immutable" Version="$(SystemCollectionsImmutableVersion)" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Dependencies\PooledObjects\Microsoft.CodeAnalysis.PooledObjects.Package.csproj" />
+    <ProjectReference Include="..\..\..\Dependencies\Collections\Microsoft.CodeAnalysis.Collections.Package.csproj" />
   </ItemGroup>
 </Project>

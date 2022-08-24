@@ -10,6 +10,7 @@
     <Import_RootNamespace>Microsoft.CodeAnalysis.Collections</Import_RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)ArrayElement.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ImmutableSegmentedDictionary.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ImmutableSegmentedDictionary`2+Builder+KeyCollection.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ImmutableSegmentedDictionary`2+Builder+ValueCollection.cs" />

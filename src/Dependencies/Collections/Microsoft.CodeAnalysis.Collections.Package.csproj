@@ -29,6 +29,9 @@
   <ItemGroup>
     <EmbeddedResource Update="Internal\Strings.resx" GenerateSource="true" ClassName="Microsoft.CodeAnalysis.Collections.Internal.SR" />
   </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Microsoft.CodeAnalysis.SyntaxNode.Package"/>
+  </ItemGroup>
 
   <!--
     Source packaging helpers.

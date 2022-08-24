@@ -25,5 +25,6 @@
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="Microsoft.CodeAnalysis.Debugging.Package"/>
+    <InternalsVisibleTo Include="Microsoft.CodeAnalysis.SyntaxNode.Package"/>
   </ItemGroup>
 </Project>

@@ -47,19 +47,19 @@
     <Compile Include="$(MSBuildThisFileDirectory)..\..\..\..\Compilers\Core\Portable\InternalUtilities\ValueTaskFactory.cs" Link="InternalUtilities\ValueTaskFactory.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)..\..\..\..\Compilers\Core\Portable\InternalUtilities\VoidResult.cs" Link="InternalUtilities\VoidResult.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)..\..\..\..\Compilers\Core\Portable\InternalUtilities\YieldAwaitableExtensions.cs" Link="InternalUtilities\YieldAwaitableExtensions.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)..\..\..\..\Compilers\Core\Portable\Syntax\SyntaxTreeExtensions.cs" Link="Syntax\SyntaxTreeExtensions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)..\..\..\..\Compilers\Core\SyntaxNode\Syntax\SyntaxTreeExtensions.cs" Link="Syntax\SyntaxTreeExtensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)..\..\..\..\Compilers\Core\Portable\Collections\ImmutableArrayExtensions.cs" Link="Collections\ImmutableArrayExtensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)..\..\..\..\Compilers\Core\Portable\Collections\BitVector.cs" Link="Collections\BitVector.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)..\..\..\..\Compilers\Core\Portable\Collections\TemporaryArrayExtensions.cs" Link="Collections\TemporaryArrayExtensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)..\..\..\..\Compilers\Core\Portable\Collections\TemporaryArray`1.cs" Link="Collections\TemporaryArray`1.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)..\..\..\..\Compilers\Core\Portable\InternalUtilities\Hash.cs" Link="InternalUtilities\Hash.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)..\..\..\..\Compilers\Core\Portable\InternalUtilities\GeneratedCodeUtilities.cs" Link="InternalUtilities\GeneratedCodeUtilities.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)..\..\..\..\Compilers\Core\Portable\Serialization\IObjectWritable.cs" Link="Serialization\IObjectWritable.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)..\..\..\..\Compilers\Core\Portable\Serialization\ObjectBinder.cs" Link="Serialization\ObjectBinder.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)..\..\..\..\Compilers\Core\Portable\Serialization\ObjectBinderSnapshot.cs" Link="Serialization\ObjectBinderSnapshot.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)..\..\..\..\Compilers\Core\Portable\Serialization\ObjectReader.cs" Link="Serialization\ObjectReader.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)..\..\..\..\Compilers\Core\Portable\Serialization\ObjectWriter.cs" Link="Serialization\ObjectWriter.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)..\..\..\..\Compilers\Core\Portable\Serialization\SerializationThreadPool.cs" Link="Serialization\SerializationThreadPool.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)..\..\..\..\Compilers\Core\SyntaxNode\Serialization\IObjectWritable.cs" Link="Serialization\IObjectWritable.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)..\..\..\..\Compilers\Core\SyntaxNode\Serialization\ObjectBinder.cs" Link="Serialization\ObjectBinder.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)..\..\..\..\Compilers\Core\SyntaxNode\Serialization\ObjectBinderSnapshot.cs" Link="Serialization\ObjectBinderSnapshot.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)..\..\..\..\Compilers\Core\SyntaxNode\Serialization\ObjectReader.cs" Link="Serialization\ObjectReader.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)..\..\..\..\Compilers\Core\SyntaxNode\Serialization\ObjectWriter.cs" Link="Serialization\ObjectWriter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)..\..\..\..\Compilers\Core\SyntaxNode\Serialization\SerializationThreadPool.cs" Link="Serialization\SerializationThreadPool.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)..\..\..\..\Compilers\Core\Portable\SourceCodeKindExtensions.cs" Link="Utilities\Compiler\SourceCodeKindExtensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)..\..\..\..\Compilers\Core\Portable\SpecialTypeExtensions.cs" Link="Extensions\Compiler\SpecialTypeExtensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)..\..\..\..\Compilers\Core\Portable\Collections\ArrayBuilderExtensions.cs">
