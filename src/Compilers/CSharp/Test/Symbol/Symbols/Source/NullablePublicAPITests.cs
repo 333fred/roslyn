@@ -5160,5 +5160,44 @@ class C
             var binaryRightArgument = tree.GetRoot().DescendantNodes().OfType<BinaryExpressionSyntax>().Single().Right.DescendantNodes().OfType<ArgumentSyntax>().Single().Expression;
             Assert.Equal("System.Object?", model.GetTypeInfo(binaryRightArgument).Type.ToTestDisplayString(includeNonNullable: true));
         }
+
+        [Fact]
+        public void TestWhenBinding()
+        {
+            var comp = CreateCompilation("""
+                class C
+                {
+                    void M()
+                    {
+                        var x = 1;
+                    }
+                }
+                """, parseOptions: TestOptions.Regular.WithFeature("run-nullable-analysis", "never"));
+
+            comp.TestOnlyCompilationData = 0;
+
+            var tree = comp.SyntaxTrees[0];
+            var model = comp.GetSemanticModel(tree);
+
+            var xInOriginal = tree.GetRoot().DescendantNodes().OfType<IdentifierNameSyntax>().Single();
+            // _ = model.GetTypeInfo(xInOriginal); // Uncomment this to fail the TestOnlyCompilationData == 0 check below.
+
+            Assert.Equal(0, comp.TestOnlyCompilationData);
+
+            var semicolonToken = tree.GetRoot().DescendantTokens().Where(t => t.IsKind(SyntaxKind.SemicolonToken)).Single();
+            var speculativeCode = "x = 2;";
+            var speculativeStatement = SyntaxFactory.ParseStatement(speculativeCode);
+            Assert.True(model.TryGetSpeculativeSemanticModel(semicolonToken.EndPosition, speculativeStatement, out var speculativeModel));
+
+            Assert.Equal(0, comp.TestOnlyCompilationData);
+
+            var xInSpeculationCode = speculativeStatement.DescendantNodes().OfType<IdentifierNameSyntax>().Single();
+
+            var info = speculativeModel.GetTypeInfo(xInSpeculationCode);
+            Assert.Equal(1, comp.TestOnlyCompilationData); // Original code is bound, but results are thrown away, as the next assert shows
+
+            _ = model.GetTypeInfo(xInOriginal);
+            Assert.Equal(2, comp.TestOnlyCompilationData); // This will fail when the first call to GetTypeInfo is uncommented
+        }
     }
 }

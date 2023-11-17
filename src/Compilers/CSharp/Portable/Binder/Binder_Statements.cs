@@ -873,6 +873,11 @@ namespace Microsoft.CodeAnalysis.CSharp
         // The location where the error is reported might not be the initializer.
         protected BoundExpression BindInferredVariableInitializer(BindingDiagnosticBag diagnostics, ExpressionSyntax initializer, BindValueKind valueKind, CSharpSyntaxNode errorSyntax)
         {
+            if (Compilation.TestOnlyCompilationData is int i)
+            {
+                Compilation.TestOnlyCompilationData = i + 1;
+            }
+
             if (initializer == null)
             {
                 if (!errorSyntax.HasErrors)
