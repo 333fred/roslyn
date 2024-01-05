@@ -24936,6 +24936,9 @@ unsafe class C<T, U, V, X, Y, Z> where T : byte*
                     public void MB<TMB>([Unbound] int i)
                     {
                     }
+
+                    [Unbound2]
+                    public int MC { get { } set { } }
                 }
                 """;
 
@@ -24946,6 +24949,7 @@ unsafe class C<T, U, V, X, Y, Z> where T : byte*
                 {
                     NamedTypeSymbol { Name: not "A" } => false,
                     MethodSymbol { Name: "MB" } => false,
+                    PropertySymbol { Name: "MC" } => false,
                     // Parameters cannot be filtered out. If a method is completed, so are its parameters
                     ParameterSymbol => throw ExceptionUtilities.Unreachable(),
                     _ => true
@@ -24969,9 +24973,72 @@ unsafe class C<T, U, V, X, Y, Z> where T : byte*
                     Diagnostic(ErrorCode.ERR_SingleTypeNameNotFound, "Unbound").WithArguments("UnboundAttribute").WithLocation(8, 26),
                     // (8,26): error CS0246: The type or namespace name 'Unbound' could not be found (are you missing a using directive or an assembly reference?)
                     //     public void MB<TMB>([Unbound] int i)
-                    Diagnostic(ErrorCode.ERR_SingleTypeNameNotFound, "Unbound").WithArguments("Unbound").WithLocation(8, 26));
+                    Diagnostic(ErrorCode.ERR_SingleTypeNameNotFound, "Unbound").WithArguments("Unbound").WithLocation(8, 26),
+                    // (12,6): error CS0246: The type or namespace name 'Unbound2Attribute' could not be found (are you missing a using directive or an assembly reference?)
+                    //     [Unbound2]
+                    Diagnostic(ErrorCode.ERR_SingleTypeNameNotFound, "Unbound2").WithArguments("Unbound2Attribute").WithLocation(12, 6),
+                    // (12,6): error CS0246: The type or namespace name 'Unbound2' could not be found (are you missing a using directive or an assembly reference?)
+                    //     [Unbound2]
+                    Diagnostic(ErrorCode.ERR_SingleTypeNameNotFound, "Unbound2").WithArguments("Unbound2").WithLocation(12, 6)
+                    );
 
             Assert.True(aSymbol.HasComplete(CompletionPart.All));
+            Assert.True(comp.SourceAssembly.HasComplete(CompletionPart.AssemblySymbolAll));
+        }
+
+        [Fact]
+        public void GetDiagnosticsWithFilter_NamespaceLevelFilter()
+        {
+            var source = """
+                class A<TA>
+                {
+                    public void MA<TMA>()
+                    {
+                    }
+                }
+
+                class B<TB>
+                {
+                    [Unbound]
+                    public void MB<TMB>([Unbound] int i)
+                    {
+                    }
+                }
+                """;
+
+            var comp = CreateCompilation(source);
+
+            comp.GetDiagnostics(CompilationStage.Declare, includeEarlierStages: true,
+                symbolFilter: symbol => symbol switch
+                {
+                    NamedTypeSymbol { Name: not "A" } => false,
+                    // Parameters cannot be filtered out. If a method is completed, so are its parameters
+                    ParameterSymbol => throw ExceptionUtilities.Unreachable(),
+                    _ => true
+                }, CancellationToken.None)
+                .Verify();
+
+            Assert.False(comp.SourceAssembly.HasComplete(CompletionPart.AssemblySymbolAll));
+            Assert.True(comp.SourceModule.GlobalNamespace.GetMembersUnordered().Single(m => m.Name == "A").HasComplete(CompletionPart.All));
+            var bSymbol = (SourceNamedTypeSymbol)comp.SourceModule.GlobalNamespace.GetMembersUnordered().Single(m => m.Name == "B");
+            Assert.False(bSymbol.HasComplete(CompletionPart.MembersCompleted));
+
+            comp.GetDiagnostics(CompilationStage.Declare, includeEarlierStages: true, symbolFilter: null, CancellationToken.None)
+                .Verify(
+                    // (10,6): error CS0246: The type or namespace name 'UnboundAttribute' could not be found (are you missing a using directive or an assembly reference?)
+                    //     [Unbound]
+                    Diagnostic(ErrorCode.ERR_SingleTypeNameNotFound, "Unbound").WithArguments("UnboundAttribute").WithLocation(10, 6),
+                    // (10,6): error CS0246: The type or namespace name 'Unbound' could not be found (are you missing a using directive or an assembly reference?)
+                    //     [Unbound]
+                    Diagnostic(ErrorCode.ERR_SingleTypeNameNotFound, "Unbound").WithArguments("Unbound").WithLocation(10, 6),
+                    // (11,26): error CS0246: The type or namespace name 'UnboundAttribute' could not be found (are you missing a using directive or an assembly reference?)
+                    //     public void MB<TMB>([Unbound] int i)
+                    Diagnostic(ErrorCode.ERR_SingleTypeNameNotFound, "Unbound").WithArguments("UnboundAttribute").WithLocation(11, 26),
+                    // (11,26): error CS0246: The type or namespace name 'Unbound' could not be found (are you missing a using directive or an assembly reference?)
+                    //     public void MB<TMB>([Unbound] int i)
+                    Diagnostic(ErrorCode.ERR_SingleTypeNameNotFound, "Unbound").WithArguments("Unbound").WithLocation(11, 26));
+
+            Assert.True(bSymbol.HasComplete(CompletionPart.All));
             Assert.True(comp.SourceAssembly.HasComplete(CompletionPart.AssemblySymbolAll));
         }
     }
