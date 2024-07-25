@@ -214,6 +214,14 @@ namespace Microsoft.CodeAnalysis.CSharp
 
                     break;
 
+                case BoundSequence { SideEffects: { Length: >= 2 } previousSideEffects, Value: BoundCall call }:
+                    // Pull out the sequence of call-ctor, initialize string values, return concat into the arguments
+                    if (call.Method == _compilation.GetSpecialTypeMember(SpecialMember.System_String__Concat_ParamsReadOnlySpan))
+                    {
+
+                    }
+                    break;
+
                 case BoundSequence { SideEffects.Length: 0, Value: BoundCall sequenceCall } sequence:
                     if ((object)sequenceCall.Method == _compilation.GetSpecialTypeMember(SpecialMember.System_String__Concat_2ReadOnlySpans) ||
                         (object)sequenceCall.Method == _compilation.GetSpecialTypeMember(SpecialMember.System_String__Concat_3ReadOnlySpans) ||

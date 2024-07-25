@@ -1918,7 +1918,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Emit
                                                       diagnostics);
         }
 
-        internal NamedTypeSymbol EnsureInlineArrayTypeExists(SyntaxNode syntaxNode, SyntheticBoundNodeFactory factory, int arrayLength, DiagnosticBag diagnostics)
+        internal (NamedTypeSymbol Type, object RegistrationKey) EnsureInlineArrayTypeExists(SyntaxNode syntaxNode, SyntheticBoundNodeFactory factory, int arrayLength, DiagnosticBag diagnostics)
         {
             Debug.Assert(Compilation.Assembly.RuntimeSupportsInlineArrayTypes);
             Debug.Assert(arrayLength > 0);
@@ -1937,8 +1937,10 @@ namespace Microsoft.CodeAnalysis.CSharp.Emit
                 typeAdapter = privateImplClass.GetSynthesizedType(typeName)!;
             }
 
+            var registration = privateImplClass.AddSynthesizedTypeRegistration(typeAdapter);
+
             Debug.Assert(typeAdapter.Name == typeName);
-            return (NamedTypeSymbol)typeAdapter.GetInternalSymbol()!;
+            return ((NamedTypeSymbol)typeAdapter.GetInternalSymbol()!, registration);
         }
 
         internal NamedTypeSymbol EnsureReadOnlyListTypeExists(SyntaxNode syntaxNode, SynthesizedReadOnlyListKind kind, DiagnosticBag diagnostics)

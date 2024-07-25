@@ -89,6 +89,10 @@ namespace Microsoft.CodeAnalysis.CodeGen
         // synthesized top-level types (for inline arrays and collection expression types currently)
         private ImmutableArray<Cci.INamespaceTypeDefinition> _orderedTopLevelTypes;
         private readonly ConcurrentDictionary<string, Cci.INamespaceTypeDefinition> _synthesizedTopLevelTypes = new ConcurrentDictionary<string, Cci.INamespaceTypeDefinition>();
+        // Keeps track of whether a request to ensure a top-level type is still relevant. We use this to ensure that
+        // we don't emit a top-level type that is no longer needed; this can happen during string concat lowering
+        // in C# when emitting inline array types that don't end up being used.
+        private readonly ConcurrentDictionary<string, ConcurrentDictionary<object, object>> _synthesizedTopLevelTypesRegistrationTracker = new ConcurrentDictionary<string, ConcurrentDictionary<object, object>>();
 
         // field types for different block sizes.
         private ImmutableArray<Cci.ITypeReference> _orderedProxyTypes;
@@ -400,6 +404,31 @@ namespace Microsoft.CodeAnalysis.CodeGen
         {
             _synthesizedTopLevelTypes.TryGetValue(name, out var type);
             return type;
+        }
+
+        internal object AddSynthesizedTypeRegistration(Cci.INamedTypeDefinition type)
+        {
+            Debug.Assert(!IsFrozen);
+            Debug.Assert(type.Name is { });
+            Debug.Assert(_synthesizedTopLevelTypes.ContainsKey(type.Name));
+
+            var registration = new object();
+            _synthesizedTopLevelTypesRegistrationTracker
+                .GetOrAdd(type.Name, _ => new ConcurrentDictionary<object, object>())
+                .Add(registration, registration);
+
+            return registration;
+        }
+
+        internal void RemoveSynthesizedTypeRegistration(Cci.INamedTypeDefinition type, object registration)
+        {
+            Debug.Assert(!IsFrozen);
+            Debug.Assert(type.Name is { });
+            Debug.Assert(_synthesizedTopLevelTypes.ContainsKey(type.Name));
+            Debug.Assert(_synthesizedTopLevelTypesRegistrationTracker.ContainsKey(type.Name));
+
+            var removed = _synthesizedTopLevelTypesRegistrationTracker[type.Name].TryRemove(registration, out _);
+            Debug.Assert(removed);
         }
 
         internal IEnumerable<Cci.INamespaceTypeDefinition> GetAdditionalTopLevelTypes()
