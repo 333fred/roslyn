@@ -883,12 +883,17 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
                 {
                     case null:
                     case "" when !ContainingSymbol.RequiresInstanceReceiver() || ContainingSymbol is MethodSymbol { MethodKind: MethodKind.Constructor or MethodKind.DelegateInvoke }:
+                    case "Method Name" when ContainingSymbol is not MethodSymbol { MethodKind: MethodKind.Ordinary or MethodKind.LocalFunction }:
                         // Invalid data, bail
                         builder.Free();
                         return default;
 
                     case "":
                         builder.Add(BoundInterpolatedStringArgumentPlaceholder.InstanceParameter);
+                        break;
+
+                    case "Method Name":
+                        builder.Add(BoundInterpolatedStringArgumentPlaceholder.MethodName);
                         break;
 
                     default:

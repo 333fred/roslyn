@@ -9613,6 +9613,66 @@ literal:literal
         }
 
         [Theory]
+        [InlineData(@"$""literal""")]
+        [InlineData(@"$"""" + $""literal""")]
+        public void InterpolatedStringHandlerArgumentAttribute_MethodName_OridinaryInstanceMethod(string expression)
+        {
+            var code = $$"""
+                using System;
+                using System.Runtime.CompilerServices;
+
+                new C().M(5, {{expression}});
+
+                public class C
+                {
+                    public int Prop { get; }
+                    public void M(int i, [InterpolatedStringHandlerArgumentAttribute("i", "Method Name")]CustomHandler c) => Console.WriteLine(c.ToString());
+                }
+
+                public partial struct CustomHandler
+                {
+                    public CustomHandler(int literalLength, int formattedCount, int i, string methodName) : this(literalLength, formattedCount)
+                    {
+                        _builder.AppendLine("i:" + i.ToString());
+                        _builder.AppendLine("methodName:" + methodName.ToString());
+                    }
+                }
+                """;
+
+            var handler = GetInterpolatedStringCustomHandlerType("CustomHandler", "partial struct", useBoolReturns: false);
+            var verifier = CompileAndVerify([code, handler, InterpolatedStringHandlerArgumentAttribute], expectedOutput: """
+                i:5
+                methodName:M
+                literal:literal
+                """);
+
+            verifier.VerifyIL("<top-level-statements-entry-point>", """
+                {
+                  // Code size       42 (0x2a)
+                  .maxstack  7
+                  .locals init (int V_0,
+                                  CustomHandler V_1)
+                  IL_0000:  newobj     "C..ctor()"
+                  IL_0005:  ldc.i4.5
+                  IL_0006:  stloc.0
+                  IL_0007:  ldloc.0
+                  IL_0008:  ldloca.s   V_1
+                  IL_000a:  ldc.i4.7
+                  IL_000b:  ldc.i4.0
+                  IL_000c:  ldloc.0
+                  IL_000d:  ldstr      "M"
+                  IL_0012:  call       "CustomHandler..ctor(int, int, int, string)"
+                  IL_0017:  ldloca.s   V_1
+                  IL_0019:  ldstr      "literal"
+                  IL_001e:  call       "void CustomHandler.AppendLiteral(string)"
+                  IL_0023:  ldloc.1
+                  IL_0024:  call       "void C.M(int, CustomHandler)"
+                  IL_0029:  ret
+                }
+                """);
+        }
+
+        [Theory]
         [CombinatorialData]
         public void RefReturningMethodAsReceiver_RefParameter([CombinatorialValues("", ", out bool success")] string extraConstructorArg, [CombinatorialValues(@"$""literal""", @"$""literal"" + $""""")] string expression, [CombinatorialValues("class", "struct")] string receiverType)
         {

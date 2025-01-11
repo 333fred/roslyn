@@ -3765,7 +3765,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                         int handlerParameter = handlerParameterIndexes[handlerParameterIndex];
                         Debug.Assert(handlerArgumentIndexesBuilder[handlerParameterIndex] is BoundInterpolatedStringArgumentPlaceholder.UnspecifiedParameter);
 
-                        if (handlerParameter == BoundInterpolatedStringArgumentPlaceholder.InstanceParameter)
+                        if (handlerParameter is BoundInterpolatedStringArgumentPlaceholder.InstanceParameter or BoundInterpolatedStringArgumentPlaceholder.MethodName)
                         {
                             handlerArgumentIndexesBuilder[handlerParameterIndex] = handlerParameter;
                             continue;
@@ -3806,6 +3806,11 @@ namespace Microsoft.CodeAnalysis.CSharp
                             Debug.Assert(receiver!.Type is not null);
                             refKind = RefKind.None;
                             placeholderType = receiver.Type;
+                            break;
+                        case BoundInterpolatedStringArgumentPlaceholder.MethodName:
+                            // PROTOTYPE: Langver for symbols from other assemblies?
+                            refKind = RefKind.None;
+                            placeholderType = GetSpecialType(SpecialType.System_String, diagnostics, unconvertedString.Syntax);
                             break;
                         case BoundInterpolatedStringArgumentPlaceholder.UnspecifiedParameter:
                             {
@@ -3860,6 +3865,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                             isSuppressed = receiver.IsSuppressed;
                             placeholderSyntax = receiver.Syntax;
                             break;
+                        case BoundInterpolatedStringArgumentPlaceholder.MethodName:
                         case BoundInterpolatedStringArgumentPlaceholder.UnspecifiedParameter:
                             placeholderSyntax = unconvertedString.Syntax;
                             isSuppressed = false;

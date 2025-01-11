@@ -722,6 +722,11 @@ namespace Microsoft.CodeAnalysis.CSharp
                             valEscapeScope = receiver.GetRefKind().IsWritableReference() ? GetRefEscape(receiver, _localScopeDepth) : GetValEscape(receiver, _localScopeDepth);
                         }
                         break;
+                    case BoundInterpolatedStringArgumentPlaceholder.MethodName:
+                        // This is a constant string, can go anywhere.
+                        Debug.Assert(placeholder.Type.SpecialType == SpecialType.System_String);
+                        valEscapeScope = SafeContext.CallingMethod;
+                        break;
                     case BoundInterpolatedStringArgumentPlaceholder.TrailingConstructorValidityParameter:
                         Debug.Assert(placeholder.Type.SpecialType == SpecialType.System_Boolean);
                         // Escape scope of bool parameter is CallingMethod, which is the default for placeholders.

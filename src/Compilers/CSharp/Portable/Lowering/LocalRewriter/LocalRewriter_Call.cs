@@ -854,18 +854,22 @@ namespace Microsoft.CodeAnalysis.CSharp
                             var argIndex = placeholder.ArgumentIndex;
                             Debug.Assert(argIndex < argumentIndex);
 
-                            BoundLocal local;
+                            BoundExpression expression;
                             switch (argIndex)
                             {
                                 case BoundInterpolatedStringArgumentPlaceholder.InstanceParameter:
                                     Debug.Assert(usesReceiver(argument));
                                     Debug.Assert(requiresInstanceReceiver);
                                     Debug.Assert(receiverTemp is object);
-                                    local = receiverTemp;
+                                    expression = receiverTemp;
+                                    break;
+
+                                case BoundInterpolatedStringArgumentPlaceholder.MethodName:
+                                    expression = _factory.StringLiteral(methodOrIndexer.GetMemberCallerName());
                                     break;
 
                                 case >= 0 when argumentsAssignedToTemp[argIndex]:
-                                    local = visitedArgumentsBuilder[argIndex] switch
+                                    expression = visitedArgumentsBuilder[argIndex] switch
                                     {
                                         BoundSequence { Value: BoundLocal l } => l,
                                         BoundLocal l => l, // Can happen for discard arguments
@@ -879,10 +883,11 @@ namespace Microsoft.CodeAnalysis.CSharp
                                     RefKind argRefKind = argumentRefKindsOpt.RefKinds(argIndex);
                                     RefKind paramRefKind = parameters[paramIndex].RefKind;
                                     var visitedArgument = visitedArgumentsBuilder[argIndex];
-                                    local = _factory.StoreToTemp(visitedArgument, out var store, refKind: paramRefKind is RefKind.In or RefKind.RefReadOnlyParameter ? RefKind.In : argRefKind);
+                                    var local = _factory.StoreToTemp(visitedArgument, out var store, refKind: paramRefKind is RefKind.In or RefKind.RefReadOnlyParameter ? RefKind.In : argRefKind);
                                     tempsOpt.Add(local.LocalSymbol);
                                     visitedArgumentsBuilder[argIndex] = _factory.Sequence(ImmutableArray<LocalSymbol>.Empty, ImmutableArray.Create<BoundExpression>(store), local);
                                     argumentsAssignedToTemp[argIndex] = true;
+                                    expression = local;
                                     break;
 
                                 case BoundInterpolatedStringArgumentPlaceholder.TrailingConstructorValidityParameter:
@@ -893,7 +898,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                                     throw ExceptionUtilities.UnexpectedValue(argIndex);
                             }
 
-                            AddPlaceholderReplacement(placeholder, local);
+                            AddPlaceholderReplacement(placeholder, expression);
                         }
 
                         return interpolationData.ArgumentPlaceholders;

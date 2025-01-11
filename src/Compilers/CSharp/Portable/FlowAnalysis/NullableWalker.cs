@@ -9339,6 +9339,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                     {
                         case BoundInterpolatedStringArgumentPlaceholder.TrailingConstructorValidityParameter:
                         case BoundInterpolatedStringArgumentPlaceholder.UnspecifiedParameter:
+                        case BoundInterpolatedStringArgumentPlaceholder.MethodName:
                         // We presume that all instance parameters were dereferenced by calling the instance method this handler was passed to. This isn't strictly
                         // true: the handler constructor will be run before the receiver is dereferenced. However, if the dereference isn't safe, that will be a
                         // much better error to report than a mismatched argument nullability error.

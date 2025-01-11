@@ -1345,17 +1345,28 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
 
                 var name = constant.DecodeValue<string>(SpecialType.System_String);
                 Debug.Assert(name != null);
-                if (name == "")
+                switch (name)
                 {
-                    // Name refers to the "this" instance parameter.
-                    if (!ContainingSymbol.RequiresInstanceReceiver() || ContainingSymbol is MethodSymbol { MethodKind: MethodKind.Constructor or MethodKind.DelegateInvoke or MethodKind.LambdaMethod })
-                    {
-                        // '{0}' is not an instance method, the receiver cannot be an interpolated string handler argument.
-                        diagnostics.Add(ErrorCode.ERR_NotInstanceInvalidInterpolatedStringHandlerArgumentName, arguments.AttributeSyntaxOpt.Location, ContainingSymbol);
-                        return null;
-                    }
+                    case "":
+                        // Name refers to the "this" instance parameter.
+                        if (!ContainingSymbol.RequiresInstanceReceiver() || ContainingSymbol is MethodSymbol { MethodKind: MethodKind.Constructor or MethodKind.DelegateInvoke or MethodKind.LambdaMethod })
+                        {
+                            // '{0}' is not an instance method, the receiver cannot be an interpolated string handler argument.
+                            diagnostics.Add(ErrorCode.ERR_NotInstanceInvalidInterpolatedStringHandlerArgumentName, arguments.AttributeSyntaxOpt.Location, ContainingSymbol);
+                            return null;
+                        }
 
-                    return (BoundInterpolatedStringArgumentPlaceholder.InstanceParameter, null);
+                        return (BoundInterpolatedStringArgumentPlaceholder.InstanceParameter, null);
+
+                    case "Method Name":
+                        // PROTOTYPE: Langver
+                        if (ContainingSymbol is not MethodSymbol { MethodKind: MethodKind.Ordinary or MethodKind.LocalFunction })
+                        {
+                            // PROTOTYPE: Error if the containing method isn't an ordinary instance or static method or local function
+                            return null;
+                        }
+
+                        return (BoundInterpolatedStringArgumentPlaceholder.MethodName, null);
                 }
 
                 var parameter = containingSymbolParameters.FirstOrDefault(static (param, name) => string.Equals(param.Name, name, StringComparison.Ordinal), name);
