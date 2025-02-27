@@ -252,6 +252,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         ConstructorMethodBody,
         ExpressionWithNullability,
         WithExpression,
+        LoweredConditionalSideEffect,
     }
 
 
@@ -8858,6 +8859,38 @@ namespace Microsoft.CodeAnalysis.CSharp
         }
     }
 
+    internal sealed partial class BoundLoweredConditionalSideEffect : BoundExpression
+    {
+        public BoundLoweredConditionalSideEffect(SyntaxNode syntax, BoundExpression condition, BoundExpression sideEffect, bool hasErrors = false)
+            : base(BoundKind.LoweredConditionalSideEffect, syntax, null, hasErrors || condition.HasErrors() || sideEffect.HasErrors())
+        {
+
+            RoslynDebug.Assert(condition is object, "Field 'condition' cannot be null (make the type nullable in BoundNodes.xml to remove this check)");
+            RoslynDebug.Assert(sideEffect is object, "Field 'sideEffect' cannot be null (make the type nullable in BoundNodes.xml to remove this check)");
+
+            this.Condition = condition;
+            this.SideEffect = sideEffect;
+        }
+
+        public new TypeSymbol? Type => base.Type;
+        public BoundExpression Condition { get; }
+        public BoundExpression SideEffect { get; }
+
+        [DebuggerStepThrough]
+        public override BoundNode? Accept(BoundTreeVisitor visitor) => visitor.VisitLoweredConditionalSideEffect(this);
+
+        public BoundLoweredConditionalSideEffect Update(BoundExpression condition, BoundExpression sideEffect)
+        {
+            if (condition != this.Condition || sideEffect != this.SideEffect)
+            {
+                var result = new BoundLoweredConditionalSideEffect(this.Syntax, condition, sideEffect, this.HasErrors);
+                result.CopyAttributes(this);
+                return result;
+            }
+            return this;
+        }
+    }
+
     internal abstract partial class BoundTreeVisitor<A, R>
     {
 
@@ -9330,6 +9363,8 @@ namespace Microsoft.CodeAnalysis.CSharp
                     return VisitExpressionWithNullability((BoundExpressionWithNullability)node, arg);
                 case BoundKind.WithExpression:
                     return VisitWithExpression((BoundWithExpression)node, arg);
+                case BoundKind.LoweredConditionalSideEffect:
+                    return VisitLoweredConditionalSideEffect((BoundLoweredConditionalSideEffect)node, arg);
             }
 
             return default(R)!;
@@ -9570,6 +9605,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         public virtual R VisitConstructorMethodBody(BoundConstructorMethodBody node, A arg) => this.DefaultVisit(node, arg);
         public virtual R VisitExpressionWithNullability(BoundExpressionWithNullability node, A arg) => this.DefaultVisit(node, arg);
         public virtual R VisitWithExpression(BoundWithExpression node, A arg) => this.DefaultVisit(node, arg);
+        public virtual R VisitLoweredConditionalSideEffect(BoundLoweredConditionalSideEffect node, A arg) => this.DefaultVisit(node, arg);
     }
 
     internal abstract partial class BoundTreeVisitor
@@ -9806,6 +9842,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         public virtual BoundNode? VisitConstructorMethodBody(BoundConstructorMethodBody node) => this.DefaultVisit(node);
         public virtual BoundNode? VisitExpressionWithNullability(BoundExpressionWithNullability node) => this.DefaultVisit(node);
         public virtual BoundNode? VisitWithExpression(BoundWithExpression node) => this.DefaultVisit(node);
+        public virtual BoundNode? VisitLoweredConditionalSideEffect(BoundLoweredConditionalSideEffect node) => this.DefaultVisit(node);
     }
 
     internal abstract partial class BoundTreeWalker : BoundTreeVisitor
@@ -10827,6 +10864,12 @@ namespace Microsoft.CodeAnalysis.CSharp
         {
             this.Visit(node.Receiver);
             this.Visit(node.InitializerExpression);
+            return null;
+        }
+        public override BoundNode? VisitLoweredConditionalSideEffect(BoundLoweredConditionalSideEffect node)
+        {
+            this.Visit(node.Condition);
+            this.Visit(node.SideEffect);
             return null;
         }
     }
@@ -12246,6 +12289,13 @@ namespace Microsoft.CodeAnalysis.CSharp
             BoundObjectInitializerExpressionBase initializerExpression = (BoundObjectInitializerExpressionBase)this.Visit(node.InitializerExpression);
             TypeSymbol? type = this.VisitType(node.Type);
             return node.Update(receiver, node.CloneMethod, initializerExpression, type);
+        }
+        public override BoundNode? VisitLoweredConditionalSideEffect(BoundLoweredConditionalSideEffect node)
+        {
+            BoundExpression condition = (BoundExpression)this.Visit(node.Condition);
+            BoundExpression sideEffect = (BoundExpression)this.Visit(node.SideEffect);
+            TypeSymbol? type = this.VisitType(node.Type);
+            return node.Update(condition, sideEffect);
         }
     }
 
@@ -14990,6 +15040,24 @@ namespace Microsoft.CodeAnalysis.CSharp
             }
             return updatedNode;
         }
+
+        public override BoundNode? VisitLoweredConditionalSideEffect(BoundLoweredConditionalSideEffect node)
+        {
+            BoundExpression condition = (BoundExpression)this.Visit(node.Condition);
+            BoundExpression sideEffect = (BoundExpression)this.Visit(node.SideEffect);
+            BoundLoweredConditionalSideEffect updatedNode;
+
+            if (_updatedNullabilities.TryGetValue(node, out (NullabilityInfo Info, TypeSymbol? Type) infoAndType))
+            {
+                updatedNode = node.Update(condition, sideEffect);
+                updatedNode.TopLevelNullability = infoAndType.Info;
+            }
+            else
+            {
+                updatedNode = node.Update(condition, sideEffect);
+            }
+            return updatedNode;
+        }
     }
 
     internal sealed class BoundTreeDumperNodeProducer : BoundTreeVisitor<object?, TreeDumperNode>
@@ -17152,6 +17220,15 @@ namespace Microsoft.CodeAnalysis.CSharp
             new TreeDumperNode("receiver", null, new TreeDumperNode[] { Visit(node.Receiver, null) }),
             new TreeDumperNode("cloneMethod", node.CloneMethod, null),
             new TreeDumperNode("initializerExpression", null, new TreeDumperNode[] { Visit(node.InitializerExpression, null) }),
+            new TreeDumperNode("type", node.Type, null),
+            new TreeDumperNode("isSuppressed", node.IsSuppressed, null),
+            new TreeDumperNode("hasErrors", node.HasErrors, null)
+        }
+        );
+        public override TreeDumperNode VisitLoweredConditionalSideEffect(BoundLoweredConditionalSideEffect node, object? arg) => new TreeDumperNode("loweredConditionalSideEffect", null, new TreeDumperNode[]
+        {
+            new TreeDumperNode("condition", null, new TreeDumperNode[] { Visit(node.Condition, null) }),
+            new TreeDumperNode("sideEffect", null, new TreeDumperNode[] { Visit(node.SideEffect, null) }),
             new TreeDumperNode("type", node.Type, null),
             new TreeDumperNode("isSuppressed", node.IsSuppressed, null),
             new TreeDumperNode("hasErrors", node.HasErrors, null)
