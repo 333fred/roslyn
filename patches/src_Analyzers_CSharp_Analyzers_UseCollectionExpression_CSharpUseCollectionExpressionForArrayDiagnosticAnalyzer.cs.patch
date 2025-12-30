@@ -1,0 +1,13 @@
+diff --git a/src/Analyzers/CSharp/Analyzers/UseCollectionExpression/CSharpUseCollectionExpressionForArrayDiagnosticAnalyzer.cs b/src/Analyzers/CSharp/Analyzers/UseCollectionExpression/CSharpUseCollectionExpressionForArrayDiagnosticAnalyzer.cs
+index 039ba72a650..471ce464523 100644
+--- a/src/Analyzers/CSharp/Analyzers/UseCollectionExpression/CSharpUseCollectionExpressionForArrayDiagnosticAnalyzer.cs
++++ b/src/Analyzers/CSharp/Analyzers/UseCollectionExpression/CSharpUseCollectionExpressionForArrayDiagnosticAnalyzer.cs
+@@ -105,7 +105,7 @@ public static ImmutableArray<CollectionMatch<StatementSyntax>> TryGetMatches(
+             if (ienumerableType is null)
+                 return default;
+ 
+-            if (!IsConstructibleCollectionType(
++            if (!CollectionExpressionUtilities.IsConstructibleCollectionType(
+                     semanticModel.Compilation, ienumerableType.TypeArguments.Single()))
+             {
+                 return default;

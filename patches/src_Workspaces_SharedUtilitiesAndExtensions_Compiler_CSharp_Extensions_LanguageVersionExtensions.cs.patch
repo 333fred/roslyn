@@ -1,0 +1,21 @@
+diff --git a/src/Workspaces/SharedUtilitiesAndExtensions/Compiler/CSharp/Extensions/LanguageVersionExtensions.cs b/src/Workspaces/SharedUtilitiesAndExtensions/Compiler/CSharp/Extensions/LanguageVersionExtensions.cs
+index e29e9dc61cb..02de27f81d3 100644
+--- a/src/Workspaces/SharedUtilitiesAndExtensions/Compiler/CSharp/Extensions/LanguageVersionExtensions.cs
++++ b/src/Workspaces/SharedUtilitiesAndExtensions/Compiler/CSharp/Extensions/LanguageVersionExtensions.cs
+@@ -20,13 +20,15 @@ public static bool IsCSharp11OrAbove(this LanguageVersion languageVersion)
+ 
+     public static bool HasConstantInterpolatedStrings(this LanguageVersion languageVersion)
+         => languageVersion >= LanguageVersion.CSharp10;
+-
+     public static bool SupportsCollectionExpressions(this LanguageVersion languageVersion)
+         => languageVersion.IsCSharp12OrAbove();
+ 
+     public static bool SupportsPrimaryConstructors(this LanguageVersion languageVersion)
+         => languageVersion.IsCSharp12OrAbove();
+ 
++    public static bool SupportsDictionaryExpressions(this LanguageVersion languageVersion)
++        => languageVersion.IsCSharp14OrAbove();
++
+     public static bool SupportsExtensions(this LanguageVersion languageVersion)
+         => languageVersion.IsCSharp14OrAbove();
+ 

@@ -1,0 +1,17 @@
+diff --git a/src/EditorFeatures/CSharpTest/Diagnostics/DiagnosticAnalyzerDriver/DiagnosticAnalyzerDriverTests.cs b/src/EditorFeatures/CSharpTest/Diagnostics/DiagnosticAnalyzerDriver/DiagnosticAnalyzerDriverTests.cs
+index 1d0751e7d1c..65e24f16039 100644
+--- a/src/EditorFeatures/CSharpTest/Diagnostics/DiagnosticAnalyzerDriver/DiagnosticAnalyzerDriverTests.cs
++++ b/src/EditorFeatures/CSharpTest/Diagnostics/DiagnosticAnalyzerDriver/DiagnosticAnalyzerDriverTests.cs
+@@ -47,11 +47,9 @@ public async Task DiagnosticAnalyzerDriverAllInOne()
+             // https://github.com/dotnet/roslyn/issues/44682 - Add to all in one
+             SyntaxKind.WithExpression,
+             SyntaxKind.RecordDeclaration,
+-            SyntaxKind.CollectionExpression,
+-            SyntaxKind.ExpressionElement,
+-            SyntaxKind.SpreadElement,
+             // Tracked by https://github.com/dotnet/roslyn/issues/76130 Add to all-in-one
+             SyntaxKind.ExtensionDeclaration,
++            SyntaxKind.WithElement, // Needed when language version is updated.
+         };
+ 
+         var analyzer = new CSharpTrackingDiagnosticAnalyzer();

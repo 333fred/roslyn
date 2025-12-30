@@ -1,0 +1,32 @@
+diff --git a/src/Compilers/CSharp/Portable/Generated/CSharp.Generated.g4 b/src/Compilers/CSharp/Portable/Generated/CSharp.Generated.g4
+index ae009be6b61..cf745d9ab0e 100644
+--- a/src/Compilers/CSharp/Portable/Generated/CSharp.Generated.g4
++++ b/src/Compilers/CSharp/Portable/Generated/CSharp.Generated.g4
+@@ -862,17 +862,27 @@ collection_expression
+ 
+ collection_element
+   : expression_element
++  | key_value_pair_element
+   | spread_element
++  | with_element
+   ;
+ 
+ expression_element
+   : expression
+   ;
+ 
++key_value_pair_element
++  : expression ':' expression
++  ;
++
+ spread_element
+   : '..' expression
+   ;
+ 
++with_element
++  : 'with' argument_list
++  ;
++
+ conditional_access_expression
+   : expression '?' expression
+   ;

@@ -1,0 +1,23 @@
+diff --git a/src/Features/CSharp/Portable/SignatureHelp/AbstractOrdinaryMethodSignatureHelpProvider.cs b/src/Features/CSharp/Portable/SignatureHelp/AbstractOrdinaryMethodSignatureHelpProvider.cs
+index 290c2cc2d1d..5e20015de11 100644
+--- a/src/Features/CSharp/Portable/SignatureHelp/AbstractOrdinaryMethodSignatureHelpProvider.cs
++++ b/src/Features/CSharp/Portable/SignatureHelp/AbstractOrdinaryMethodSignatureHelpProvider.cs
+@@ -41,7 +41,8 @@ internal static SignatureHelpItem ConvertMethodGroupMethod(
+             GetSeparatorParts(),
+             GetMethodGroupPostambleParts(),
+             [.. method.Parameters.Select(p => Convert(p, semanticModel, position, documentationCommentFormattingService))],
+-            descriptionParts: descriptionParts);
++            descriptionParts: descriptionParts,
++            static symbol => symbol is null ? null : SymbolDisplay.ToDisplayString(symbol, SymbolDisplayFormat.MinimallyQualifiedFormat));
+     }
+ 
+     private static IList<SymbolDisplayPart> GetMethodGroupPreambleParts(
+@@ -78,7 +79,7 @@ private static IList<SymbolDisplayPart> GetMethodGroupPreambleParts(
+             result.Add(Space());
+         }
+ 
+-        result.AddRange(method.ToMinimalDisplayParts(semanticModel, position, MinimallyQualifiedWithoutParametersFormat));
++        result.AddRange(SymbolDisplay.ToMinimalDisplayParts(method, semanticModel, position, MinimallyQualifiedWithoutParametersFormat));
+         result.Add(Punctuation(SyntaxKind.OpenParenToken));
+ 
+         return result;

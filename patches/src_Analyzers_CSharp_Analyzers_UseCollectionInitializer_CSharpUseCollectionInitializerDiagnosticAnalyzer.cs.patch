@@ -1,0 +1,46 @@
+diff --git a/src/Analyzers/CSharp/Analyzers/UseCollectionInitializer/CSharpUseCollectionInitializerDiagnosticAnalyzer.cs b/src/Analyzers/CSharp/Analyzers/UseCollectionInitializer/CSharpUseCollectionInitializerDiagnosticAnalyzer.cs
+index c0bd02c1d2d..cdd29dd15cb 100644
+--- a/src/Analyzers/CSharp/Analyzers/UseCollectionInitializer/CSharpUseCollectionInitializerDiagnosticAnalyzer.cs
++++ b/src/Analyzers/CSharp/Analyzers/UseCollectionInitializer/CSharpUseCollectionInitializerDiagnosticAnalyzer.cs
+@@ -68,7 +68,13 @@ static IEnumerable<CollectionElementSyntax> GetMatchElements(ImmutableArray<Coll
+             foreach (var match in preMatches)
+             {
+                 if (match.Node is ExpressionSyntax expression)
++                {
+                     yield return match.UseSpread ? SpreadElement(expression) : ExpressionElement(expression);
++                }
++                else if (match.Node is ArgumentListSyntax argumentList)
++                {
++                    yield return WithElement(argumentList.WithoutTrivia());
++                }
+             }
+         }
+ 
+@@ -77,7 +83,26 @@ static IEnumerable<CollectionElementSyntax> GetInitializerElements(InitializerEx
+             if (initializer != null)
+             {
+                 foreach (var expression in initializer.Expressions)
+-                    yield return ExpressionElement(expression);
++                {
++                    if (expression is InitializerExpressionSyntax { Expressions: [var keyExpression, var valueExpression1] })
++                    {
++                        // { k, v } -> [k: v]
++                        yield return KeyValuePairElement(keyExpression, valueExpression1);
++                    }
++                    else if (expression is AssignmentExpressionSyntax
++                    {
++                        Left: ImplicitElementAccessSyntax { ArgumentList.Arguments: [var argument] },
++                        Right: var valueExpression2,
++                    })
++                    {
++                        // [k] = v -> [k: v]
++                        yield return KeyValuePairElement(argument.Expression, valueExpression2);
++                    }
++                    else
++                    {
++                        yield return ExpressionElement(expression);
++                    }
++                }
+             }
+         }
+     }

@@ -1,0 +1,14 @@
+diff --git a/src/EditorFeatures/CSharpTest/Completion/CompletionProviders/AbstractCSharpCompletionProviderTests.cs b/src/EditorFeatures/CSharpTest/Completion/CompletionProviders/AbstractCSharpCompletionProviderTests.cs
+index cbe49be4bcd..22f64216463 100644
+--- a/src/EditorFeatures/CSharpTest/Completion/CompletionProviders/AbstractCSharpCompletionProviderTests.cs
++++ b/src/EditorFeatures/CSharpTest/Completion/CompletionProviders/AbstractCSharpCompletionProviderTests.cs
+@@ -177,7 +177,8 @@ protected static string AddUsingDirectives(
+ 
+     protected async Task VerifySendEnterThroughToEnterAsync(
+         [StringSyntax(PredefinedEmbeddedLanguageNames.CSharpTest)] string initialMarkup,
+-        string textTypedSoFar, EnterKeyRule sendThroughEnterOption, bool expected)
++        [StringSyntax(PredefinedEmbeddedLanguageNames.CSharpTest)] string textTypedSoFar,
++        EnterKeyRule sendThroughEnterOption, bool expected)
+     {
+         using var workspace = CreateWorkspace(initialMarkup);
+         var hostDocument = workspace.DocumentWithCursor;

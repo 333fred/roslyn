@@ -1,0 +1,62 @@
+diff --git a/src/Compilers/CSharp/Portable/xlf/CSharpResources.tr.xlf b/src/Compilers/CSharp/Portable/xlf/CSharpResources.tr.xlf
+index c83a893e9cb..05d81001690 100644
+--- a/src/Compilers/CSharp/Portable/xlf/CSharpResources.tr.xlf
++++ b/src/Compilers/CSharp/Portable/xlf/CSharpResources.tr.xlf
+@@ -452,6 +452,21 @@
+         <target state="translated">'{0}, '{1}' arabirim üyesini uygulamıyor. '{2}', '{1}' üyesini uygulayamaz.</target>
+         <note />
+       </trans-unit>
++      <trans-unit id="ERR_CollectionArgumentsDynamicBinding">
++        <source>Collection arguments cannot be dynamic; compile-time binding is required.</source>
++        <target state="new">Collection arguments cannot be dynamic; compile-time binding is required.</target>
++        <note />
++      </trans-unit>
++      <trans-unit id="ERR_CollectionArgumentsMustBeFirst">
++        <source>Collection argument element must be the first element.</source>
++        <target state="new">Collection argument element must be the first element.</target>
++        <note />
++      </trans-unit>
++      <trans-unit id="ERR_CollectionArgumentsNotSupportedForType">
++        <source>Collection arguments are not supported for type '{0}'.</source>
++        <target state="new">Collection arguments are not supported for type '{0}'.</target>
++        <note />
++      </trans-unit>
+       <trans-unit id="ERR_CollectionBuilderAttributeInvalidMethodName">
+         <source>The CollectionBuilderAttribute method name is invalid.</source>
+         <target state="translated">CollectionBuilderAttribute yöntemi adı geçersiz.</target>
+@@ -482,6 +497,11 @@
+         <target state="translated">Bu '{0}' sürümü koleksiyon ifadeleri ile kullanılamaz.</target>
+         <note />
+       </trans-unit>
++      <trans-unit id="ERR_CollectionExpressionKeyValuePairNotSupported">
++        <source>Collection expression type '{0}' does not support key-value pair elements.</source>
++        <target state="new">Collection expression type '{0}' does not support key-value pair elements.</target>
++        <note />
++      </trans-unit>
+       <trans-unit id="ERR_CollectionExpressionMissingAdd">
+         <source>Collection expression type '{0}' must have an instance or extension method 'Add' that can be called with a single argument.</source>
+         <target state="translated">'{0}' koleksiyon ifade türünün tek bir bağımsız değişken ile çağrılabilecek bir örnek veya 'Add' genişletme yöntemi içermesi gerekir.</target>
+@@ -2572,6 +2592,11 @@
+         <target state="translated">kullanıcı tanımlı işleçler işaretlendi</target>
+         <note />
+       </trans-unit>
++      <trans-unit id="IDS_FeatureCollectionExpressionArguments">
++        <source>collection expression arguments</source>
++        <target state="new">collection expression arguments</target>
++        <note />
++      </trans-unit>
+       <trans-unit id="IDS_FeatureCollectionExpressions">
+         <source>collection expressions</source>
+         <target state="translated">koleksiyon ifadeleri</target>
+@@ -2582,6 +2607,11 @@
+         <target state="translated">birlikte değişken dönüşler</target>
+         <note />
+       </trans-unit>
++      <trans-unit id="IDS_FeatureDictionaryExpressions">
++        <source>dictionary expressions</source>
++        <target state="new">dictionary expressions</target>
++        <note />
++      </trans-unit>
+       <trans-unit id="IDS_FeatureDiscards">
+         <source>discards</source>
+         <target state="translated">atılabilir değişkenler</target>

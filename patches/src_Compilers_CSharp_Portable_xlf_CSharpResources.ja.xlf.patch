@@ -1,0 +1,62 @@
+diff --git a/src/Compilers/CSharp/Portable/xlf/CSharpResources.ja.xlf b/src/Compilers/CSharp/Portable/xlf/CSharpResources.ja.xlf
+index 36811fe9064..0c0d16b5a49 100644
+--- a/src/Compilers/CSharp/Portable/xlf/CSharpResources.ja.xlf
++++ b/src/Compilers/CSharp/Portable/xlf/CSharpResources.ja.xlf
+@@ -452,6 +452,21 @@
+         <target state="translated">'{0}' は、インターフェイス メンバー '{1}' を実装していません。'{2}' は '{1}' を実装できません。</target>
+         <note />
+       </trans-unit>
++      <trans-unit id="ERR_CollectionArgumentsDynamicBinding">
++        <source>Collection arguments cannot be dynamic; compile-time binding is required.</source>
++        <target state="new">Collection arguments cannot be dynamic; compile-time binding is required.</target>
++        <note />
++      </trans-unit>
++      <trans-unit id="ERR_CollectionArgumentsMustBeFirst">
++        <source>Collection argument element must be the first element.</source>
++        <target state="new">Collection argument element must be the first element.</target>
++        <note />
++      </trans-unit>
++      <trans-unit id="ERR_CollectionArgumentsNotSupportedForType">
++        <source>Collection arguments are not supported for type '{0}'.</source>
++        <target state="new">Collection arguments are not supported for type '{0}'.</target>
++        <note />
++      </trans-unit>
+       <trans-unit id="ERR_CollectionBuilderAttributeInvalidMethodName">
+         <source>The CollectionBuilderAttribute method name is invalid.</source>
+         <target state="translated">CollectionBuilderAttribute メソッド名が無効です。</target>
+@@ -482,6 +497,11 @@
+         <target state="translated">このバージョンの '{0}' は、コレクション式では使用できません。</target>
+         <note />
+       </trans-unit>
++      <trans-unit id="ERR_CollectionExpressionKeyValuePairNotSupported">
++        <source>Collection expression type '{0}' does not support key-value pair elements.</source>
++        <target state="new">Collection expression type '{0}' does not support key-value pair elements.</target>
++        <note />
++      </trans-unit>
+       <trans-unit id="ERR_CollectionExpressionMissingAdd">
+         <source>Collection expression type '{0}' must have an instance or extension method 'Add' that can be called with a single argument.</source>
+         <target state="translated">コレクション式の型 '{0}' には、1 つの引数で呼び出すことができるインスタンスメソッドまたは拡張メソッド 'Add' が必要です。</target>
+@@ -2572,6 +2592,11 @@
+         <target state="translated">チェックされたユーザー定義演算子</target>
+         <note />
+       </trans-unit>
++      <trans-unit id="IDS_FeatureCollectionExpressionArguments">
++        <source>collection expression arguments</source>
++        <target state="new">collection expression arguments</target>
++        <note />
++      </trans-unit>
+       <trans-unit id="IDS_FeatureCollectionExpressions">
+         <source>collection expressions</source>
+         <target state="translated">コレクション式</target>
+@@ -2582,6 +2607,11 @@
+         <target state="translated">covariant の戻り値</target>
+         <note />
+       </trans-unit>
++      <trans-unit id="IDS_FeatureDictionaryExpressions">
++        <source>dictionary expressions</source>
++        <target state="new">dictionary expressions</target>
++        <note />
++      </trans-unit>
+       <trans-unit id="IDS_FeatureDiscards">
+         <source>discards</source>
+         <target state="translated">ディスカード</target>

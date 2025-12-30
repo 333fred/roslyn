@@ -1,0 +1,62 @@
+diff --git a/src/Compilers/CSharp/Portable/xlf/CSharpResources.pt-BR.xlf b/src/Compilers/CSharp/Portable/xlf/CSharpResources.pt-BR.xlf
+index 9da1115aa11..712d772db91 100644
+--- a/src/Compilers/CSharp/Portable/xlf/CSharpResources.pt-BR.xlf
++++ b/src/Compilers/CSharp/Portable/xlf/CSharpResources.pt-BR.xlf
+@@ -452,6 +452,21 @@
+         <target state="translated">'{0}' não implementa o membro de interface '{1}'. '{2}' não pode implementar '{1}'.</target>
+         <note />
+       </trans-unit>
++      <trans-unit id="ERR_CollectionArgumentsDynamicBinding">
++        <source>Collection arguments cannot be dynamic; compile-time binding is required.</source>
++        <target state="new">Collection arguments cannot be dynamic; compile-time binding is required.</target>
++        <note />
++      </trans-unit>
++      <trans-unit id="ERR_CollectionArgumentsMustBeFirst">
++        <source>Collection argument element must be the first element.</source>
++        <target state="new">Collection argument element must be the first element.</target>
++        <note />
++      </trans-unit>
++      <trans-unit id="ERR_CollectionArgumentsNotSupportedForType">
++        <source>Collection arguments are not supported for type '{0}'.</source>
++        <target state="new">Collection arguments are not supported for type '{0}'.</target>
++        <note />
++      </trans-unit>
+       <trans-unit id="ERR_CollectionBuilderAttributeInvalidMethodName">
+         <source>The CollectionBuilderAttribute method name is invalid.</source>
+         <target state="translated">O nome do método CollectionBuilderAttribute é inválido.</target>
+@@ -482,6 +497,11 @@
+         <target state="translated">Esta versão de '{0}' não pode ser usada com expressões de coleção.</target>
+         <note />
+       </trans-unit>
++      <trans-unit id="ERR_CollectionExpressionKeyValuePairNotSupported">
++        <source>Collection expression type '{0}' does not support key-value pair elements.</source>
++        <target state="new">Collection expression type '{0}' does not support key-value pair elements.</target>
++        <note />
++      </trans-unit>
+       <trans-unit id="ERR_CollectionExpressionMissingAdd">
+         <source>Collection expression type '{0}' must have an instance or extension method 'Add' that can be called with a single argument.</source>
+         <target state="translated">O tipo de expressão de coleção '{0}' deve ter uma instância ou método de extensão 'Add' que pode ser chamado com apenas um argumento.</target>
+@@ -2572,6 +2592,11 @@
+         <target state="translated">operadores verificados, definidos pelo usuário</target>
+         <note />
+       </trans-unit>
++      <trans-unit id="IDS_FeatureCollectionExpressionArguments">
++        <source>collection expression arguments</source>
++        <target state="new">collection expression arguments</target>
++        <note />
++      </trans-unit>
+       <trans-unit id="IDS_FeatureCollectionExpressions">
+         <source>collection expressions</source>
+         <target state="translated">expressões de coleção</target>
+@@ -2582,6 +2607,11 @@
+         <target state="translated">retornos de covariante</target>
+         <note />
+       </trans-unit>
++      <trans-unit id="IDS_FeatureDictionaryExpressions">
++        <source>dictionary expressions</source>
++        <target state="new">dictionary expressions</target>
++        <note />
++      </trans-unit>
+       <trans-unit id="IDS_FeatureDiscards">
+         <source>discards</source>
+         <target state="translated">descarte</target>

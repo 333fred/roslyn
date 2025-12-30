@@ -1,0 +1,15 @@
+diff --git a/src/EditorFeatures/CSharpTest2/Recommendations/RecommenderTests.cs b/src/EditorFeatures/CSharpTest2/Recommendations/RecommenderTests.cs
+index ed796549b42..3e80356f446 100644
+--- a/src/EditorFeatures/CSharpTest2/Recommendations/RecommenderTests.cs
++++ b/src/EditorFeatures/CSharpTest2/Recommendations/RecommenderTests.cs
+@@ -211,7 +211,9 @@ protected async Task VerifyAbsenceAsync(
+         }
+     }
+ 
+-    protected static string AddInsideMethod(string text, bool isAsync = false, string returnType = "void", bool topLevelStatement = false)
++    protected static string AddInsideMethod(
++        [StringSyntax(PredefinedEmbeddedLanguageNames.CSharpTest)] string text,
++        bool isAsync = false, string returnType = "void", bool topLevelStatement = false)
+     {
+         if (topLevelStatement)
+         {

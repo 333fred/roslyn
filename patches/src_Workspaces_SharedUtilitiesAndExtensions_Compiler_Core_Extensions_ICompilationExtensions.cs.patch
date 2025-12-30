@@ -1,0 +1,52 @@
+diff --git a/src/Workspaces/SharedUtilitiesAndExtensions/Compiler/Core/Extensions/ICompilationExtensions.cs b/src/Workspaces/SharedUtilitiesAndExtensions/Compiler/Core/Extensions/ICompilationExtensions.cs
+index d28f62304e3..3c0822523eb 100644
+--- a/src/Workspaces/SharedUtilitiesAndExtensions/Compiler/Core/Extensions/ICompilationExtensions.cs
++++ b/src/Workspaces/SharedUtilitiesAndExtensions/Compiler/Core/Extensions/ICompilationExtensions.cs
+@@ -83,6 +83,9 @@ public static ImmutableArray<IAssemblySymbol> GetReferencedAssemblySymbols(this
+     public static INamedTypeSymbol? AttributeType(this Compilation compilation)
+         => compilation.GetTypeByMetadataName(typeof(Attribute).FullName!);
+ 
++    public static INamedTypeSymbol? DictionaryOfKVType(this Compilation compilation)
++        => compilation.GetTypeByMetadataName(typeof(Dictionary<,>).FullName!);
++
+     public static INamedTypeSymbol? BlockingCollectionOfTType(this Compilation compilation)
+         => compilation.GetTypeByMetadataName(typeof(BlockingCollection<>).FullName!);
+ 
+@@ -98,15 +101,24 @@ public static ImmutableArray<IAssemblySymbol> GetReferencedAssemblySymbols(this
+     public static INamedTypeSymbol? StructLayoutAttributeType(this Compilation compilation)
+         => compilation.GetTypeByMetadataName(typeof(StructLayoutAttribute).FullName!);
+ 
++    public static INamedTypeSymbol? IDictionaryOfKVType(this Compilation compilation)
++        => compilation.GetTypeByMetadataName(typeof(IDictionary<,>).FullName!);
++
+     public static INamedTypeSymbol? InlineArrayAttributeType(this Compilation compilation)
+         => compilation.GetTypeByMetadataName("System.Runtime.CompilerServices.InlineArrayAttribute");
+ 
++    public static INamedTypeSymbol? IReadOnlyDictionaryOfKVType(this Compilation compilation)
++        => compilation.GetTypeByMetadataName(typeof(IReadOnlyDictionary<,>).FullName!);
++
+     public static INamedTypeSymbol? DesignerCategoryAttributeType(this Compilation compilation)
+         => compilation.GetTypeByMetadataName("System.ComponentModel.DesignerCategoryAttribute");
+ 
+     public static INamedTypeSymbol? DesignerGeneratedAttributeType(this Compilation compilation)
+         => compilation.GetTypeByMetadataName("Microsoft.VisualBasic.CompilerServices.DesignerGeneratedAttribute");
+ 
++    public static INamedTypeSymbol? DictionaryOfTKeyTValueType(this Compilation compilation)
++        => compilation.GetTypeByMetadataName(typeof(Dictionary<,>).FullName!);
++
+     public static INamedTypeSymbol? HideModuleNameAttribute(this Compilation compilation)
+         => compilation.GetTypeByMetadataName("Microsoft.VisualBasic.HideModuleNameAttribute");
+ 
+@@ -149,6 +161,12 @@ public static ImmutableArray<IAssemblySymbol> GetReferencedAssemblySymbols(this
+     public static INamedTypeSymbol? ValueTaskOfTType(this Compilation compilation)
+         => compilation.GetTypeByMetadataName("System.Threading.Tasks.ValueTask`1");
+ 
++    public static INamedTypeSymbol? ICollectionOfTType(this Compilation compilation)
++        => compilation.GetTypeByMetadataName(typeof(ICollection<>).FullName!);
++
++    public static INamedTypeSymbol? IDictionaryOfTKeyTValueType(this Compilation compilation)
++        => compilation.GetTypeByMetadataName(typeof(IDictionary<,>).FullName!);
++
+     public static INamedTypeSymbol? IEnumerableType(this Compilation compilation)
+         => compilation.GetTypeByMetadataName(typeof(System.Collections.IEnumerable).FullName!);
+ 

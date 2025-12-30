@@ -1,0 +1,13 @@
+diff --git a/src/Features/CSharpTest/Microsoft.CodeAnalysis.CSharp.Features.UnitTests.csproj b/src/Features/CSharpTest/Microsoft.CodeAnalysis.CSharp.Features.UnitTests.csproj
+index 9b2e042ff84..f2472db4611 100644
+--- a/src/Features/CSharpTest/Microsoft.CodeAnalysis.CSharp.Features.UnitTests.csproj
++++ b/src/Features/CSharpTest/Microsoft.CodeAnalysis.CSharp.Features.UnitTests.csproj
+@@ -27,6 +27,8 @@
+   </ItemGroup>
+   <ItemGroup>
+     <PackageReference Include="Basic.Reference.Assemblies.Net60" />
++    <PackageReference Include="Basic.Reference.Assemblies.Net80" />
++    <PackageReference Include="Basic.Reference.Assemblies.Net90" />
+   </ItemGroup>
+   <Import Project="..\..\Analyzers\CSharp\Tests\CSharpAnalyzers.UnitTests.projitems" Label="Shared" />
+ 

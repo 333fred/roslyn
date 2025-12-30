@@ -1,0 +1,27 @@
+diff --git a/src/Compilers/CSharp/Portable/Binder/Semantics/OverloadResolution/OverloadResolution.cs b/src/Compilers/CSharp/Portable/Binder/Semantics/OverloadResolution/OverloadResolution.cs
+index 35e2a938076..e71704a8dc2 100644
+--- a/src/Compilers/CSharp/Portable/Binder/Semantics/OverloadResolution/OverloadResolution.cs
++++ b/src/Compilers/CSharp/Portable/Binder/Semantics/OverloadResolution/OverloadResolution.cs
+@@ -1350,12 +1350,21 @@ public static bool TryInferParamsCollectionIterationType(Binder binder, TypeSymb
+ 
+                         if (collectionTypeKind == CollectionExpressionTypeKind.ImplementsIEnumerable)
+                         {
++                            if (binder.HasParamsCollectionTypeApplicableIndexerInProgress(syntax, type))
++                            {
++                                // We are in a cycle. Optimistically assume the type has an applicable indexer.
++                                break;
++                            }
++
++                            binder = new ParamsCollectionTypeApplicableIndexerInProgress(syntax, type, binder);
++
+                             if (!binder.HasCollectionExpressionApplicableConstructor(syntax, type, constructor: out _, isExpanded: out _, BindingDiagnosticBag.Discarded))
+                             {
+                                 return false;
+                             }
+ 
+-                            if (!binder.HasCollectionExpressionApplicableAddMethod(syntax, type, addMethods: out _, BindingDiagnosticBag.Discarded))
++                            if (binder.GetCollectionExpressionApplicableIndexer(syntax, type, elementType.Type, BindingDiagnosticBag.Discarded) is null &&
++                                !binder.HasCollectionExpressionApplicableAddMethod(syntax, type, addMethods: out _, BindingDiagnosticBag.Discarded))
+                             {
+                                 return false;
+                             }

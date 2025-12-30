@@ -1,0 +1,19 @@
+diff --git a/src/Compilers/CSharp/Test/Syntax/Parsing/LambdaAttributeParsingTests.cs b/src/Compilers/CSharp/Test/Syntax/Parsing/LambdaAttributeParsingTests.cs
+index d18d7f741ca..3be3e64a762 100644
+--- a/src/Compilers/CSharp/Test/Syntax/Parsing/LambdaAttributeParsingTests.cs
++++ b/src/Compilers/CSharp/Test/Syntax/Parsing/LambdaAttributeParsingTests.cs
+@@ -3605,8 +3605,13 @@ void verify(string source, ParseOptions? parseOptions = null)
+                 N(SyntaxKind.CollectionExpression);
+                 {
+                     N(SyntaxKind.OpenBracketToken);
+-                    N(SyntaxKind.ExpressionElement);
++                    N(SyntaxKind.KeyValuePairElement);
+                     {
++                        N(SyntaxKind.IdentifierName);
++                        {
++                            N(SyntaxKind.IdentifierToken, "return");
++                        }
++                        N(SyntaxKind.ColonToken);
+                         N(SyntaxKind.IdentifierName);
+                         {
+                             N(SyntaxKind.IdentifierToken, "A");

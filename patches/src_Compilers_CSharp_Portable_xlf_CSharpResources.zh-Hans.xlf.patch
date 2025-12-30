@@ -1,0 +1,62 @@
+diff --git a/src/Compilers/CSharp/Portable/xlf/CSharpResources.zh-Hans.xlf b/src/Compilers/CSharp/Portable/xlf/CSharpResources.zh-Hans.xlf
+index 4ac30e98972..e80531ed35f 100644
+--- a/src/Compilers/CSharp/Portable/xlf/CSharpResources.zh-Hans.xlf
++++ b/src/Compilers/CSharp/Portable/xlf/CSharpResources.zh-Hans.xlf
+@@ -452,6 +452,21 @@
+         <target state="translated">“{0}”不实现接口成员“{1}”。“{2}”无法实现“{1}”。</target>
+         <note />
+       </trans-unit>
++      <trans-unit id="ERR_CollectionArgumentsDynamicBinding">
++        <source>Collection arguments cannot be dynamic; compile-time binding is required.</source>
++        <target state="new">Collection arguments cannot be dynamic; compile-time binding is required.</target>
++        <note />
++      </trans-unit>
++      <trans-unit id="ERR_CollectionArgumentsMustBeFirst">
++        <source>Collection argument element must be the first element.</source>
++        <target state="new">Collection argument element must be the first element.</target>
++        <note />
++      </trans-unit>
++      <trans-unit id="ERR_CollectionArgumentsNotSupportedForType">
++        <source>Collection arguments are not supported for type '{0}'.</source>
++        <target state="new">Collection arguments are not supported for type '{0}'.</target>
++        <note />
++      </trans-unit>
+       <trans-unit id="ERR_CollectionBuilderAttributeInvalidMethodName">
+         <source>The CollectionBuilderAttribute method name is invalid.</source>
+         <target state="translated">CollectionBuilderAttribute 方法名称无效。</target>
+@@ -482,6 +497,11 @@
+         <target state="translated">“{0}”的此版本无法与集合表达式一起使用。</target>
+         <note />
+       </trans-unit>
++      <trans-unit id="ERR_CollectionExpressionKeyValuePairNotSupported">
++        <source>Collection expression type '{0}' does not support key-value pair elements.</source>
++        <target state="new">Collection expression type '{0}' does not support key-value pair elements.</target>
++        <note />
++      </trans-unit>
+       <trans-unit id="ERR_CollectionExpressionMissingAdd">
+         <source>Collection expression type '{0}' must have an instance or extension method 'Add' that can be called with a single argument.</source>
+         <target state="translated">集合表达式类型“{0}”必须具有可以使用单个参数调用的实例或扩展方法 "Add"。</target>
+@@ -2572,6 +2592,11 @@
+         <target state="translated">选中的用户定义运算符</target>
+         <note />
+       </trans-unit>
++      <trans-unit id="IDS_FeatureCollectionExpressionArguments">
++        <source>collection expression arguments</source>
++        <target state="new">collection expression arguments</target>
++        <note />
++      </trans-unit>
+       <trans-unit id="IDS_FeatureCollectionExpressions">
+         <source>collection expressions</source>
+         <target state="translated">集合表达式</target>
+@@ -2582,6 +2607,11 @@
+         <target state="translated">协变返回</target>
+         <note />
+       </trans-unit>
++      <trans-unit id="IDS_FeatureDictionaryExpressions">
++        <source>dictionary expressions</source>
++        <target state="new">dictionary expressions</target>
++        <note />
++      </trans-unit>
+       <trans-unit id="IDS_FeatureDiscards">
+         <source>discards</source>
+         <target state="translated">弃元</target>

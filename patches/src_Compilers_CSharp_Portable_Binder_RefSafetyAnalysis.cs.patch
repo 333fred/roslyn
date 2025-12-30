@@ -1,0 +1,33 @@
+diff --git a/src/Compilers/CSharp/Portable/Binder/RefSafetyAnalysis.cs b/src/Compilers/CSharp/Portable/Binder/RefSafetyAnalysis.cs
+index e43b21e2619..7aaba8ceb94 100644
+--- a/src/Compilers/CSharp/Portable/Binder/RefSafetyAnalysis.cs
++++ b/src/Compilers/CSharp/Portable/Binder/RefSafetyAnalysis.cs
+@@ -921,6 +921,28 @@ private void GetAwaitableInstancePlaceholders(ArrayBuilder<(BoundValuePlaceholde
+             }
+         }
+ 
++        public override BoundNode? VisitCollectionExpression(BoundCollectionExpression node)
++        {
++            if (node.CollectionCreation is { } collectionCreation)
++            {
++                if (node.CollectionBuilderSpanPlaceholder is { } spanPlaceholder)
++                {
++                    var elementType = ((NamedTypeSymbol)spanPlaceholder.Type!).TypeArgumentsWithAnnotationsNoUseSiteDiagnostics[0];
++                    var safeContext = LocalRewriter.ShouldUseRuntimeHelpersCreateSpan(node, elementType.Type) ? SafeContext.ReturnOnly : _localScopeDepth;
++                    var placeholders = ArrayBuilder<(BoundValuePlaceholderBase, SafeContext)>.GetInstance();
++                    placeholders.Add((spanPlaceholder, safeContext));
++                    using var _ = new PlaceholderRegion(this, placeholders);
++                    Visit(collectionCreation);
++                }
++                else
++                {
++                    Visit(collectionCreation);
++                }
++            }
++            VisitList(node.Elements);
++            return null;
++        }
++
+         public override BoundNode? VisitImplicitIndexerAccess(BoundImplicitIndexerAccess node)
+         {
+             // Verify we're only skipping placeholders for int values, where the escape scope is always CallingMethod.

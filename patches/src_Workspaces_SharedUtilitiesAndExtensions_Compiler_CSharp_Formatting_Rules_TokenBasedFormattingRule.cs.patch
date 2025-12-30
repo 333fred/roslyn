@@ -1,0 +1,36 @@
+diff --git a/src/Workspaces/SharedUtilitiesAndExtensions/Compiler/CSharp/Formatting/Rules/TokenBasedFormattingRule.cs b/src/Workspaces/SharedUtilitiesAndExtensions/Compiler/CSharp/Formatting/Rules/TokenBasedFormattingRule.cs
+index c4169e51e1e..424730f3c23 100644
+--- a/src/Workspaces/SharedUtilitiesAndExtensions/Compiler/CSharp/Formatting/Rules/TokenBasedFormattingRule.cs
++++ b/src/Workspaces/SharedUtilitiesAndExtensions/Compiler/CSharp/Formatting/Rules/TokenBasedFormattingRule.cs
+@@ -401,19 +401,19 @@ or SyntaxKind.ExtensionKeyword ||
+         // default:
+         // <label> :
+         // { Property1.Property2: ... }
+-        if (currentToken.IsKind(SyntaxKind.ColonToken))
++        if (currentToken.IsKind(SyntaxKind.ColonToken) &&
++            currentToken.Parent is (kind:
++                SyntaxKind.AttributeTargetSpecifier or
++                SyntaxKind.CaseSwitchLabel or
++                SyntaxKind.CasePatternSwitchLabel or
++                SyntaxKind.DefaultSwitchLabel or
++                SyntaxKind.ExpressionColon or
++                SyntaxKind.KeyValuePairElement or
++                SyntaxKind.LabeledStatement or
++                SyntaxKind.NameColon or
++                SyntaxKind.SwitchExpressionArm))
+         {
+-            if (currentToken.Parent is (kind:
+-                    SyntaxKind.CaseSwitchLabel or
+-                    SyntaxKind.CasePatternSwitchLabel or
+-                    SyntaxKind.DefaultSwitchLabel or
+-                    SyntaxKind.LabeledStatement or
+-                    SyntaxKind.AttributeTargetSpecifier or
+-                    SyntaxKind.NameColon or
+-                    SyntaxKind.ExpressionColon or SyntaxKind.SwitchExpressionArm))
+-            {
+-                return CreateAdjustSpacesOperation(0, AdjustSpacesOption.ForceSpacesIfOnSingleLine);
+-            }
++            return CreateAdjustSpacesOperation(0, AdjustSpacesOption.ForceSpacesIfOnSingleLine);
+         }
+ 
+         // [cast expression] * case

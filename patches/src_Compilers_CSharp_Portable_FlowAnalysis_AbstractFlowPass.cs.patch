@@ -1,0 +1,38 @@
+diff --git a/src/Compilers/CSharp/Portable/FlowAnalysis/AbstractFlowPass.cs b/src/Compilers/CSharp/Portable/FlowAnalysis/AbstractFlowPass.cs
+index 701437c60e5..e9ff45f5941 100644
+--- a/src/Compilers/CSharp/Portable/FlowAnalysis/AbstractFlowPass.cs
++++ b/src/Compilers/CSharp/Portable/FlowAnalysis/AbstractFlowPass.cs
+@@ -2098,12 +2098,33 @@ private void VisitCollectionExpression(ImmutableArray<BoundNode> elements)
+             }
+         }
+ 
++        public override BoundNode VisitCollectionExpressionWithElement(BoundCollectionExpressionWithElement node)
++        {
++            // We only get here if the conversion of the collection expression to the
++            // target type failed. In this case, simply visit each argument.
++            VisitArguments(node.Arguments, node.ArgumentRefKindsOpt, method: null, argsToParamsOpt: default, expanded: false);
++            return null;
++        }
++
+         public override BoundNode VisitCollectionExpressionSpreadElement(BoundCollectionExpressionSpreadElement node)
+         {
+             VisitRvalue(node.Expression);
+             return null;
+         }
+ 
++        public override BoundNode VisitKeyValuePairElement(BoundKeyValuePairElement node)
++        {
++            VisitRvalue(node.Key);
++            VisitRvalue(node.Value);
++            return null;
++        }
++
++        public override BoundNode VisitKeyValuePairConversion(BoundKeyValuePairConversion node)
++        {
++            VisitRvalue(node.Expression);
++            return null;
++        }
++
+         public override BoundNode VisitNewT(BoundNewT node)
+         {
+             VisitRvalue(node.InitializerExpressionOpt);

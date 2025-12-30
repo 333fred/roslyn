@@ -1,0 +1,12 @@
+diff --git a/src/EditorFeatures/CSharpTest/Microsoft.CodeAnalysis.CSharp.EditorFeatures.UnitTests.csproj b/src/EditorFeatures/CSharpTest/Microsoft.CodeAnalysis.CSharp.EditorFeatures.UnitTests.csproj
+index 287fc43bcd0..b13bad204f0 100644
+--- a/src/EditorFeatures/CSharpTest/Microsoft.CodeAnalysis.CSharp.EditorFeatures.UnitTests.csproj
++++ b/src/EditorFeatures/CSharpTest/Microsoft.CodeAnalysis.CSharp.EditorFeatures.UnitTests.csproj
+@@ -46,6 +46,7 @@
+     <PackageReference Include="Xunit.Combinatorial" PrivateAssets="all" />
+     <PackageReference Include="Basic.Reference.Assemblies.Net60" />
+     <PackageReference Include="Basic.Reference.Assemblies.Net80" />
++    <PackageReference Include="Basic.Reference.Assemblies.Net90" />
+   </ItemGroup>
+   <ItemGroup>
+     <Service Include="{82A7F48D-3B50-4B1E-B82E-3ADA8210C358}" />

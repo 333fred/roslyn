@@ -1,0 +1,16 @@
+diff --git a/src/Features/Core/Portable/Common/TaggedText.cs b/src/Features/Core/Portable/Common/TaggedText.cs
+index 6812018ebad..0edbe2b97d3 100644
+--- a/src/Features/Core/Portable/Common/TaggedText.cs
++++ b/src/Features/Core/Portable/Common/TaggedText.cs
+@@ -86,7 +86,10 @@ public override string ToString()
+ internal static class TaggedTextExtensions
+ {
+     public static ImmutableArray<TaggedText> ToTaggedText(
+-        this IEnumerable<SymbolDisplayPart>? displayParts, TaggedTextStyle style = TaggedTextStyle.None, Func<ISymbol?, string?>? getNavigationHint = null, bool includeNavigationHints = true)
++        this IEnumerable<SymbolDisplayPart>? displayParts,
++        TaggedTextStyle style = TaggedTextStyle.None,
++        Func<ISymbol?, string?>? getNavigationHint = null,
++        bool includeNavigationHints = true)
+     {
+         if (displayParts == null)
+             return [];

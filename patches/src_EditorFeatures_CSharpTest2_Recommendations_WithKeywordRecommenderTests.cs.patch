@@ -1,0 +1,86 @@
+diff --git a/src/EditorFeatures/CSharpTest2/Recommendations/WithKeywordRecommenderTests.cs b/src/EditorFeatures/CSharpTest2/Recommendations/WithKeywordRecommenderTests.cs
+index ade017f3e04..bad424b6516 100644
+--- a/src/EditorFeatures/CSharpTest2/Recommendations/WithKeywordRecommenderTests.cs
++++ b/src/EditorFeatures/CSharpTest2/Recommendations/WithKeywordRecommenderTests.cs
+@@ -16,14 +16,14 @@ public sealed class WithKeywordRecommenderTests : KeywordRecommenderTests
+     public async Task TestNotAfterWith()
+     {
+         await VerifyAbsenceAsync(AddInsideMethod(
+-@"var q = goo with $$"));
++            @"var q = goo with $$"));
+     }
+ 
+     [Fact]
+     public async Task TestNotAtRoot_Interactive()
+     {
+         await VerifyAbsenceAsync(SourceCodeKind.Script,
+-@"$$");
++            @"$$");
+     }
+ 
+     [Fact]
+@@ -305,4 +305,64 @@ void M(object o)
+             }
+             """);
+     }
++
++    [Fact]
++    public async Task TestInCollectionExpression1()
++    {
++        await VerifyKeywordAsync(
++            """
++            var v = [$$];
++            """);
++    }
++
++    [Fact]
++    public async Task TestInCollectionExpression2()
++    {
++        await VerifyKeywordAsync(
++            """
++            var v = [$$, 1];
++            """);
++    }
++
++    [Fact]
++    public async Task TestInCollectionExpression3()
++    {
++        await VerifyAbsenceAsync(
++            """
++            var v = [1, $$];
++            """);
++    }
++
++    [Fact]
++    public async Task TestInCollectionExpression4()
++    {
++        await VerifyAbsenceAsync(
++            """
++            var v = [1, $$
++            """);
++    }
++
++    [Fact]
++    public async Task TestInCollectionExpression5()
++    {
++        await VerifyKeywordAsync(
++            """
++            void M()
++            {
++                Goo([$$
++            }
++            """);
++    }
++
++    [Fact]
++    public async Task TestInCollectionExpression6()
++    {
++        await VerifyKeywordAsync(
++            """
++            void M()
++            {
++                Goo([$$]);
++            }
++            """);
++    }
+ }

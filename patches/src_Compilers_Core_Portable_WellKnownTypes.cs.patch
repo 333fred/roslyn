@@ -1,0 +1,26 @@
+diff --git a/src/Compilers/Core/Portable/WellKnownTypes.cs b/src/Compilers/Core/Portable/WellKnownTypes.cs
+index bf210b97a1e..a016a574637 100644
+--- a/src/Compilers/Core/Portable/WellKnownTypes.cs
++++ b/src/Compilers/Core/Portable/WellKnownTypes.cs
+@@ -357,6 +357,10 @@ internal enum WellKnownType
+ 
+         System_Text_Encoding,
+ 
++        System_Collections_Generic_Dictionary_KV,
++        System_Collections_Generic_KeyValuePair_KV,
++        System_Collections_ObjectModel_ReadOnlyDictionary_KV,
++
+         NextAvailable,
+         // Remember to update the AllWellKnownTypes tests when making changes here
+     }
+@@ -699,6 +703,10 @@ internal static class WellKnownTypes
+             "System.Linq.Expressions.DefaultExpression",
+ 
+             "System.Text.Encoding",
++
++            "System.Collections.Generic.Dictionary`2",
++            "System.Collections.Generic.KeyValuePair`2",
++            "System.Collections.ObjectModel.ReadOnlyDictionary`2",
+         };
+ 
+         private static readonly Dictionary<string, WellKnownType> s_nameToTypeIdMap = new Dictionary<string, WellKnownType>((int)Count);

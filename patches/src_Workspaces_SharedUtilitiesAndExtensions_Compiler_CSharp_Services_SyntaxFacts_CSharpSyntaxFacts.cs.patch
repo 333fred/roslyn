@@ -1,0 +1,14 @@
+diff --git a/src/Workspaces/SharedUtilitiesAndExtensions/Compiler/CSharp/Services/SyntaxFacts/CSharpSyntaxFacts.cs b/src/Workspaces/SharedUtilitiesAndExtensions/Compiler/CSharp/Services/SyntaxFacts/CSharpSyntaxFacts.cs
+index 2b88dca401e..ba80ab78338 100644
+--- a/src/Workspaces/SharedUtilitiesAndExtensions/Compiler/CSharp/Services/SyntaxFacts/CSharpSyntaxFacts.cs
++++ b/src/Workspaces/SharedUtilitiesAndExtensions/Compiler/CSharp/Services/SyntaxFacts/CSharpSyntaxFacts.cs
+@@ -80,6 +80,9 @@ public bool SupportsFieldExpression(ParseOptions options)
+     public bool SupportsNullConditionalAssignment(ParseOptions options)
+         => options.LanguageVersion().IsCSharp14OrAbove();
+ 
++    public bool SupportsKeyValuePairElement(ParseOptions options)
++        => options.LanguageVersion() >= LanguageVersionExtensions.CSharpNext;
++
+     public SyntaxToken ParseToken(string text)
+         => SyntaxFactory.ParseToken(text);
+ 

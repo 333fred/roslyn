@@ -1,0 +1,31 @@
+diff --git a/src/Analyzers/CSharp/CodeFixes/UseCollectionExpression/CSharpUseCollectionExpressionForBuilderCodeFixProvider.cs b/src/Analyzers/CSharp/CodeFixes/UseCollectionExpression/CSharpUseCollectionExpressionForBuilderCodeFixProvider.cs
+index 277ea05d9d6..0423d78436e 100644
+--- a/src/Analyzers/CSharp/CodeFixes/UseCollectionExpression/CSharpUseCollectionExpressionForBuilderCodeFixProvider.cs
++++ b/src/Analyzers/CSharp/CodeFixes/UseCollectionExpression/CSharpUseCollectionExpressionForBuilderCodeFixProvider.cs
+@@ -74,7 +74,7 @@ protected override async Task FixAsync(
+         var subEditor = new SyntaxEditor(root, document.Project.Solution.Services);
+ 
+         // Remove all the nodes mutating the builder.
+-        foreach (var (statement, _) in analysisResult.Matches)
++        foreach (var (statement, _, _) in analysisResult.Matches)
+             subEditor.RemoveNode(statement);
+ 
+         // Remove the actual declaration of the builder.  Keep any comments on the builder declaration in case they're
+@@ -97,7 +97,7 @@ static AnalysisResult TrackAnalysisResult(SyntaxNode root, AnalysisResult analys
+             => new(analysisResult.DiagnosticLocation,
+                    root.GetCurrentNode(analysisResult.LocalDeclarationStatement)!,
+                    root.GetCurrentNode(analysisResult.CreationExpression)!,
+-                   analysisResult.Matches.SelectAsArray(m => new CollectionMatch<SyntaxNode>(root.GetCurrentNode(m.Node)!, m.UseSpread)),
++                   analysisResult.Matches.SelectAsArray(m => new CollectionMatch<SyntaxNode>(root.GetCurrentNode(m.Node)!, m.UseSpread, m.UseKeyValue)),
+                    analysisResult.ChangesSemantics);
+ 
+         // Creates a new document with all of the relevant nodes in analysisResult tracked so that we can find them
+@@ -114,7 +114,7 @@ static async Task<Document> CreateTrackedDocumentAsync(
+ 
+             nodesToTrack.Add(analysisResult.LocalDeclarationStatement);
+             nodesToTrack.Add(analysisResult.CreationExpression);
+-            foreach (var (statement, _) in analysisResult.Matches)
++            foreach (var (statement, _, _) in analysisResult.Matches)
+                 nodesToTrack.Add(statement);
+ 
+             var newRoot = root.TrackNodes(nodesToTrack);

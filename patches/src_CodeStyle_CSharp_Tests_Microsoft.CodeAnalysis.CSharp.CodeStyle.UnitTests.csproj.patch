@@ -1,0 +1,13 @@
+diff --git a/src/CodeStyle/CSharp/Tests/Microsoft.CodeAnalysis.CSharp.CodeStyle.UnitTests.csproj b/src/CodeStyle/CSharp/Tests/Microsoft.CodeAnalysis.CSharp.CodeStyle.UnitTests.csproj
+index e3dfb2d4e3b..344de64e36b 100644
+--- a/src/CodeStyle/CSharp/Tests/Microsoft.CodeAnalysis.CSharp.CodeStyle.UnitTests.csproj
++++ b/src/CodeStyle/CSharp/Tests/Microsoft.CodeAnalysis.CSharp.CodeStyle.UnitTests.csproj
+@@ -16,6 +16,8 @@
+   <ItemGroup>
+     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.CodeFix.Testing.XUnit" />
+     <PackageReference Include="Basic.Reference.Assemblies.Net60" />
++    <PackageReference Include="Basic.Reference.Assemblies.Net80" />
++    <PackageReference Include="Basic.Reference.Assemblies.Net90" />
+   </ItemGroup>
+   <ItemGroup Label="Project References">
+     <!-- Directly reference the Workspaces project so we always test against the latest Roslyn bits -->

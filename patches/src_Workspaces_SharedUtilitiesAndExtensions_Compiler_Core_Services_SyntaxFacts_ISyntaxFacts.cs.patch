@@ -1,0 +1,12 @@
+diff --git a/src/Workspaces/SharedUtilitiesAndExtensions/Compiler/Core/Services/SyntaxFacts/ISyntaxFacts.cs b/src/Workspaces/SharedUtilitiesAndExtensions/Compiler/Core/Services/SyntaxFacts/ISyntaxFacts.cs
+index 220d7208706..0023c153af9 100644
+--- a/src/Workspaces/SharedUtilitiesAndExtensions/Compiler/Core/Services/SyntaxFacts/ISyntaxFacts.cs
++++ b/src/Workspaces/SharedUtilitiesAndExtensions/Compiler/Core/Services/SyntaxFacts/ISyntaxFacts.cs
+@@ -98,6 +98,7 @@ internal interface ISyntaxFacts
+     bool SupportsImplicitImplementationOfNonPublicInterfaceMembers(ParseOptions options);
+     bool SupportsIndexingInitializer(ParseOptions options);
+     bool SupportsIsNotTypeExpression(ParseOptions options);
++    bool SupportsKeyValuePairElement(ParseOptions options);
+     bool SupportsLocalFunctionDeclaration(ParseOptions options);
+     bool SupportsNotPattern(ParseOptions options);
+     bool SupportsNullConditionalAssignment(ParseOptions options);

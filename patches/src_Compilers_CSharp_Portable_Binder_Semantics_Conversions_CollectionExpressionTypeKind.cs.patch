@@ -1,0 +1,13 @@
+diff --git a/src/Compilers/CSharp/Portable/Binder/Semantics/Conversions/CollectionExpressionTypeKind.cs b/src/Compilers/CSharp/Portable/Binder/Semantics/Conversions/CollectionExpressionTypeKind.cs
+index 40d70499e1f..f893d0cf247 100644
+--- a/src/Compilers/CSharp/Portable/Binder/Semantics/Conversions/CollectionExpressionTypeKind.cs
++++ b/src/Compilers/CSharp/Portable/Binder/Semantics/Conversions/CollectionExpressionTypeKind.cs
+@@ -12,6 +12,8 @@ internal enum CollectionExpressionTypeKind
+         ReadOnlySpan,
+         CollectionBuilder,
+         ImplementsIEnumerable,
++        ImplementsIEnumerableWithIndexer,
+         ArrayInterface,
++        DictionaryInterface,
+     }
+ }

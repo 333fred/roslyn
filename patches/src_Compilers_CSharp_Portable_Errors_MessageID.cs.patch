@@ -1,0 +1,22 @@
+diff --git a/src/Compilers/CSharp/Portable/Errors/MessageID.cs b/src/Compilers/CSharp/Portable/Errors/MessageID.cs
+index c827b5e5f03..41603494565 100644
+--- a/src/Compilers/CSharp/Portable/Errors/MessageID.cs
++++ b/src/Compilers/CSharp/Portable/Errors/MessageID.cs
+@@ -303,6 +303,8 @@ internal enum MessageID
+         IDS_FeatureNullConditionalAssignment = MessageBase + 12854,
+         IDS_FeatureExpressionOptionalAndNamedArguments = MessageBase + 12855,
+         IDS_CollectionExpression = MessageBase + 12856,
++        IDS_FeatureDictionaryExpressions = MessageBase + 12857,
++        IDS_FeatureCollectionExpressionArguments = MessageBase + 12858,
+     }
+ 
+     // Message IDs may refer to strings that need to be localized.
+@@ -491,6 +493,8 @@ internal static LanguageVersion RequiredVersion(this MessageID feature)
+                 case MessageID.IDS_FeatureExtensions:
+                 case MessageID.IDS_FeatureNullConditionalAssignment:
+                 case MessageID.IDS_FeatureExpressionOptionalAndNamedArguments:
++                case MessageID.IDS_FeatureDictionaryExpressions: // semantic check
++                case MessageID.IDS_FeatureCollectionExpressionArguments:
+                     return LanguageVersion.Preview;
+ 
+                 // C# 13.0 features.

@@ -1,0 +1,24 @@
+diff --git a/src/Tools/Source/CompilerGeneratorTools/Source/CSharpSyntaxGenerator/SourceWriter.cs b/src/Tools/Source/CompilerGeneratorTools/Source/CSharpSyntaxGenerator/SourceWriter.cs
+index 9b869f13fac..ae33bc94e21 100644
+--- a/src/Tools/Source/CompilerGeneratorTools/Source/CSharpSyntaxGenerator/SourceWriter.cs
++++ b/src/Tools/Source/CompilerGeneratorTools/Source/CSharpSyntaxGenerator/SourceWriter.cs
+@@ -1688,8 +1688,8 @@ private void WriteRedMinimalFactory(Node nd, bool withStringNames = false)
+ 
+             var hasOptional = minimalFactoryfields.Any(f => !IsRequiredFactoryField(nd, f));
+             var hasAttributeOrModifiersList = nd.Fields.Any(f => IsAttributeOrModifiersList(f));
+-
+-            if (hasOptional && hasAttributeOrModifiersList)
++            var writePragma = hasOptional && (hasAttributeOrModifiersList || nd.Name == "WithElementSyntax");
++            if (writePragma)
+             {
+                 WriteLineWithoutIndent("#pragma warning disable RS0027");
+             }
+@@ -1748,7 +1748,7 @@ private void WriteRedMinimalFactory(Node nd, bool withStringNames = false)
+ 
+             WriteLine(");");
+ 
+-            if (hasOptional && hasAttributeOrModifiersList)
++            if (writePragma)
+             {
+                 WriteLineWithoutIndent("#pragma warning restore RS0027");
+             }

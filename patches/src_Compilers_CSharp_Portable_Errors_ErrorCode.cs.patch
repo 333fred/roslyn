@@ -1,0 +1,16 @@
+diff --git a/src/Compilers/CSharp/Portable/Errors/ErrorCode.cs b/src/Compilers/CSharp/Portable/Errors/ErrorCode.cs
+index e816b78cdc4..e9959d6b9a2 100644
+--- a/src/Compilers/CSharp/Portable/Errors/ErrorCode.cs
++++ b/src/Compilers/CSharp/Portable/Errors/ErrorCode.cs
+@@ -2399,6 +2399,11 @@ internal enum ErrorCode
+         ERR_ExtensionTypeNameDisallowed = 9306,
+         ERR_ExpressionTreeContainsNamedArgumentOutOfPosition = 9307,
+ 
++        ERR_CollectionExpressionKeyValuePairNotSupported = 9500, // PROTOTYPE: Renumber.
++        ERR_CollectionArgumentsMustBeFirst = 9501,
++        ERR_CollectionArgumentsNotSupportedForType = 9502,
++        ERR_CollectionArgumentsDynamicBinding = 9503,
++
+         // Note: you will need to do the following after adding errors:
+         //  1) Update ErrorFacts.IsBuildOnlyDiagnostic (src/Compilers/CSharp/Portable/Errors/ErrorFacts.cs)
+         //  2) Add message to CSharpResources.resx

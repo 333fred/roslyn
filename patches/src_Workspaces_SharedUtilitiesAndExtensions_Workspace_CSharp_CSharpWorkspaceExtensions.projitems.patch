@@ -1,0 +1,12 @@
+diff --git a/src/Workspaces/SharedUtilitiesAndExtensions/Workspace/CSharp/CSharpWorkspaceExtensions.projitems b/src/Workspaces/SharedUtilitiesAndExtensions/Workspace/CSharp/CSharpWorkspaceExtensions.projitems
+index 2db3182cbc4..1d5c8daee3b 100644
+--- a/src/Workspaces/SharedUtilitiesAndExtensions/Workspace/CSharp/CSharpWorkspaceExtensions.projitems
++++ b/src/Workspaces/SharedUtilitiesAndExtensions/Workspace/CSharp/CSharpWorkspaceExtensions.projitems
+@@ -62,6 +62,7 @@
+     <Compile Include="$(MSBuildThisFileDirectory)Extensions\TypeDeclarationSyntaxExtensions.cs" />
+     <Compile Include="$(MSBuildThisFileDirectory)Extensions\TypeSyntaxExtensions.cs" />
+     <Compile Include="$(MSBuildThisFileDirectory)Extensions\UsingDirectiveSyntaxExtensions.cs" />
++    <Compile Include="$(MSBuildThisFileDirectory)Extensions\WithElementSyntaxExtensions.cs" />
+     <Compile Include="$(MSBuildThisFileDirectory)Indentation\CSharpIndentationService.cs" />
+     <Compile Include="$(MSBuildThisFileDirectory)Indentation\CSharpIndentationService.Indenter.cs" />
+     <Compile Include="$(MSBuildThisFileDirectory)LanguageServices\CSharpAddImportsService.cs" />

@@ -1,0 +1,69 @@
+diff --git a/src/Compilers/CSharp/Portable/FlowAnalysis/NullableWalker.cs b/src/Compilers/CSharp/Portable/FlowAnalysis/NullableWalker.cs
+index 3ccd1362dd4..1abd094d5e6 100644
+--- a/src/Compilers/CSharp/Portable/FlowAnalysis/NullableWalker.cs
++++ b/src/Compilers/CSharp/Portable/FlowAnalysis/NullableWalker.cs
+@@ -3855,6 +3855,11 @@ protected override void VisitStatement(BoundStatement statement)
+             {
+                 switch (element)
+                 {
++                    case BoundCollectionExpressionWithElement withElement:
++                        // We only get here if the conversion of the collection expression to the
++                        // target type failed. In this case, simply visit each argument.
++                        VisitArgumentsEvaluate(withElement.Arguments, withElement.ArgumentRefKindsOpt, parameterAnnotationsOpt: default, defaultArguments: default);
++                        break;
+                     case BoundCollectionElementInitializer initializer:
+                         // We don't visit the Add methods
+                         // But we should check conversion to the iteration type
+@@ -3880,6 +3885,15 @@ spread.ElementPlaceholder is { } elementPlaceholder &&
+                             RemovePlaceholderReplacement(elementPlaceholder);
+                         }
+                         break;
++                    case BoundKeyValuePairElement keyValuePair:
++                        VisitRvalue(keyValuePair.Key);
++                        VisitRvalue(keyValuePair.Value);
++                        // https://github.com/dotnet/roslyn/issues/77875: Check nullability from conversions of key and value.
++                        break;
++                    case BoundKeyValuePairConversion keyValuePairConversion:
++                        VisitRvalue(keyValuePairConversion);
++                        // https://github.com/dotnet/roslyn/issues/77875: Check nullability from conversions of key and value.
++                        break;
+                     default:
+                         var elementExpr = (BoundExpression)element;
+                         if (!targetElementType.HasType)
+@@ -3952,7 +3966,7 @@ static NullableFlowState getResultState(BoundCollectionExpression node, Collecti
+             {
+                 if (collectionKind is CollectionExpressionTypeKind.CollectionBuilder)
+                 {
+-                    var createMethod = node.CollectionBuilderMethod;
++                    var createMethod = Binder.GetCollectionBuilderMethod(node);
+                     if (createMethod is not null)
+                     {
+                         var annotations = createMethod.GetFlowAnalysisAnnotations();
+@@ -3968,12 +3982,7 @@ static NullableFlowState getResultState(BoundCollectionExpression node, Collecti
+                 var collectionKind = ConversionsBase.GetCollectionExpressionTypeKind(this.compilation, collectionType, out var targetElementType);
+                 if (collectionKind is CollectionExpressionTypeKind.CollectionBuilder)
+                 {
+-                    var createMethod = node.CollectionBuilderMethod;
+-                    if (createMethod is not null)
+-                    {
+-                        var foundIterationType = _binder.TryGetCollectionIterationType((ExpressionSyntax)node.Syntax, collectionType, out targetElementType);
+-                        Debug.Assert(foundIterationType);
+-                    }
++                    _binder.TryGetCollectionIterationType((ExpressionSyntax)node.Syntax, collectionType, out targetElementType);
+                 }
+ 
+                 return (collectionKind, targetElementType);
+@@ -4008,6 +4017,13 @@ static NullableFlowState getResultState(BoundCollectionExpression node, Collecti
+             return null;
+         }
+ 
++        public override BoundNode? VisitKeyValuePairConversion(BoundKeyValuePairConversion node)
++        {
++            VisitRvalue(node.Expression);
++            SetUnknownResultNullability(node);
++            return null;
++        }
++
+         private void VisitObjectCreationExpressionBase(BoundObjectCreationExpressionBase node)
+         {
+             Debug.Assert(!IsConditionalState);

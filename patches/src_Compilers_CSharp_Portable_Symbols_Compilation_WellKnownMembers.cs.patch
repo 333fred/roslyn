@@ -1,0 +1,16 @@
+diff --git a/src/Compilers/CSharp/Portable/Symbols/Compilation_WellKnownMembers.cs b/src/Compilers/CSharp/Portable/Symbols/Compilation_WellKnownMembers.cs
+index 65292086a78..ead02103102 100644
+--- a/src/Compilers/CSharp/Portable/Symbols/Compilation_WellKnownMembers.cs
++++ b/src/Compilers/CSharp/Portable/Symbols/Compilation_WellKnownMembers.cs
+@@ -273,6 +273,11 @@ internal override ITypeSymbolInternal CommonGetWellKnownType(WellKnownType wellk
+                     targetMethodKind = MethodKind.PropertyGet;
+                     break;
+ 
++                case MemberFlags.PropertySet:
++                    targetSymbolKind = SymbolKind.Method;
++                    targetMethodKind = MethodKind.PropertySet;
++                    break;
++
+                 case MemberFlags.Field:
+                     targetSymbolKind = SymbolKind.Field;
+                     break;

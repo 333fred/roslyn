@@ -1,0 +1,26 @@
+diff --git a/src/Compilers/CSharp/Portable/Syntax/Syntax.xml b/src/Compilers/CSharp/Portable/Syntax/Syntax.xml
+index 95b4705cd93..43cee19d91a 100644
+--- a/src/Compilers/CSharp/Portable/Syntax/Syntax.xml
++++ b/src/Compilers/CSharp/Portable/Syntax/Syntax.xml
+@@ -1839,6 +1839,21 @@
+     </Field>
+     <Field Name="Expression" Type="ExpressionSyntax" />
+   </Node>
++  <Node Name="KeyValuePairElementSyntax" Base="CollectionElementSyntax">
++    <Kind Name="KeyValuePairElement"/>
++    <Field Name="KeyExpression" Type="ExpressionSyntax" />
++    <Field Name="ColonToken" Type="SyntaxToken">
++      <Kind Name="ColonToken"/>
++    </Field>
++    <Field Name="ValueExpression" Type="ExpressionSyntax" />
++  </Node>
++  <Node Name="WithElementSyntax" Base="CollectionElementSyntax">
++    <Kind Name="WithElement"/>
++    <Field Name="WithKeyword" Type="SyntaxToken">
++      <Kind Name="WithKeyword"/>
++    </Field>
++    <Field Name="ArgumentList" Type="ArgumentListSyntax" />
++  </Node>
+   <AbstractNode Name="QueryClauseSyntax" Base="CSharpSyntaxNode">
+   </AbstractNode>
+   <AbstractNode Name="SelectOrGroupClauseSyntax" Base="CSharpSyntaxNode">

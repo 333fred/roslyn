@@ -1,0 +1,15 @@
+diff --git a/src/Compilers/VisualBasic/Portable/Symbols/WellKnownMembers.vb b/src/Compilers/VisualBasic/Portable/Symbols/WellKnownMembers.vb
+index 4e898d90e43..e0f679f3e68 100644
+--- a/src/Compilers/VisualBasic/Portable/Symbols/WellKnownMembers.vb
++++ b/src/Compilers/VisualBasic/Portable/Symbols/WellKnownMembers.vb
+@@ -442,6 +442,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
+                     targetSymbolKind = SymbolKind.Method
+                     targetMethodKind = MethodKind.PropertyGet
+ 
++                Case MemberFlags.PropertySet
++                    targetSymbolKind = SymbolKind.Method
++                    targetMethodKind = MethodKind.PropertySet
++
+                 Case MemberFlags.Field
+                     targetSymbolKind = SymbolKind.Field
+ 

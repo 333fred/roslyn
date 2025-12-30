@@ -1,0 +1,13 @@
+diff --git a/src/EditorFeatures/CSharpTest/SignatureHelp/ObjectCreationExpressionSignatureHelpProviderTests.cs b/src/EditorFeatures/CSharpTest/SignatureHelp/ObjectCreationExpressionSignatureHelpProviderTests.cs
+index 45faed92ed8..3307babfc4f 100644
+--- a/src/EditorFeatures/CSharpTest/SignatureHelp/ObjectCreationExpressionSignatureHelpProviderTests.cs
++++ b/src/EditorFeatures/CSharpTest/SignatureHelp/ObjectCreationExpressionSignatureHelpProviderTests.cs
+@@ -45,7 +45,7 @@ public async Task TestImplicitInvocationWithoutParameters()
+         var markup = """
+             <Workspace>
+                 <Project Language="C#" LanguageVersion="Preview" CommonReferences="true">
+-                    <Document FilePath="SourceDocument"><![CDATA[
++                    <Document FilePath="SourceDocument">
+             class C
+             {
+                 void M()
