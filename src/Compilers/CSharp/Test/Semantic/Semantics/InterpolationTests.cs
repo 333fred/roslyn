@@ -1814,7 +1814,7 @@ value:5
                 123
                 1234
                 12345
-                """ : null, verify: Verification.Skipped);
+                """ : null, verify: Verification.Fails);
 
             verifier.VerifyIL("Program.<<Main>$>g__FiveComponents|0_3()", """
                 {
@@ -19808,6 +19808,63 @@ literal:literal
             comp.MakeMemberMissing(SpecialMember.System_Runtime_CompilerServices_InlineArrayAttribute__ctor);
 
             var verifier = CompileAndVerify(comp, expectedOutput: ExecutionConditionUtil.IsCoreClr ? "aaaaa" : null, verify: Verification.FailsPEVerify);
+            verifier.VerifyDiagnostics();
+            verifier.VerifyIL("<top-level-statements-entry-point>", """
+                {
+                  // Code size       68 (0x44)
+                  .maxstack  3
+                  .locals init (string V_0, //s
+                                System.Runtime.CompilerServices.DefaultInterpolatedStringHandler V_1)
+                  IL_0000:  ldstr      "a"
+                  IL_0005:  stloc.0
+                  IL_0006:  ldloca.s   V_1
+                  IL_0008:  ldc.i4.0
+                  IL_0009:  ldc.i4.5
+                  IL_000a:  call       "System.Runtime.CompilerServices.DefaultInterpolatedStringHandler..ctor(int, int)"
+                  IL_000f:  ldloca.s   V_1
+                  IL_0011:  ldloc.0
+                  IL_0012:  call       "void System.Runtime.CompilerServices.DefaultInterpolatedStringHandler.AppendFormatted(string)"
+                  IL_0017:  ldloca.s   V_1
+                  IL_0019:  ldloc.0
+                  IL_001a:  call       "void System.Runtime.CompilerServices.DefaultInterpolatedStringHandler.AppendFormatted(string)"
+                  IL_001f:  ldloca.s   V_1
+                  IL_0021:  ldloc.0
+                  IL_0022:  call       "void System.Runtime.CompilerServices.DefaultInterpolatedStringHandler.AppendFormatted(string)"
+                  IL_0027:  ldloca.s   V_1
+                  IL_0029:  ldloc.0
+                  IL_002a:  call       "void System.Runtime.CompilerServices.DefaultInterpolatedStringHandler.AppendFormatted(string)"
+                  IL_002f:  ldloca.s   V_1
+                  IL_0031:  ldloc.0
+                  IL_0032:  call       "void System.Runtime.CompilerServices.DefaultInterpolatedStringHandler.AppendFormatted(string)"
+                  IL_0037:  ldloca.s   V_1
+                  IL_0039:  call       "string System.Runtime.CompilerServices.DefaultInterpolatedStringHandler.ToStringAndClear()"
+                  IL_003e:  call       "void System.Console.WriteLine(string)"
+                  IL_0043:  ret
+                }
+                """);
+        }
+
+        [Theory]
+        [InlineData("""$"{s}{s}{s}{s}{s}" """)]
+        [InlineData("""$"{s}" + $"{s}" + $"{s}" + $"{s}" + $"{s}" """)]
+        public void InterpolatedStringWith5StringParts_DifferentSpanType(string expression)
+        {
+            var code = $$"""
+                string s = "a";
+                System.Console.WriteLine({{expression}});
+
+                namespace System
+                {
+                    public readonly ref struct ReadOnlySpan<T>
+                    {
+                    }
+                }
+                """;
+
+            var comp = CreateCompilation([code], targetFramework: TargetFramework.Net100);
+
+            var verifier = CompileAndVerify(comp, expectedOutput: ExecutionConditionUtil.IsCoreClr ? "aaaaa" : null, verify: Verification.FailsPEVerify);
+
             verifier.VerifyDiagnostics();
             verifier.VerifyIL("<top-level-statements-entry-point>", """
                 {

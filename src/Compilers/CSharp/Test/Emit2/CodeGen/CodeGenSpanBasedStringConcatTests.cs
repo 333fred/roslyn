@@ -6045,7 +6045,7 @@ public class CodeGenSpanBasedStringConcatTests : CSharpTestBase
             comp.MakeMemberMissing((SpecialMember)missingUnimportantMember.Value);
         }
 
-        verifier = CompileAndVerify(comp, expectedOutput: ExecutionConditionUtil.IsCoreClr ? "abcde" : null, verify: Verification.Fails);
+        verifier = CompileAndVerify(comp, expectedOutput: ExecutionConditionUtil.IsCoreClr ? "abcde" : null, verify: Verification.Passes);
 
         verifier.VerifyDiagnostics();
         verifier.VerifyIL("Test.M", """

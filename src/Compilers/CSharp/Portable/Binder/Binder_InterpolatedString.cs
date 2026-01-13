@@ -326,9 +326,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                     return (canUseConcat: true, canUseAlloclessConcat: true);
                 }
 
-                if (!@this.InExpressionTree // Can't use spans in an expression tree
-                    && TryGetSpecialTypeMember<MethodSymbol>(@this.Compilation, SpecialMember.System_String__ConcatReadOnlySpanString, parts[0].Syntax, diagnostics, out _, isOptional: true)
-                    && @this.Compilation.Assembly.RuntimeSupportsInlineArrayTypes)
+                if (!@this.InExpressionTree && CanUseReadOnlySpanStringConcat(@this.Compilation, parts[0].Syntax, diagnostics, out _))
                 {
                     // Case 3
                     return (canUseConcat: true, canUseAlloclessConcat: true);
@@ -337,6 +335,14 @@ namespace Microsoft.CodeAnalysis.CSharp
                 // Potentially case 4 or 5
                 return (canUseConcat: true, canUseAlloclessConcat: false);
             }
+        }
+
+        internal static bool CanUseReadOnlySpanStringConcat(CSharpCompilation compilation, SyntaxNode syntax, BindingDiagnosticBag diagnostics, [NotNullWhen(true)] out MethodSymbol? concatMethod)
+        {
+            return TryGetSpecialTypeMember<MethodSymbol>(compilation, SpecialMember.System_String__ConcatReadOnlySpanString, syntax, diagnostics, out concatMethod, isOptional: true)
+                   && compilation.Assembly.RuntimeSupportsInlineArrayTypes
+                   // InlineArray helpers will use WellKnownType.System_ReadOnlySpan_T, so we need to ensure that it matches the System.ReadOnlySpan<T> that string.Concat expects
+                   && (object)compilation.GetSpecialType(InternalSpecialType.System_ReadOnlySpan_T) == compilation.GetWellKnownType(WellKnownType.System_ReadOnlySpan_T);
         }
 
         private ImmutableArray<BoundExpression> BindInterpolatedStringPartsForFactory(BoundUnconvertedInterpolatedString unconvertedInterpolatedString, BindingDiagnosticBag diagnostics, out bool haveErrors)
@@ -508,9 +514,7 @@ namespace Microsoft.CodeAnalysis.CSharp
 
             Debug.Assert(partsArrayBuilder.Count >= 2);
 
-            var canUseReadOnlySpanStringConcat =
-                TryGetSpecialTypeMember<MethodSymbol>(Compilation, SpecialMember.System_String__ConcatReadOnlySpanString, binaryOperator.Syntax, diagnostics, out _, isOptional: true)
-                && Compilation.Assembly.RuntimeSupportsInlineArrayTypes;
+            var canUseReadOnlySpanStringConcat = CanUseReadOnlySpanStringConcat(Compilation, binaryOperator.Syntax, diagnostics, out _);
 
             int count = 0;
 

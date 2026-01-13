@@ -173,11 +173,10 @@ fallbackStrings:
 
                     ImmutableArray<BoundExpression> finalArguments = visitedArguments.ToImmutableAndFree();
 
-                    MethodSymbol concatMethod;
+                    MethodSymbol? concatMethod;
                     if (finalArguments.Length > 4)
                     {
-                        if (_compilation.Assembly.RuntimeSupportsInlineArrayTypes
-                            && TryGetSpecialTypeMethod(originalSyntax, SpecialMember.System_String__ConcatReadOnlySpanString, out concatMethod, isOptional: true))
+                        if (Binder.CanUseReadOnlySpanStringConcat(_compilation, originalSyntax, _diagnostics, out concatMethod))
                         {
                             finalArguments = [CreateAndPopulateSpanFromInlineArray(
                                 originalSyntax,
@@ -185,6 +184,7 @@ fallbackStrings:
                                 ImmutableArray<BoundNode>.CastUp(finalArguments),
                                 asReadOnlySpan: true,
                                 elementsNeedVisiting: false)];
+                            Debug.Assert(finalArguments[0].Type!.OriginalDefinition.ExtendedSpecialType == InternalSpecialType.System_ReadOnlySpan_T);
                         }
                         else
                         {
