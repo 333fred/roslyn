@@ -24,18 +24,67 @@ namespace RunTests
 
         internal void WriteSummary(ImmutableArray<TestResult> testResults)
         {
-            var summary = CreateAgentOutputSummary(testResults);
-            var json = JsonConvert.SerializeObject(summary, Formatting.None, new JsonSerializerSettings
+            var failureRecords = CreateFailureRecords(testResults);
+            var outputDirectory = Path.Combine(_options.LogFilesDirectory, "agent-output");
+            Directory.CreateDirectory(outputDirectory);
+
+            var jsonSettings = new JsonSerializerSettings
             {
                 NullValueHandling = NullValueHandling.Ignore
-            });
+            };
 
-            Console.WriteLine(json);
+            var recordIndex = 0;
+            foreach (var record in failureRecords)
+            {
+                recordIndex++;
+                var outputPath = Path.Combine(outputDirectory, $"{recordIndex:D6}.json");
+                var recordJson = JsonConvert.SerializeObject(record, Formatting.None, jsonSettings);
+                File.WriteAllText(outputPath, recordJson);
+            }
+
+            var summary = CreateAgentOutputIndex(testResults, failureRecords.Count, outputDirectory);
+            var summaryJson = JsonConvert.SerializeObject(summary, Formatting.None, jsonSettings);
+            Console.WriteLine(summaryJson);
         }
 
-        private AgentOutputSummary CreateAgentOutputSummary(ImmutableArray<TestResult> testResults)
+        private List<AgentFailureRecord> CreateFailureRecords(ImmutableArray<TestResult> testResults)
         {
-            var groups = new Dictionary<string, AgentFailureGroup>(StringComparer.Ordinal);
+            var records = new List<AgentFailureRecord>();
+
+            foreach (var testResult in testResults)
+            {
+                if (testResult.Succeeded)
+                {
+                    continue;
+                }
+
+                var failedTests = GetFailedTests(testResult);
+
+                if (failedTests.Count == 0)
+                {
+                    records.Add(CreateFailureRecord(
+                        testResult,
+                        failedTest: null,
+                        note: "No per-test failures were found in the results file."));
+
+                    continue;
+                }
+
+                foreach (var failedTest in failedTests)
+                {
+                    records.Add(CreateFailureRecord(testResult, failedTest, note: null));
+                }
+            }
+
+            return records
+                .OrderByDescending(record => record.FilePath, StringComparer.Ordinal)
+                .ThenByDescending(record => record.FullyQualifiedName, StringComparer.Ordinal)
+                .ThenBy(record => record.WorkItemDisplayName, StringComparer.Ordinal)
+                .ToList();
+        }
+
+        private AgentOutputIndex CreateAgentOutputIndex(ImmutableArray<TestResult> testResults, int failureRecordCount, string outputDirectory)
+        {
             var failedTestCount = 0;
             var failedWorkItemCount = 0;
 
@@ -47,99 +96,49 @@ namespace RunTests
                 }
 
                 failedWorkItemCount++;
-                var failureLogPath = WriteFailureLogFile(testResult);
                 var failedTests = GetFailedTests(testResult);
-
-                if (failedTests.Count == 0)
-                {
-                    var group = GetOrCreateGroup(groups, filePath: null, fullyQualifiedName: null, className: null, methodName: null);
-                    group.Instances.Add(new AgentFailureInstance
-                    {
-                        AssemblyPath = testResult.WorkItemInfo.Filters.Keys.FirstOrDefault().AssemblyPath,
-                        WorkItemDisplayName = testResult.DisplayName,
-                        ResultsFilePath = testResult.TestResultInfo.ResultsFilePath,
-                        HtmlResultsFilePath = testResult.TestResultInfo.HtmlResultsFilePath,
-                        FailureLogPath = failureLogPath,
-                        Line = null,
-                        Note = "No per-test failures were found in the results file."
-                    });
-
-                    continue;
-                }
-
-                foreach (var failedTest in failedTests)
-                {
-                    failedTestCount++;
-                    var group = GetOrCreateGroup(groups, failedTest.FilePath, failedTest.FullyQualifiedName, failedTest.ClassName, failedTest.MethodName);
-                    group.Instances.Add(new AgentFailureInstance
-                    {
-                        AssemblyPath = testResult.WorkItemInfo.Filters.Keys.FirstOrDefault().AssemblyPath,
-                        WorkItemDisplayName = testResult.DisplayName,
-                        ResultsFilePath = testResult.TestResultInfo.ResultsFilePath,
-                        HtmlResultsFilePath = testResult.TestResultInfo.HtmlResultsFilePath,
-                        FailureLogPath = failureLogPath,
-                        Line = failedTest.Line
-                    });
-                }
+                failedTestCount += failedTests.Count;
             }
 
-            var summary = new AgentOutputSummary
+            return new AgentOutputIndex
             {
                 Version = 1,
-                Run = new AgentRunInfo
-                {
-                    Configuration = _options.Configuration,
-                    Architecture = _options.Architecture,
-                    TestResultsDirectory = _options.TestResultsDirectory,
-                    LogFilesDirectory = _options.LogFilesDirectory,
-                    TimestampUtc = DateTime.UtcNow.ToString("O")
-                },
+                Run = CreateRunInfo(),
                 Summary = new AgentSummaryCounts
                 {
                     FailedTestCount = failedTestCount,
                     FailedWorkItemCount = failedWorkItemCount,
-                    GroupCount = groups.Count
+                    FailureRecordCount = failureRecordCount
                 },
-                Groups = groups.Values
-                    .OrderBy(group => group.FilePath, StringComparer.Ordinal)
-                    .ThenBy(group => group.FullyQualifiedName, StringComparer.Ordinal)
-                    .ToList()
+                OutputDirectory = outputDirectory
             };
-
-            return summary;
         }
 
-        private string WriteFailureLogFile(TestResult testResult)
+        private AgentFailureRecord CreateFailureRecord(TestResult testResult, FailedTestInfo? failedTest, string? note)
         {
-            var outputLogPath = Path.Combine(_options.LogFilesDirectory, $"xUnitFailure-{testResult.DisplayName}.log");
-            Directory.CreateDirectory(_options.LogFilesDirectory);
-            File.WriteAllText(outputLogPath, testResult.StandardOutput ?? "");
-            return outputLogPath;
-        }
-
-        private static AgentFailureGroup GetOrCreateGroup(Dictionary<string, AgentFailureGroup> groups, string? filePath, string? fullyQualifiedName, string? className, string? methodName)
-        {
-            var key = BuildGroupKey(filePath, fullyQualifiedName);
-            if (!groups.TryGetValue(key, out var group))
+            return new AgentFailureRecord
             {
-                group = new AgentFailureGroup
-                {
-                    FilePath = filePath,
-                    FullyQualifiedName = fullyQualifiedName,
-                    ClassName = className,
-                    MethodName = methodName,
-                    Instances = new List<AgentFailureInstance>()
-                };
-
-                groups.Add(key, group);
-            }
-
-            return group;
+                FilePath = failedTest?.FilePath,
+                FullyQualifiedName = failedTest?.FullyQualifiedName,
+                ClassName = failedTest?.ClassName,
+                MethodName = failedTest?.MethodName,
+                Line = failedTest?.Line,
+                TestOutput = failedTest?.Output,
+                WorkItemDisplayName = testResult.DisplayName,
+                Note = note
+            };
         }
 
-        private static string BuildGroupKey(string? filePath, string? fullyQualifiedName)
+        private AgentRunInfo CreateRunInfo()
         {
-            return $"{filePath ?? string.Empty}\0{fullyQualifiedName ?? string.Empty}";
+            return new AgentRunInfo
+            {
+                Configuration = _options.Configuration,
+                Architecture = _options.Architecture,
+                TestResultsDirectory = _options.TestResultsDirectory,
+                LogFilesDirectory = _options.LogFilesDirectory,
+                TimestampUtc = DateTime.UtcNow.ToString("O")
+            };
         }
 
         private static List<FailedTestInfo> GetFailedTests(TestResult testResult)
@@ -177,7 +176,10 @@ namespace RunTests
                 var methodName = (string?)element.Attribute("method");
                 var name = (string?)element.Attribute("name");
                 var fullyQualifiedName = name ?? BuildFullyQualifiedName(className, methodName);
+                var message = GetElementValue(element, "message");
                 var stackTrace = GetElementValue(element, "stack-trace");
+                var output = GetElementValue(element, "output");
+                var testOutput = BuildTestOutput(message, stackTrace, output);
                 var (filePath, line) = TryParseFileAndLine(stackTrace);
 
                 failedTests.Add(new FailedTestInfo
@@ -186,11 +188,39 @@ namespace RunTests
                     MethodName = methodName,
                     FullyQualifiedName = fullyQualifiedName,
                     FilePath = filePath,
-                    Line = line
+                    Line = line,
+                    Output = testOutput
                 });
             }
 
             return failedTests;
+        }
+
+        private static string? BuildTestOutput(string? message, string? stackTrace, string? output)
+        {
+            var parts = new List<string>();
+
+            if (!string.IsNullOrWhiteSpace(message))
+            {
+                parts.Add(message);
+            }
+
+            if (!string.IsNullOrWhiteSpace(stackTrace))
+            {
+                parts.Add(stackTrace);
+            }
+
+            if (!string.IsNullOrWhiteSpace(output))
+            {
+                parts.Add(output);
+            }
+
+            if (parts.Count == 0)
+            {
+                return null;
+            }
+
+            return string.Join(Environment.NewLine + Environment.NewLine, parts);
         }
 
         private static string? BuildFullyQualifiedName(string? className, string? methodName)
@@ -251,12 +281,12 @@ namespace RunTests
             return (path, line);
         }
 
-        private sealed class AgentOutputSummary
+        private sealed class AgentOutputIndex
         {
             public int Version { get; set; }
             public AgentRunInfo Run { get; set; } = new AgentRunInfo();
             public AgentSummaryCounts Summary { get; set; } = new AgentSummaryCounts();
-            public List<AgentFailureGroup> Groups { get; set; } = new List<AgentFailureGroup>();
+            public string OutputDirectory { get; set; } = string.Empty;
         }
 
         private sealed class AgentRunInfo
@@ -272,26 +302,18 @@ namespace RunTests
         {
             public int FailedTestCount { get; set; }
             public int FailedWorkItemCount { get; set; }
-            public int GroupCount { get; set; }
+            public int FailureRecordCount { get; set; }
         }
 
-        private sealed class AgentFailureGroup
+        private sealed class AgentFailureRecord
         {
             public string? FilePath { get; set; }
             public string? FullyQualifiedName { get; set; }
             public string? ClassName { get; set; }
             public string? MethodName { get; set; }
-            public List<AgentFailureInstance> Instances { get; set; } = new List<AgentFailureInstance>();
-        }
-
-        private sealed class AgentFailureInstance
-        {
-            public string? AssemblyPath { get; set; }
-            public string WorkItemDisplayName { get; set; } = string.Empty;
-            public string? ResultsFilePath { get; set; }
-            public string? HtmlResultsFilePath { get; set; }
-            public string FailureLogPath { get; set; } = string.Empty;
             public int? Line { get; set; }
+            public string? TestOutput { get; set; }
+            public string WorkItemDisplayName { get; set; } = string.Empty;
             public string? Note { get; set; }
         }
 
@@ -302,6 +324,7 @@ namespace RunTests
             public string? FullyQualifiedName { get; set; }
             public string? FilePath { get; set; }
             public int? Line { get; set; }
+            public string? Output { get; set; }
         }
 
         [GeneratedRegex(@"\s+in\s+(?<path>.*?):line\s+(?<line>\d+)", RegexOptions.CultureInvariant)]
