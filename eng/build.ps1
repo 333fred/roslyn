@@ -70,6 +70,7 @@ param (
   [switch]$helix,
   [string]$helixQueueName = "",
   [string]$helixApiAccessToken = "",
+  [switch]$agentOutput,
 
   [parameter(ValueFromRemainingArguments=$true)][string[]]$properties)
 
@@ -103,6 +104,7 @@ function Print-Usage() {
   Write-Host "  -testIOperation           Run extra checks to validate IOperations"
   Write-Host "  -testUsedAssemblies       Run extra checks to validate used assemblies feature (see ROSLYN_TEST_USEDASSEMBLIES in codebase)"
   Write-Host "  -testRuntimeAsync         Run tests with runtime async validation enabled (see DOTNET_RuntimeAsync in codebase)"
+  Write-Host "  -agentOutput              Emit summarized JSON output for agent consumption"
   Write-Host ""
   Write-Host "Advanced settings:"
   Write-Host "  -ci                       Set when running on CI server"
@@ -479,6 +481,10 @@ function TestUsingRunTests() {
 
   if ($helixApiAccessToken) {
     $args += " --helixApiAccessToken $helixApiAccessToken"
+  }
+
+  if ($agentOutput) {
+    $args += " --agent-output"
   }
 
   try {

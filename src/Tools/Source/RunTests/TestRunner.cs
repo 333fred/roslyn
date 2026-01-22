@@ -97,17 +97,20 @@ namespace RunTests
                             if (!testResult.Succeeded)
                             {
                                 failures++;
-                                if (testResult.ResultsDisplayFilePath is string resultsPath)
+                                if (!_options.AgentOutput)
                                 {
-                                    ConsoleUtil.WriteLine(ConsoleColor.Red, resultsPath);
-                                }
-                                else
-                                {
-                                    foreach (var result in testResult.ProcessResults)
+                                    if (testResult.ResultsDisplayFilePath is string resultsPath)
                                     {
-                                        foreach (var line in result.ErrorLines)
+                                        ConsoleUtil.WriteLine(ConsoleColor.Red, resultsPath);
+                                    }
+                                    else
+                                    {
+                                        foreach (var result in testResult.ProcessResults)
                                         {
-                                            ConsoleUtil.WriteLine(ConsoleColor.Red, line);
+                                            foreach (var line in result.ErrorLines)
+                                            {
+                                                ConsoleUtil.WriteLine(ConsoleColor.Red, line);
+                                            }
                                         }
                                     }
                                 }
@@ -163,6 +166,11 @@ namespace RunTests
 
         private void Print(List<TestResult> testResults)
         {
+            if (_options.AgentOutput)
+            {
+                return;
+            }
+
             testResults.Sort((x, y) => x.Elapsed.CompareTo(y.Elapsed));
 
             foreach (var testResult in testResults.Where(x => !x.Succeeded))
@@ -197,7 +205,7 @@ namespace RunTests
         private void PrintFailedTestResult(TestResult testResult)
         {
             // Save out the error output for easy artifact inspecting
-            var outputLogPath = Path.Combine(_options.LogFilesDirectory, $"xUnitFailure-{testResult.DisplayName}.log");
+            var outputLogPath = WriteFailureLogFile(testResult);
 
             ConsoleUtil.WriteLine($"Errors {testResult.DisplayName}");
             ConsoleUtil.WriteLine(testResult.ErrorOutput);
@@ -205,8 +213,6 @@ namespace RunTests
             // TODO: Put this in the log and take it off the ConsoleUtil output to keep it simple?
             ConsoleUtil.WriteLine($"Command: {testResult.CommandLine}");
             ConsoleUtil.WriteLine($"xUnit output log: {outputLogPath}");
-
-            File.WriteAllText(outputLogPath, testResult.StandardOutput ?? "");
 
             if (!string.IsNullOrEmpty(testResult.ErrorOutput))
             {
@@ -225,6 +231,20 @@ namespace RunTests
                 var startInfo = new ProcessStartInfo() { FileName = htmlResultsFilePath, UseShellExecute = true };
                 Process.Start(startInfo);
             }
+        }
+
+        private string WriteFailureLogFile(TestResult testResult)
+        {
+            var outputLogPath = Path.Combine(_options.LogFilesDirectory, $"xUnitFailure-{testResult.DisplayName}.log");
+            Directory.CreateDirectory(_options.LogFilesDirectory);
+            File.WriteAllText(outputLogPath, testResult.StandardOutput ?? "");
+            return outputLogPath;
+        }
+
+        internal void WriteAgentOutputSummary(ImmutableArray<TestResult> testResults)
+        {
+            var reporter = new AgentOutputReporter(_options);
+            reporter.WriteSummary(testResults);
         }
     }
 }

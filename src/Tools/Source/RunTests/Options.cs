@@ -66,6 +66,11 @@ namespace RunTests
         public bool CollectDumps { get; set; }
 
         /// <summary>
+        /// Emit summarized JSON output intended for agent consumption.
+        /// </summary>
+        public bool AgentOutput { get; set; }
+
+        /// <summary>
         /// The path to procdump.exe
         /// </summary>
         public string? ProcDumpFilePath { get; set; }
@@ -160,6 +165,7 @@ namespace RunTests
             string? pipelineDefinitionId = null;
             string? phaseName = null;
             string? targetBranchName = null;
+            var agentOutput = false;
             var optionSet = new OptionSet()
             {
                 { "dotnet=", "Path to dotnet", s => dotnetFilePath = s },
@@ -186,6 +192,7 @@ namespace RunTests
                 { "pipelineDefinitionId=", "Pipeline definition id", s => pipelineDefinitionId = s },
                 { "phaseName=", "Pipeline phase name associated with this test run", s => phaseName = s },
                 { "targetBranchName=", "Target branch of this pipeline run", s => targetBranchName = s },
+                { "agent-output", "Emit summarized JSON output intended for agent consumption", o => agentOutput = o is object },
             };
 
             List<string> assemblyList;
@@ -256,6 +263,7 @@ namespace RunTests
                 PipelineDefinitionId = pipelineDefinitionId,
                 PhaseName = phaseName,
                 TargetBranchName = targetBranchName,
+                AgentOutput = agentOutput,
             };
 
             static string? TryGetArtifactsPath()

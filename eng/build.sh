@@ -30,6 +30,7 @@ usage()
   echo "  --testCompilerOnly         Run only the compiler unit tests"
   echo "  --testIOperation           Run unit tests with the IOperation test hook"
   echo "  --testRuntimeAsync         Run unit tests with runtime async validation enabled"
+  echo "  --agentOutput             Emit summarized JSON output for agent consumption"
   echo ""
   echo "Advanced settings:"
   echo "  --ci                       Building in CI"
@@ -69,6 +70,7 @@ test_mono=false
 test_ioperation=false
 test_runtime_async=false
 test_compiler_only=false
+agent_output=false
 
 configuration="Debug"
 verbosity='minimal'
@@ -148,6 +150,9 @@ while [[ $# > 0 ]]; do
       ;;
     --testruntimeasync)
       test_runtime_async=true
+      ;;
+    --agentoutput)
+      agent_output=true
       ;;
     --ci)
       ci=true
@@ -401,6 +406,9 @@ if [[ "$test_core_clr" == true ]]; then
 
   if [[ "$ci" != true ]]; then
     runtests_args="$runtests_args --html"
+  fi
+  if [[ "$agent_output" == true ]]; then
+    runtests_args="$runtests_args --agent-output"
   fi
   dotnet exec "$scriptroot/../artifacts/bin/RunTests/${configuration}/net10.0/RunTests.dll" --runtime core --configuration ${configuration} --logs ${log_dir} --dotnet ${_InitializeDotNetCli}/dotnet $runtests_args
 fi

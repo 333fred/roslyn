@@ -147,7 +147,16 @@ namespace RunTests
 
             LogProcessResultDetails(result.ProcessResults);
             WriteLogFile(options);
-            DisplayResults(options.Display, result.TestResults);
+            if (!options.AgentOutput)
+            {
+                DisplayResults(options.Display, result.TestResults);
+            }
+
+            if (options.AgentOutput)
+            {
+                testRunner.WriteAgentOutputSummary(result.TestResults);
+                return result.Succeeded ? ExitSuccess : ExitFailure;
+            }
 
             if (!result.Succeeded)
             {
