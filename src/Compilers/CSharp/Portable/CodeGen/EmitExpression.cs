@@ -1628,6 +1628,7 @@ namespace Microsoft.CodeAnalysis.CSharp.CodeGen
 
         private void EmitCallExpression(BoundCall call, UseKind useKind)
         {
+            _builder.EmitOpCode(ILOpCode.Nop);
             if (call.Method.IsDefaultValueTypeConstructor())
             {
                 EmitDefaultValueTypeConstructorCallExpression(call);
