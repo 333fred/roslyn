@@ -1,5 +1,5 @@
 ---
-name: compiler-baseline-update-agent
+name: Compiler Baseline Update Agent
 description: 'Agent for orchestrating compiler baseline updates. Runs tests with /agent-output, builds a todo list grouped by file and test method, and delegates updates to subagents using the compiler-baseline-update-skill.'
 ---
 
