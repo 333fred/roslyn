@@ -1,6 +1,6 @@
 ---
 name: Compiler Baseline Update Agent
-description: 'Agent for orchestrating compiler baseline updates. Runs tests with /agent-output, builds a todo list grouped by file and test method, and delegates updates to subagents using the compiler-baseline-update-skill.'
+description: 'Agent for orchestrating compiler baseline updates. Runs tests with /agent-output, builds a file-level todo list, and delegates per-file/per-test updates using the compiler-baseline-update-skill.'
 ---
 
 # Compiler Baseline Update Agent
@@ -9,9 +9,9 @@ This agent orchestrates compiler test baseline updates at scale without overwhel
 
 ## Responsibilities
 
-- Run tests with `/agent-output` to get summarized JSON output
-- Build a todo list grouped by file and test method
-- Delegate per-test updates to subagents that use the compiler baseline update skill
+- Run tests with `/agent-output` to get file-level tasks
+- Build a file-level todo list and dispatch a subagent per file
+- Each file-level subagent dispatches per-test updates using the compiler baseline update skill
 - Avoid raw failure output in the main context
 - Loop: re-run tests after updates until baselines stabilize or no progress is possible
 - Dispatch updates in reverse-file order when possible to reduce line-number drift
@@ -20,11 +20,11 @@ This agent orchestrates compiler test baseline updates at scale without overwhel
 ## Execution Flow
 
 1. Run tests with `/agent-output` enabled.
-2. Parse the JSON summary and create a todo list grouped by file and test method.
-3. Sort groups in reverse-file order and schedule one subagent per file (files can run in parallel).
-4. For each group, dispatch a subagent task that:
-   - Opens the relevant test file
-   - Applies the baseline update conservatively
+2. Read the summary file path printed to the console and parse it (one task per line, `filePath | fileSummaryPath`).
+3. Sort tasks in reverse-file order and schedule one subagent per file (files can run in parallel).
+4. Each file-level subagent reads its file summary (one line per failing test, `fullyQualifiedName | outputFileName.json`) and then:
+   - Dispatches per-test subagents scoped to that file
+   - Applies baseline updates conservatively
    - Preserves formatting and string literal style
 5. Re-run tests with `/agent-output` enabled.
 6. Repeat steps 2–5 until:
@@ -45,9 +45,9 @@ For faster runs focused on compiler tests, include:
 - Linux/macOS: add --testCompilerOnly
 - Windows: add -testCompilerOnly
 
-The scripts pass --agent-output through to the RunTests tool, which emits a single-line JSON summary without raw failure output.
+The scripts pass --agent-output through to the RunTests tool, which writes a plain-text file-level summary (one task per line, `filePath | fileSummaryPath`) and prints only the summary file path to the console. Each file summary lists failing tests as `fullyQualifiedName | outputFileName.json`.
 
 ## Skill Dependency
 
 - Uses the compiler baseline update skill located at:
-  [.github/skills/compiler-baseline-update-skill/SKILL.md](../compiler-baseline-update-skill/SKILL.md)
+  [.github/skills/compiler-baseline-update-skill/SKILL.md](../skills/compiler-baseline-update-skill/SKILL.md)

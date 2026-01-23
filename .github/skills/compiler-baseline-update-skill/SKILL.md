@@ -16,7 +16,7 @@ A conservative, formatting-preserving baseline updater for Roslyn compiler tests
 
 ## Core Principles
 
-- Preserve existing indentation, alignment, and spacing
+- Preserve existing indentation, alignment, and spacing (match the surrounding baseline block exactly)
 - Preserve string literal style (verbatim, raw, interpolated) and quoting
 - Preserve conditional baseline logic (`if`/`switch`/interpolated paths)
 - Only update within the user-specified scope
@@ -46,12 +46,19 @@ Ignore Diff and any other diagnostic output.
 
 ### Escaping Rules
 
-- If the existing baseline uses a verbatim string literal, escape internal quotes by doubling them.
+- If the existing baseline uses a verbatim string literal, escape internal quotes by doubling them. Do not escape backslashes. Preserve line breaks and alignment inside the verbatim literal.
 - If the existing baseline uses a regular string literal, escape backslashes and quotes as needed.
-- If the existing baseline uses a raw string literal, preserve raw string formatting and indentation.
+- If the existing baseline uses a raw string literal, preserve raw string formatting and indentation (including the closing delimiter alignment).
 - If the existing baseline uses interpolated strings, keep interpolation intact and update only fixed text.
 
 Always preserve the original string literal style unless explicitly instructed otherwise.
+
+### Indentation and Alignment
+
+- Keep the baseline text indented to match the surrounding code block.
+- For multi-line literals, preserve the exact indentation on each line.
+- If the baseline is aligned with a helper like `@"` or `"""`, keep the alignment consistent with the opening delimiter line.
+- Do not add extra spaces to the baseline. IL baselines indent scopes by 2 spaces, and this should be preserved exactly as written in the actual baseline.
 
 ## Locating the Failing Baseline
 

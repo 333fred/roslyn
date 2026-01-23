@@ -27,6 +27,8 @@ namespace RunTests
             var failureRecords = CreateFailureRecords(testResults);
             var outputDirectory = Path.Combine(_options.LogFilesDirectory, "agent-output");
             Directory.CreateDirectory(outputDirectory);
+            var fileSummariesDirectory = Path.Combine(outputDirectory, "file-summaries");
+            Directory.CreateDirectory(fileSummariesDirectory);
 
             var jsonSettings = new JsonSerializerSettings
             {
@@ -37,14 +39,17 @@ namespace RunTests
             foreach (var record in failureRecords)
             {
                 recordIndex++;
-                var outputPath = Path.Combine(outputDirectory, $"{recordIndex:D6}.json");
+                var outputFileName = $"{recordIndex:D6}.json";
+                var outputPath = Path.Combine(outputDirectory, outputFileName);
+                record.OutputFileName = outputFileName;
                 var recordJson = JsonConvert.SerializeObject(record, Formatting.None, jsonSettings);
                 File.WriteAllText(outputPath, recordJson);
             }
 
-            var summary = CreateAgentOutputIndex(testResults, failureRecords.Count, outputDirectory);
-            var summaryJson = JsonConvert.SerializeObject(summary, Formatting.None, jsonSettings);
-            Console.WriteLine(summaryJson);
+            var fileTasks = WriteFileSummaries(fileSummariesDirectory, failureRecords);
+            var summaryFilePath = Path.Combine(outputDirectory, "tasks.txt");
+            WriteTaskSummaryFile(summaryFilePath, fileTasks);
+            Console.WriteLine(MakeRelativePath(summaryFilePath) ?? summaryFilePath);
         }
 
         private List<AgentFailureRecord> CreateFailureRecords(ImmutableArray<TestResult> testResults)
@@ -83,42 +88,73 @@ namespace RunTests
                 .ToList();
         }
 
-        private AgentOutputIndex CreateAgentOutputIndex(ImmutableArray<TestResult> testResults, int failureRecordCount, string outputDirectory)
+        private static List<AgentFileTask> WriteFileSummaries(string fileSummariesDirectory, List<AgentFailureRecord> failureRecords)
         {
-            var failedTestCount = 0;
-            var failedWorkItemCount = 0;
-
-            foreach (var testResult in testResults)
+            var map = new Dictionary<string, List<AgentFailureRecord>>(StringComparer.Ordinal);
+            foreach (var record in failureRecords)
             {
-                if (testResult.Succeeded)
+                if (string.IsNullOrEmpty(record.FilePath) || string.IsNullOrEmpty(record.FullyQualifiedName))
                 {
                     continue;
                 }
 
-                failedWorkItemCount++;
-                var failedTests = GetFailedTests(testResult);
-                failedTestCount += failedTests.Count;
+                if (!map.TryGetValue(record.FilePath, out var list))
+                {
+                    list = new List<AgentFailureRecord>();
+                    map.Add(record.FilePath, list);
+                }
+
+                list.Add(record);
             }
 
-            return new AgentOutputIndex
+            var filePaths = map.Keys.ToList();
+            filePaths.Sort(StringComparer.Ordinal);
+            filePaths.Reverse();
+
+            var tasks = new List<AgentFileTask>();
+            var index = 0;
+            foreach (var filePath in filePaths)
             {
-                Version = 1,
-                Run = CreateRunInfo(),
-                Summary = new AgentSummaryCounts
+                index++;
+                var summaryFileName = $"{index:D6}.txt";
+                var summaryFilePath = Path.Combine(fileSummariesDirectory, summaryFileName);
+                var records = map[filePath];
+                records.Sort((left, right) => StringComparer.Ordinal.Compare(left.FullyQualifiedName, right.FullyQualifiedName));
+
+                var lines = new List<string>();
+                foreach (var record in records)
                 {
-                    FailedTestCount = failedTestCount,
-                    FailedWorkItemCount = failedWorkItemCount,
-                    FailureRecordCount = failureRecordCount
-                },
-                OutputDirectory = outputDirectory
-            };
+                    lines.Add($"{record.FullyQualifiedName} | {record.OutputFileName}");
+                }
+
+                File.WriteAllLines(summaryFilePath, lines);
+                tasks.Add(new AgentFileTask
+                {
+                    FilePath = filePath,
+                    SummaryFilePath = MakeRelativePath(summaryFilePath) ?? summaryFilePath
+                });
+            }
+
+            return tasks;
+        }
+
+        private static void WriteTaskSummaryFile(string summaryFilePath, List<AgentFileTask> tasks)
+        {
+            var lines = new List<string>();
+
+            foreach (var task in tasks)
+            {
+                lines.Add($"{task.FilePath} | {task.SummaryFilePath}");
+            }
+
+            File.WriteAllLines(summaryFilePath, lines);
         }
 
         private AgentFailureRecord CreateFailureRecord(TestResult testResult, FailedTestInfo? failedTest, string? note)
         {
             return new AgentFailureRecord
             {
-                FilePath = failedTest?.FilePath,
+                FilePath = MakeRelativePath(failedTest?.FilePath),
                 FullyQualifiedName = failedTest?.FullyQualifiedName,
                 ClassName = failedTest?.ClassName,
                 MethodName = failedTest?.MethodName,
@@ -129,16 +165,27 @@ namespace RunTests
             };
         }
 
-        private AgentRunInfo CreateRunInfo()
+        private static string? MakeRelativePath(string? path)
         {
-            return new AgentRunInfo
+            if (string.IsNullOrWhiteSpace(path))
             {
-                Configuration = _options.Configuration,
-                Architecture = _options.Architecture,
-                TestResultsDirectory = _options.TestResultsDirectory,
-                LogFilesDirectory = _options.LogFilesDirectory,
-                TimestampUtc = DateTime.UtcNow.ToString("O")
-            };
+                return path;
+            }
+
+            if (!Path.IsPathRooted(path))
+            {
+                return path;
+            }
+
+            try
+            {
+                var root = Directory.GetCurrentDirectory();
+                return Path.GetRelativePath(root, path);
+            }
+            catch
+            {
+                return path;
+            }
         }
 
         private static List<FailedTestInfo> GetFailedTests(TestResult testResult)
@@ -260,12 +307,13 @@ namespace RunTests
                 return (null, null);
             }
 
-            var match = StackTraceRegex.Match(stackTrace);
-            if (!match.Success)
+            var matches = StackTraceRegex.Matches(stackTrace);
+            if (matches.Count == 0)
             {
                 return (null, null);
             }
 
+            var match = matches[^1];
             var path = match.Groups["path"].Value;
             if (string.IsNullOrWhiteSpace(path))
             {
@@ -281,30 +329,6 @@ namespace RunTests
             return (path, line);
         }
 
-        private sealed class AgentOutputIndex
-        {
-            public int Version { get; set; }
-            public AgentRunInfo Run { get; set; } = new AgentRunInfo();
-            public AgentSummaryCounts Summary { get; set; } = new AgentSummaryCounts();
-            public string OutputDirectory { get; set; } = string.Empty;
-        }
-
-        private sealed class AgentRunInfo
-        {
-            public string Configuration { get; set; } = string.Empty;
-            public string Architecture { get; set; } = string.Empty;
-            public string TestResultsDirectory { get; set; } = string.Empty;
-            public string LogFilesDirectory { get; set; } = string.Empty;
-            public string TimestampUtc { get; set; } = string.Empty;
-        }
-
-        private sealed class AgentSummaryCounts
-        {
-            public int FailedTestCount { get; set; }
-            public int FailedWorkItemCount { get; set; }
-            public int FailureRecordCount { get; set; }
-        }
-
         private sealed class AgentFailureRecord
         {
             public string? FilePath { get; set; }
@@ -315,6 +339,13 @@ namespace RunTests
             public string? TestOutput { get; set; }
             public string WorkItemDisplayName { get; set; } = string.Empty;
             public string? Note { get; set; }
+            public string OutputFileName { get; set; } = string.Empty;
+        }
+
+        private sealed class AgentFileTask
+        {
+            public string FilePath { get; set; } = string.Empty;
+            public string SummaryFilePath { get; set; } = string.Empty;
         }
 
         private sealed class FailedTestInfo
