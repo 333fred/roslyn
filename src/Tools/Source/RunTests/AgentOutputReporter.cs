@@ -9,7 +9,6 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
-using Newtonsoft.Json;
 
 namespace RunTests
 {
@@ -27,28 +26,9 @@ namespace RunTests
             var failureRecords = CreateFailureRecords(testResults);
             var outputDirectory = Path.Combine(_options.LogFilesDirectory, "agent-output");
             Directory.CreateDirectory(outputDirectory);
-            var fileSummariesDirectory = Path.Combine(outputDirectory, "file-summaries");
-            Directory.CreateDirectory(fileSummariesDirectory);
-
-            var jsonSettings = new JsonSerializerSettings
-            {
-                NullValueHandling = NullValueHandling.Ignore
-            };
-
-            var recordIndex = 0;
-            foreach (var record in failureRecords)
-            {
-                recordIndex++;
-                var outputFileName = $"{recordIndex:D6}.json";
-                var outputPath = Path.Combine(outputDirectory, outputFileName);
-                record.OutputFileName = outputFileName;
-                var recordJson = JsonConvert.SerializeObject(record, Formatting.None, jsonSettings);
-                File.WriteAllText(outputPath, recordJson);
-            }
-
-            var fileTasks = WriteFileSummaries(fileSummariesDirectory, failureRecords);
-            var summaryFilePath = Path.Combine(outputDirectory, "tasks.txt");
-            WriteTaskSummaryFile(summaryFilePath, fileTasks);
+            var fileTasks = WriteFileSummaries(outputDirectory, failureRecords);
+            var summaryFilePath = Path.Combine(outputDirectory, "summary.txt");
+            WriteSummaryFile(summaryFilePath, fileTasks);
             Console.WriteLine(MakeRelativePath(summaryFilePath) ?? summaryFilePath);
         }
 
@@ -88,7 +68,7 @@ namespace RunTests
                 .ToList();
         }
 
-        private static List<AgentFileTask> WriteFileSummaries(string fileSummariesDirectory, List<AgentFailureRecord> failureRecords)
+        private List<AgentFileTask> WriteFileSummaries(string outputDirectory, List<AgentFailureRecord> failureRecords)
         {
             var map = new Dictionary<string, List<AgentFailureRecord>>(StringComparer.Ordinal);
             foreach (var record in failureRecords)
@@ -107,44 +87,36 @@ namespace RunTests
                 list.Add(record);
             }
 
+            var tasks = new List<AgentFileTask>();
             var filePaths = map.Keys.ToList();
             filePaths.Sort(StringComparer.Ordinal);
-            filePaths.Reverse();
-
-            var tasks = new List<AgentFileTask>();
-            var index = 0;
             foreach (var filePath in filePaths)
             {
-                index++;
-                var summaryFileName = $"{index:D6}.txt";
-                var summaryFilePath = Path.Combine(fileSummariesDirectory, summaryFileName);
                 var records = map[filePath];
-                records.Sort((left, right) => StringComparer.Ordinal.Compare(left.FullyQualifiedName, right.FullyQualifiedName));
+                var folderName = CreateFileFolderName(records.First(), filePath);
+                var folderPath = Path.Combine(outputDirectory, folderName);
+                Directory.CreateDirectory(folderPath);
 
-                var lines = new List<string>();
-                foreach (var record in records)
-                {
-                    lines.Add($"{record.FullyQualifiedName} | {record.OutputFileName}");
-                }
+                var testSummaries = WriteTestOutputs(folderPath, records);
+                var summaryPath = Path.Combine(folderPath, "summary.txt");
+                WriteFileSummaryFile(summaryPath, testSummaries);
 
-                File.WriteAllLines(summaryFilePath, lines);
                 tasks.Add(new AgentFileTask
                 {
-                    FilePath = filePath,
-                    SummaryFilePath = MakeRelativePath(summaryFilePath) ?? summaryFilePath
+                    SummaryFilePath = MakeRelativePath(summaryPath) ?? summaryPath
                 });
             }
 
             return tasks;
         }
 
-        private static void WriteTaskSummaryFile(string summaryFilePath, List<AgentFileTask> tasks)
+        private static void WriteSummaryFile(string summaryFilePath, List<AgentFileTask> tasks)
         {
             var lines = new List<string>();
 
             foreach (var task in tasks)
             {
-                lines.Add($"{task.FilePath} | {task.SummaryFilePath}");
+                lines.Add(task.SummaryFilePath);
             }
 
             File.WriteAllLines(summaryFilePath, lines);
@@ -160,9 +132,167 @@ namespace RunTests
                 MethodName = failedTest?.MethodName,
                 Line = failedTest?.Line,
                 TestOutput = failedTest?.Output,
+                AssemblyPath = testResult.WorkItemInfo.Filters.Keys.FirstOrDefault().AssemblyPath,
+                DisplayName = failedTest?.DisplayName,
                 WorkItemDisplayName = testResult.DisplayName,
                 Note = note
             };
+        }
+
+        private static string CreateFileFolderName(AgentFailureRecord record, string filePath)
+        {
+            var projectName = "UnknownProject";
+            if (!string.IsNullOrEmpty(record.AssemblyPath))
+            {
+                projectName = Path.GetFileNameWithoutExtension(record.AssemblyPath);
+            }
+
+            var fileName = Path.GetFileNameWithoutExtension(filePath);
+            if (string.IsNullOrEmpty(fileName))
+            {
+                fileName = "UnknownFile";
+            }
+
+            return $"{projectName}_{fileName}";
+        }
+
+        private static List<AgentTestSummary> WriteTestOutputs(string folderPath, List<AgentFailureRecord> records)
+        {
+            var testMap = new Dictionary<string, List<AgentFailureRecord>>(StringComparer.Ordinal);
+            foreach (var record in records)
+            {
+                var key = BuildTestKey(record);
+                if (!testMap.TryGetValue(key, out var list))
+                {
+                    list = new List<AgentFailureRecord>();
+                    testMap.Add(key, list);
+                }
+
+                list.Add(record);
+            }
+
+            var summaries = new List<AgentTestSummary>();
+            var testKeys = testMap.Keys.ToList();
+            testKeys.Sort(StringComparer.Ordinal);
+            foreach (var testKey in testKeys)
+            {
+                var testRecords = testMap[testKey];
+                var outputFileName = CreateTestOutputFileName(testRecords[0]);
+                var outputPath = Path.Combine(folderPath, outputFileName);
+                WriteTestOutputFile(outputPath, testRecords);
+
+                var line = testRecords.Select(record => record.Line).FirstOrDefault(value => value.HasValue);
+                summaries.Add(new AgentTestSummary
+                {
+                    Line = line,
+                    SummaryFileName = outputFileName
+                });
+            }
+
+            return summaries;
+        }
+
+        private static string BuildTestKey(AgentFailureRecord record)
+        {
+            var methodName = GetBaseMethodName(record.MethodName);
+            if (!string.IsNullOrEmpty(record.ClassName) && !string.IsNullOrEmpty(methodName))
+            {
+                return $"{record.ClassName}.{methodName}";
+            }
+
+            return record.FullyQualifiedName ?? "UnknownTest";
+        }
+
+        private static string CreateTestOutputFileName(AgentFailureRecord record)
+        {
+            var name = GetBaseMethodName(record.MethodName) ?? record.FullyQualifiedName ?? "UnknownTest";
+            var invalidChars = Path.GetInvalidFileNameChars();
+            var sanitized = new string(name.Select(ch => invalidChars.Contains(ch) ? '_' : ch).ToArray());
+            return $"{sanitized}.txt";
+        }
+
+        private static void WriteTestOutputFile(string outputPath, List<AgentFailureRecord> testRecords)
+        {
+            testRecords.Sort((left, right) => StringComparer.Ordinal.Compare(left.DisplayName, right.DisplayName));
+            var first = testRecords[0];
+
+            var lines = new List<string>
+            {
+                $"Class: {first.ClassName}",
+                $"Test: {first.MethodName}",
+                string.Empty
+            };
+
+            foreach (var record in testRecords)
+            {
+                var caseName = GetCaseName(record);
+                lines.Add($"Case: {caseName}");
+
+                if (!string.IsNullOrWhiteSpace(record.TestOutput))
+                {
+                    lines.Add(record.TestOutput!);
+                }
+
+                lines.Add(string.Empty);
+            }
+
+            File.WriteAllLines(outputPath, lines);
+        }
+
+        private static string GetCaseName(AgentFailureRecord record)
+        {
+            var name = record.DisplayName ?? record.FullyQualifiedName ?? string.Empty;
+            if (!string.IsNullOrEmpty(record.ClassName) && name.StartsWith(record.ClassName + ".", StringComparison.Ordinal))
+            {
+                name = name.Substring(record.ClassName.Length + 1);
+            }
+
+            var methodName = GetBaseMethodName(record.MethodName);
+            if (!string.IsNullOrEmpty(methodName) && name.StartsWith(methodName, StringComparison.Ordinal))
+            {
+                name = name.Substring(methodName.Length).TrimStart();
+            }
+
+            return name;
+        }
+
+        private static string? GetBaseMethodName(string? methodName)
+        {
+            if (string.IsNullOrEmpty(methodName))
+            {
+                return methodName;
+            }
+
+            var index = methodName.IndexOf('(');
+            if (index <= 0)
+            {
+                return methodName;
+            }
+
+            return methodName.Substring(0, index);
+        }
+
+        private static void WriteFileSummaryFile(string summaryPath, List<AgentTestSummary> summaries)
+        {
+            summaries.Sort((left, right) =>
+            {
+                var lineCompare = Nullable.Compare(left.Line, right.Line);
+                if (lineCompare != 0)
+                {
+                    return lineCompare;
+                }
+
+                return StringComparer.Ordinal.Compare(left.SummaryFileName, right.SummaryFileName);
+            });
+
+            var lines = new List<string>();
+            foreach (var summary in summaries)
+            {
+                var lineValue = summary.Line ?? 0;
+                lines.Add($"{lineValue} {summary.SummaryFileName}");
+            }
+
+            File.WriteAllLines(summaryPath, lines);
         }
 
         private static string? MakeRelativePath(string? path)
@@ -236,7 +366,8 @@ namespace RunTests
                     FullyQualifiedName = fullyQualifiedName,
                     FilePath = filePath,
                     Line = line,
-                    Output = testOutput
+                    Output = testOutput,
+                    DisplayName = name
                 });
             }
 
@@ -337,15 +468,21 @@ namespace RunTests
             public string? MethodName { get; set; }
             public int? Line { get; set; }
             public string? TestOutput { get; set; }
+            public string? AssemblyPath { get; set; }
+            public string? DisplayName { get; set; }
             public string WorkItemDisplayName { get; set; } = string.Empty;
             public string? Note { get; set; }
-            public string OutputFileName { get; set; } = string.Empty;
         }
 
         private sealed class AgentFileTask
         {
-            public string FilePath { get; set; } = string.Empty;
             public string SummaryFilePath { get; set; } = string.Empty;
+        }
+
+        private sealed class AgentTestSummary
+        {
+            public int? Line { get; set; }
+            public string SummaryFileName { get; set; } = string.Empty;
         }
 
         private sealed class FailedTestInfo
@@ -356,6 +493,7 @@ namespace RunTests
             public string? FilePath { get; set; }
             public int? Line { get; set; }
             public string? Output { get; set; }
+            public string? DisplayName { get; set; }
         }
 
         [GeneratedRegex(@"\s+in\s+(?<path>.*?):line\s+(?<line>\d+)", RegexOptions.CultureInvariant)]
