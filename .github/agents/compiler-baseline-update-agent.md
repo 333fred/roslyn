@@ -23,4 +23,4 @@ This agent orchestrates compiler test baseline updates at scale without overwhel
 
 ## Inputs
 
-- summary.txt path (one task per line, `path/to/file-summary.txt`).
+- summary.txt path (one task per line, `path/to/file-summary/summary.txt`).

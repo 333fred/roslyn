@@ -119,6 +119,8 @@ namespace RunTests
                 lines.Add(task.SummaryFilePath);
             }
 
+            lines.Sort(StringComparer.Ordinal);
+
             File.WriteAllLines(summaryFilePath, lines);
         }
 
@@ -207,7 +209,7 @@ namespace RunTests
         {
             var name = GetBaseMethodName(record.MethodName) ?? record.FullyQualifiedName ?? "UnknownTest";
             var invalidChars = Path.GetInvalidFileNameChars();
-            var sanitized = new string(name.Select(ch => invalidChars.Contains(ch) ? '_' : ch).ToArray());
+            var sanitized = new string(name.Select(ch => invalidChars.Contains(ch) || char.IsWhiteSpace(ch) ? '_' : ch).ToArray());
             return $"{sanitized}.txt";
         }
 
