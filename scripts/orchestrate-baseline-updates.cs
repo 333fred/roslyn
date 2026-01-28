@@ -1,4 +1,5 @@
 ﻿#!/usr/bin/env dotnet
+#:package GitHub.Copilot.SDK
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
@@ -6,12 +7,11 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Threading;
+using GitHub.Copilot.SDK;
 
 var repoRoot = GetRepoRoot();
 const string RunTestsCommand = "./build.sh";
-const string CopilotCommand = "copilot";
-const string CopilotArgsTemplate = "agent run --agent {agent} --input {prompt}";
-const string AgentName = "Compiler Baseline Update Skill";
 var runTestsArgs = "--testCoreClr --testCompilerOnly --restore --agentOutput";
 var skipFirstRun = false;
 var maxParallel = Environment.ProcessorCount;
@@ -45,6 +45,9 @@ if (maxParallel < 1)
 {
     maxParallel = 1;
 }
+
+await using var copilotClient = CreateCopilotClient(repoRoot);
+await copilotClient.StartAsync(CancellationToken.None);
 
 var firstRunSkipped = false;
 while (true)
@@ -103,7 +106,7 @@ while (true)
             await semaphore.WaitAsync().ConfigureAwait(false);
             try
             {
-                ProcessFileSummary(repoRoot, fileSummaryPath);
+                await ProcessFileSummaryAsync(repoRoot, fileSummaryPath, copilotClient).ConfigureAwait(false);
             }
             finally
             {
@@ -115,7 +118,7 @@ while (true)
     await Task.WhenAll(tasks).ConfigureAwait(false);
 }
 
-static void ProcessFileSummary(string repoRoot, string fileSummaryPath)
+static async Task ProcessFileSummaryAsync(string repoRoot, string fileSummaryPath, CopilotClient copilotClient)
 {
     var summaryFullPath = Path.IsPathRooted(fileSummaryPath)
         ? fileSummaryPath
@@ -166,21 +169,20 @@ static void ProcessFileSummary(string repoRoot, string fileSummaryPath)
         }
 
         var prompt = BuildPrompt(testFilePath, task.OutputPath);
-        var args = CopilotArgsTemplate
-            .Replace("{agent}", AgentName)
-            .Replace("{prompt}", QuoteForArgument(prompt));
-
-        var result = RunCommand(CopilotCommand, args, repoRoot);
-        if (result.ExitCode != 0)
+        try
         {
-            Console.Error.WriteLine("Copilot command failed:");
-            Console.Error.WriteLine(result.Output);
-            WaitForUser(testFilePath, task.OutputPath, prompt);
+            var response = await SendCopilotPromptAsync(copilotClient, repoRoot, prompt).ConfigureAwait(false);
+            if (!ContainsDone(response))
+            {
+                Console.Error.WriteLine("Copilot response did not include 'done'. Output:");
+                Console.Error.WriteLine(response);
+                WaitForUser(testFilePath, task.OutputPath, prompt);
+            }
         }
-        else if (!ContainsDone(result.Output))
+        catch (Exception ex)
         {
-            Console.Error.WriteLine("Copilot response did not include 'done'. Output:");
-            Console.Error.WriteLine(result.Output);
+            Console.Error.WriteLine("Copilot SDK request failed:");
+            Console.Error.WriteLine(ex.ToString());
             WaitForUser(testFilePath, task.OutputPath, prompt);
         }
     }
@@ -291,11 +293,6 @@ static (int ExitCode, string Output) RunCommand(string fileName, string argument
     return (process.ExitCode, output.ToString());
 }
 
-static string QuoteForArgument(string value)
-{
-    return "\"" + value.Replace("\"", "\\\"") + "\"";
-}
-
 static bool ContainsDone(string output)
 {
     return output.IndexOf("done", StringComparison.OrdinalIgnoreCase) >= 0;
@@ -348,4 +345,35 @@ static string GetRepoRoot([CallerFilePath] string sourceFilePath = "")
     }
 
     return repoRoot;
+}
+
+static CopilotClient CreateCopilotClient(string repoRoot)
+{
+    return new CopilotClient(new CopilotClientOptions
+    {
+        Cwd = repoRoot,
+        AutoStart = false,
+        AutoRestart = true,
+        LogLevel = "warn"
+    });
+}
+
+static async Task<string> SendCopilotPromptAsync(CopilotClient copilotClient, string repoRoot, string prompt)
+{
+    var sessionConfig = new SessionConfig
+    {
+        Model = "gpt-5",
+        SkillDirectories = new List<string>
+        {
+            Path.Combine(repoRoot, ".github", "skills")
+        },
+        InfiniteSessions = new InfiniteSessionConfig
+        {
+            Enabled = false
+        }
+    };
+
+    await using var session = await copilotClient.CreateSessionAsync(sessionConfig, CancellationToken.None).ConfigureAwait(false);
+    var responseEvent = await session.SendAndWaitAsync(new MessageOptions { Prompt = prompt }, timeout: null, CancellationToken.None).ConfigureAwait(false);
+    return responseEvent.Data.Content ?? string.Empty;
 }
