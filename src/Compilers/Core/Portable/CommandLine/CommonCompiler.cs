@@ -1135,7 +1135,7 @@ namespace Microsoft.CodeAnalysis
                     // We pass it to the generators, which will realize any symbols they require.
                     var explicitGeneratedOutDir = Arguments.GeneratedFilesOutputDirectory;
                     var hasExplicitGeneratedOutDir = !string.IsNullOrWhiteSpace(explicitGeneratedOutDir);
-                    var baseDirectory = hasExplicitGeneratedOutDir ? explicitGeneratedOutDir! : Arguments.OutputDirectory;
+                    var baseDirectory = hasExplicitGeneratedOutDir ? explicitGeneratedOutDir! : Arguments.BaseDirectory ?? Arguments.OutputDirectory;
                     (compilation, generatorTimingInfo) = RunGenerators(compilation, baseDirectory, Arguments.ParseOptions, generators, analyzerConfigProvider, additionalTextFiles, diagnostics);
 
                     bool hasAnalyzerConfigs = !Arguments.AnalyzerConfigPaths.IsEmpty;

@@ -534,8 +534,8 @@ class C { }
 
             var filePaths = outputCompilation.SyntaxTrees.Skip(1).Select(t => t.FilePath).ToArray();
             Assert.Equal(new[] {
-                Path.Combine(generator.GetType().Assembly.GetName().Name!, generator.GetType().FullName!, "source.cs"),
-                Path.Combine(generator2.GetType().Assembly.GetName().Name!, generator2.GetType().FullName!, "source.cs")
+                Path.Combine(".generated", generator.GetType().Assembly.GetName().Name!, generator.GetType().FullName!, "source.cs"),
+                Path.Combine(".generated", generator2.GetType().Assembly.GetName().Name!, generator2.GetType().FullName!, "source.cs")
             }, filePaths);
         }
 

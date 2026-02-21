@@ -114,8 +114,8 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests.PDB
             result.Diagnostics.Verify();
             Assert.True(result.Success);
 
-            var path1 = Path.Combine("Microsoft.CodeAnalysis.Test.Utilities", "Roslyn.Test.Utilities.TestGenerators.TestSourceGenerator", "hint1.cs");
-            var path2 = Path.Combine("Microsoft.CodeAnalysis.Test.Utilities", "Roslyn.Test.Utilities.TestGenerators.TestSourceGenerator", "hint2.cs");
+            var path1 = Path.Combine(".generated", "Microsoft.CodeAnalysis.Test.Utilities", "Roslyn.Test.Utilities.TestGenerators.TestSourceGenerator", "hint1.cs");
+            var path2 = Path.Combine(".generated", "Microsoft.CodeAnalysis.Test.Utilities", "Roslyn.Test.Utilities.TestGenerators.TestSourceGenerator", "hint2.cs");
 
             outputCompilation.VerifyPdb($@"
 <symbols>

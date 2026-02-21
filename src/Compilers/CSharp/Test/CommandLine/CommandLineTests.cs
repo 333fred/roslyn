@@ -14027,8 +14027,8 @@ class C
             var src = dir.CreateFile("temp.cs");
             src.WriteAllText("class C { }");
 
-            var genPath1 = Path.Combine(dir.Path, "Microsoft.CodeAnalysis.Test.Utilities", "Roslyn.Test.Utilities.TestGenerators.TestSourceGenerator", "hint1.cs");
-            var genPath2 = Path.Combine(dir.Path, "Microsoft.CodeAnalysis.Test.Utilities", "Roslyn.Test.Utilities.TestGenerators.TestSourceGenerator", "hint2.cs");
+            var genPath1 = Path.Combine(dir.Path, ".generated", "Microsoft.CodeAnalysis.Test.Utilities", "Roslyn.Test.Utilities.TestGenerators.TestSourceGenerator", "hint1.cs");
+            var genPath2 = Path.Combine(dir.Path, ".generated", "Microsoft.CodeAnalysis.Test.Utilities", "Roslyn.Test.Utilities.TestGenerators.TestSourceGenerator", "hint2.cs");
 
             var generator = new TestSourceGenerator()
             {
@@ -14069,8 +14069,8 @@ class C
             var src = dir.CreateFile("temp.cs");
             src.WriteAllText("class C { }");
 
-            var genPath1 = Path.Combine(dir.Path, "Microsoft.CodeAnalysis.Test.Utilities", "Roslyn.Test.Utilities.TestGenerators.TestSourceGenerator", "hint1.cs");
-            var genPath2 = Path.Combine(dir.Path, "Microsoft.CodeAnalysis.Test.Utilities", "Roslyn.Test.Utilities.TestGenerators.TestSourceGenerator", "hint2.cs");
+            var genPath1 = Path.Combine(dir.Path, ".generated", "Microsoft.CodeAnalysis.Test.Utilities", "Roslyn.Test.Utilities.TestGenerators.TestSourceGenerator", "hint1.cs");
+            var genPath2 = Path.Combine(dir.Path, ".generated", "Microsoft.CodeAnalysis.Test.Utilities", "Roslyn.Test.Utilities.TestGenerators.TestSourceGenerator", "hint2.cs");
 
             var generator = new TestSourceGenerator()
             {
@@ -14528,8 +14528,8 @@ class C
         [Fact]
         public void Interceptors_RelativePath_GeneratedFiles_EndToEnd_OutputDirectoryNested()
         {
-            // Demonstrates the difference between defaulting the generated files base path to 'Arguments.OutputDirectory'
-            // versus 'Arguments.BaseDirectory' (which occurs implicitly for relative paths in command line arguments)
+            // Generated files default to 'Arguments.BaseDirectory' when '/generatedfilesout' is not specified,
+            // even if '/out' points to a nested output directory.
 
             var dir = Temp.CreateDirectory();
             var srcDir = dir.CreateDirectory("src");
@@ -14546,7 +14546,7 @@ class C
                 """);
 
             // final path will look like:
-            // 'TempDir/obj/{assemblyName}/{generatorName}/Generated.cs'
+            // 'TempDir/.generated/{assemblyName}/{generatorName}/Generated.cs'
             // Note that generator will have access to the full path of the generated file, before adding it to the compilation
             // additionally we plan to add public API to determine a "correct relative path" to use here without any additional tricks
             var generatedSource = """
@@ -14618,7 +14618,7 @@ class C
             var objDir = dir.CreateDirectory("obj");
 
             // final path will look like:
-            // 'TempDir/obj/{assemblyName}/{generatorName}/Generated.cs'
+            // 'TempDir/obj/.generated/{assemblyName}/{generatorName}/Generated.cs'
             // Note that generator will have access to the full path of the generated file, before adding it to the compilation
             // additionally we plan to add public API to determine a "correct relative path" to use here without any additional tricks
             var generatedSource = """
@@ -14629,7 +14629,7 @@ class C
                 {
                     static class Interceptors
                     {
-                        [InterceptsLocation("../../../src/Program.cs", 5, 9)]
+                        [InterceptsLocation("../../../../src/Program.cs", 5, 9)]
                         public static void M1() => Console.Write(1);
                     }
                 }
