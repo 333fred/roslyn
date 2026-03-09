@@ -40,34 +40,44 @@ End Class
   .maxstack  2
   .locals init (Integer V_0, //index
                 Integer V_1) //index
- -IL_0000:  nop
- -IL_0001:  ldc.i4.1
+  // sequence point: Sub M()
+  IL_0000:  nop
+  // sequence point: For      index       As Integer = 1 To 1
+  IL_0001:  ldc.i4.1
   IL_0002:  stloc.0
- -IL_0003:  ldc.i4.1
+  // sequence point: Console.WriteLine(1)
+  IL_0003:  ldc.i4.1
   IL_0004:  call       ""Sub System.Console.WriteLine(Integer)""
   IL_0009:  nop
- -IL_000a:  ldloc.0
+  // sequence point: Next
+  IL_000a:  ldloc.0
   IL_000b:  ldc.i4.1
   IL_000c:  add.ovf
   IL_000d:  stloc.0
- ~IL_000e:  ldloc.0
+  // sequence point: <hidden>
+  IL_000e:  ldloc.0
   IL_000f:  ldc.i4.1
   IL_0010:  ble.s      IL_0003
- -IL_0012:  ldc.i4.1
+  // sequence point: For      index       As Integer = 1 To 2
+  IL_0012:  ldc.i4.1
   IL_0013:  stloc.1
- -IL_0014:  ldc.i4.2
+  // sequence point: Console.WriteLine(2)
+  IL_0014:  ldc.i4.2
   IL_0015:  call       ""Sub System.Console.WriteLine(Integer)""
   IL_001a:  nop
- -IL_001b:  ldloc.1
+  // sequence point: Next
+  IL_001b:  ldloc.1
   IL_001c:  ldc.i4.1
   IL_001d:  add.ovf
   IL_001e:  stloc.1
- ~IL_001f:  ldloc.1
+  // sequence point: <hidden>
+  IL_001f:  ldloc.1
   IL_0020:  ldc.i4.2
   IL_0021:  ble.s      IL_0014
- -IL_0023:  ret
+  // sequence point: End Sub
+  IL_0023:  ret
 }
-", sequencePointDisplay:=SequencePointDisplayMode.Minimal)
+", displaySequencePoints:=True)
 
             v0.VerifyPdb("C.M",
 <symbols>

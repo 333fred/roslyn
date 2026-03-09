@@ -2824,10 +2824,12 @@ unsafe class C
   .maxstack  2
   .locals init (char* V_0, //p
                 pinned string V_1)
- -IL_0000:  nop
+  // sequence point: {
+  IL_0000:  nop
   IL_0001:  ldstr      ""hello""
   IL_0006:  stloc.1
- -IL_0007:  ldloc.1
+  // sequence point: char* p = ""hello""
+  IL_0007:  ldloc.1
   IL_0008:  conv.u
   IL_0009:  stloc.0
   IL_000a:  ldloc.0
@@ -2836,17 +2838,22 @@ unsafe class C
   IL_000e:  call       ""int System.Runtime.CompilerServices.RuntimeHelpers.OffsetToStringData.get""
   IL_0013:  add
   IL_0014:  stloc.0
- -IL_0015:  nop
- -IL_0016:  ldloc.0
+  // sequence point: {
+  IL_0015:  nop
+  // sequence point: Console.WriteLine(*p);
+  IL_0016:  ldloc.0
   IL_0017:  ldind.u2
   IL_0018:  call       ""void System.Console.WriteLine(char)""
   IL_001d:  nop
- -IL_001e:  nop
- ~IL_001f:  ldnull
+  // sequence point: }
+  IL_001e:  nop
+  // sequence point: <hidden>
+  IL_001f:  ldnull
   IL_0020:  stloc.1
- -IL_0021:  ret
+  // sequence point: }
+  IL_0021:  ret
 }
-", sequencePointDisplay: SequencePointDisplayMode.Minimal);
+", displaySequencePoints: true);
         }
 
         [Fact]
@@ -2884,12 +2891,15 @@ unsafe class C
                 pinned string V_2,
                 char* V_3, //p
                 pinned string V_4)
- -IL_0000:  nop
- -IL_0001:  ldstr      ""hello""
+  // sequence point: {
+  IL_0000:  nop
+  // sequence point: string s = ""hello"";
+  IL_0001:  ldstr      ""hello""
   IL_0006:  stloc.0
   IL_0007:  ldloc.0
   IL_0008:  stloc.2
- -IL_0009:  ldloc.2
+  // sequence point: char* p = s
+  IL_0009:  ldloc.2
   IL_000a:  conv.u
   IL_000b:  stloc.1
   IL_000c:  ldloc.1
@@ -2898,19 +2908,25 @@ unsafe class C
   IL_0010:  call       ""int System.Runtime.CompilerServices.RuntimeHelpers.OffsetToStringData.get""
   IL_0015:  add
   IL_0016:  stloc.1
- -IL_0017:  nop
- -IL_0018:  ldloc.1
+  // sequence point: {
+  IL_0017:  nop
+  // sequence point: Console.Write(*p);
+  IL_0018:  ldloc.1
   IL_0019:  ldind.u2
   IL_001a:  call       ""void System.Console.Write(char)""
   IL_001f:  nop
- -IL_0020:  nop
- ~IL_0021:  ldnull
+  // sequence point: }
+  IL_0020:  nop
+  // sequence point: <hidden>
+  IL_0021:  ldnull
   IL_0022:  stloc.2
- -IL_0023:  ldnull
+  // sequence point: s = null;
+  IL_0023:  ldnull
   IL_0024:  stloc.0
   IL_0025:  ldloc.0
   IL_0026:  stloc.s    V_4
- -IL_0028:  ldloc.s    V_4
+  // sequence point: char* p = s
+  IL_0028:  ldloc.s    V_4
   IL_002a:  conv.u
   IL_002b:  stloc.3
   IL_002c:  ldloc.3
@@ -2919,19 +2935,24 @@ unsafe class C
   IL_0030:  call       ""int System.Runtime.CompilerServices.RuntimeHelpers.OffsetToStringData.get""
   IL_0035:  add
   IL_0036:  stloc.3
- -IL_0037:  nop
- -IL_0038:  ldloc.3
+  // sequence point: {
+  IL_0037:  nop
+  // sequence point: Console.Write(p == null);
+  IL_0038:  ldloc.3
   IL_0039:  ldc.i4.0
   IL_003a:  conv.u
   IL_003b:  ceq
   IL_003d:  call       ""void System.Console.Write(bool)""
   IL_0042:  nop
- -IL_0043:  nop
- ~IL_0044:  ldnull
+  // sequence point: }
+  IL_0043:  nop
+  // sequence point: <hidden>
+  IL_0044:  ldnull
   IL_0045:  stloc.s    V_4
- -IL_0047:  ret
+  // sequence point: }
+  IL_0047:  ret
 }
-", sequencePointDisplay: SequencePointDisplayMode.Minimal);
+", displaySequencePoints: true);
         }
 
         [Fact]
@@ -7591,17 +7612,22 @@ unsafe class C
                 pinned char& V_4,
                 pinned char[] V_5,
                 pinned string V_6)
- -IL_0000:  nop
- -IL_0001:  nop
- -IL_0002:  newobj     ""C..ctor()""
+  // sequence point: {
+  IL_0000:  nop
+  // sequence point: {
+  IL_0001:  nop
+  // sequence point: C c = new C();
+  IL_0002:  newobj     ""C..ctor()""
   IL_0007:  stloc.0
   IL_0008:  ldloc.0
   IL_0009:  ldflda     ""char C.c""
   IL_000e:  stloc.s    V_4
- -IL_0010:  ldloc.s    V_4
+  // sequence point: void* p = &c.c
+  IL_0010:  ldloc.s    V_4
   IL_0012:  conv.u
   IL_0013:  stloc.1
- -IL_0014:  ldloc.0
+  // sequence point: q = c.a
+  IL_0014:  ldloc.0
   IL_0015:  ldfld      ""char[] C.a""
   IL_001a:  dup
   IL_001b:  stloc.s    V_5
@@ -7621,7 +7647,8 @@ unsafe class C
   IL_0033:  stloc.2
   IL_0034:  ldstr      ""hello""
   IL_0039:  stloc.s    V_6
- -IL_003b:  ldloc.s    V_6
+  // sequence point: r = ""hello""
+  IL_003b:  ldloc.s    V_6
   IL_003d:  conv.u
   IL_003e:  stloc.3
   IL_003f:  ldloc.3
@@ -7630,34 +7657,42 @@ unsafe class C
   IL_0043:  call       ""int System.Runtime.CompilerServices.RuntimeHelpers.OffsetToStringData.get""
   IL_0048:  add
   IL_0049:  stloc.3
- -IL_004a:  nop
- -IL_004b:  ldloc.1
+  // sequence point: {
+  IL_004a:  nop
+  // sequence point: Console.Write((int)*(char*)p);
+  IL_004b:  ldloc.1
   IL_004c:  ldind.u2
   IL_004d:  call       ""void System.Console.Write(int)""
   IL_0052:  nop
- -IL_0053:  ldloc.2
+  // sequence point: Console.Write((int)*(char*)q);
+  IL_0053:  ldloc.2
   IL_0054:  ldind.u2
   IL_0055:  call       ""void System.Console.Write(int)""
   IL_005a:  nop
- -IL_005b:  ldloc.3
+  // sequence point: Console.Write((int)*(char*)r);
+  IL_005b:  ldloc.3
   IL_005c:  ldind.u2
   IL_005d:  call       ""void System.Console.Write(int)""
   IL_0062:  nop
- -IL_0063:  nop
- ~IL_0064:  ldc.i4.0
+  // sequence point: }
+  IL_0063:  nop
+  // sequence point: <hidden>
+  IL_0064:  ldc.i4.0
   IL_0065:  conv.u
   IL_0066:  stloc.s    V_4
   IL_0068:  ldnull
   IL_0069:  stloc.s    V_5
   IL_006b:  ldnull
   IL_006c:  stloc.s    V_6
- -IL_006e:  nop
- -IL_006f:  ret
+  // sequence point: }
+  IL_006e:  nop
+  // sequence point: }
+  IL_006f:  ret
 }
 ";
             var expectedOutput = @"970104";
-            CompileAndVerify(string.Format(template, "unchecked"), options: TestOptions.UnsafeDebugExe, expectedOutput: expectedOutput, verify: Verification.Fails).VerifyIL("C.Main", expectedIL, sequencePointDisplay: SequencePointDisplayMode.Minimal);
-            CompileAndVerify(string.Format(template, "checked  "), options: TestOptions.UnsafeDebugExe, expectedOutput: expectedOutput, verify: Verification.Fails).VerifyIL("C.Main", expectedIL, sequencePointDisplay: SequencePointDisplayMode.Minimal);
+            CompileAndVerify(string.Format(template, "unchecked"), options: TestOptions.UnsafeDebugExe, expectedOutput: expectedOutput, verify: Verification.Fails).VerifyIL("C.Main", expectedIL, displaySequencePoints: true);
+            CompileAndVerify(string.Format(template, "checked  "), options: TestOptions.UnsafeDebugExe, expectedOutput: expectedOutput, verify: Verification.Fails).VerifyIL("C.Main", expectedIL, displaySequencePoints: true);
         }
 
         [Fact]
@@ -12815,22 +12850,30 @@ public unsafe class C
                 byte[] V_2, //bytes
                 byte* V_3, //pBytes
                 pinned byte[] V_4)
- -IL_0000:  nop
- -IL_0001:  ldarg.0
+  // sequence point: {
+  IL_0000:  nop
+  // sequence point: if (byteCount == 0)
+  IL_0001:  ldarg.0
   IL_0002:  ldc.i4.0
   IL_0003:  ceq
   IL_0005:  stloc.0
- ~IL_0006:  ldloc.0
+  // sequence point: <hidden>
+  IL_0006:  ldloc.0
   IL_0007:  brfalse.s  IL_0012
- -IL_0009:  nop
- -IL_000a:  ldsfld     ""byte[] C._emptyArray""
+  // sequence point: {
+  IL_0009:  nop
+  // sequence point: return _emptyArray;
+  IL_000a:  ldsfld     ""byte[] C._emptyArray""
   IL_000f:  stloc.1
   IL_0010:  br.s       IL_003e
- -IL_0012:  nop
- -IL_0013:  ldarg.0
+  // sequence point: {
+  IL_0012:  nop
+  // sequence point: byte[] bytes = new byte[byteCount];
+  IL_0013:  ldarg.0
   IL_0014:  newarr     ""byte""
   IL_0019:  stloc.2
- -IL_001a:  ldloc.2
+  // sequence point: byte* pBytes = bytes
+  IL_001a:  ldloc.2
   IL_001b:  dup
   IL_001c:  stloc.s    V_4
   IL_001e:  brfalse.s  IL_0026
@@ -12847,17 +12890,22 @@ public unsafe class C
   IL_002e:  ldelema    ""byte""
   IL_0033:  conv.u
   IL_0034:  stloc.3
- -IL_0035:  nop
- -IL_0036:  nop
- ~IL_0037:  ldnull
+  // sequence point: {
+  IL_0035:  nop
+  // sequence point: }
+  IL_0036:  nop
+  // sequence point: <hidden>
+  IL_0037:  ldnull
   IL_0038:  stloc.s    V_4
- -IL_003a:  ldloc.2
+  // sequence point: return bytes;
+  IL_003a:  ldloc.2
   IL_003b:  stloc.1
   IL_003c:  br.s       IL_003e
- -IL_003e:  ldloc.1
+  // sequence point: }
+  IL_003e:  ldloc.1
   IL_003f:  ret
 }
-", sequencePointDisplay: SequencePointDisplayMode.Minimal);
+", displaySequencePoints: true);
         }
 
         [ClrOnlyFact(ClrOnlyReason.Ilasm)]

@@ -761,19 +761,26 @@ End Module
                 Boolean V_3,
                 String V_4, //z
                 String V_5) //q
- -IL_0000:  nop
- -IL_0001:  ldc.i4.0
+  // sequence point: Public Sub Main()
+  IL_0000:  nop
+  // sequence point: x As Integer = 0
+  IL_0001:  ldc.i4.0
   IL_0002:  stloc.0
   .try
   {
     .try
     {
-     -IL_0003:  nop
-     -IL_0004:  ldstr      ""y""
+      // sequence point: Try
+      IL_0003:  nop
+      // sequence point: y As String = ""y""
+      IL_0004:  ldstr      ""y""
       IL_0009:  stloc.1
-     -IL_000a:  nop
-     -IL_000b:  nop
-     -IL_000c:  ldloc.0
+      // sequence point: label1:
+      IL_000a:  nop
+      // sequence point: label2:
+      IL_000b:  nop
+      // sequence point: x = x \ x
+      IL_000c:  ldloc.0
       IL_000d:  ldloc.0
       IL_000e:  div
       IL_000f:  stloc.0
@@ -781,7 +788,8 @@ End Module
     }
     filter
     {
-     ~IL_0012:  isinst     ""System.Exception""
+      // sequence point: <hidden>
+      IL_0012:  isinst     ""System.Exception""
       IL_0017:  dup
       IL_0018:  brtrue.s   IL_001e
       IL_001a:  pop
@@ -790,47 +798,61 @@ End Module
       IL_001e:  dup
       IL_001f:  call       ""Sub Microsoft.VisualBasic.CompilerServices.ProjectData.SetProjectError(System.Exception)""
       IL_0024:  stloc.2
-     -IL_0025:  ldloc.2
+      // sequence point: Catch ex As Exception When ex.Message IsNot Nothing
+      IL_0025:  ldloc.2
       IL_0026:  callvirt   ""Function System.Exception.get_Message() As String""
       IL_002b:  ldnull
       IL_002c:  cgt.un
       IL_002e:  stloc.3
-     ~IL_002f:  ldloc.3
+      // sequence point: <hidden>
+      IL_002f:  ldloc.3
       IL_0030:  ldc.i4.0
       IL_0031:  cgt.un
       IL_0033:  endfilter
     }  // end filter
     {  // handler
-     ~IL_0035:  pop
-     -IL_0036:  ldstr      ""z""
+      // sequence point: <hidden>
+      IL_0035:  pop
+      // sequence point: z As String = ""z""
+      IL_0036:  ldstr      ""z""
       IL_003b:  stloc.s    V_4
-     -IL_003d:  ldloc.0
+      // sequence point: Console.WriteLine(x)
+      IL_003d:  ldloc.0
       IL_003e:  call       ""Sub System.Console.WriteLine(Integer)""
       IL_0043:  nop
-     -IL_0044:  ldc.i4.1
+      // sequence point: x = 1
+      IL_0044:  ldc.i4.1
       IL_0045:  stloc.0
-     -IL_0046:  call       ""Sub Microsoft.VisualBasic.CompilerServices.ProjectData.ClearProjectError()""
+      // sequence point: GoTo label1
+      IL_0046:  call       ""Sub Microsoft.VisualBasic.CompilerServices.ProjectData.ClearProjectError()""
       IL_004b:  leave.s    IL_000a
     }
-   ~IL_004d:  leave.s    IL_005f
+    // sequence point: <hidden>
+    IL_004d:  leave.s    IL_005f
   }
   finally
   {
-   -IL_004f:  nop
-   -IL_0050:  ldstr      ""q""
+    // sequence point: Finally
+    IL_004f:  nop
+    // sequence point: q As String = ""q""
+    IL_0050:  ldstr      ""q""
     IL_0055:  stloc.s    V_5
-   -IL_0057:  ldloc.0
+    // sequence point: Console.WriteLine(x)
+    IL_0057:  ldloc.0
     IL_0058:  call       ""Sub System.Console.WriteLine(Integer)""
     IL_005d:  nop
     IL_005e:  endfinally
   }
- -IL_005f:  nop
- -IL_0060:  ldloc.0
+  // sequence point: End Try
+  IL_005f:  nop
+  // sequence point: Console.WriteLine(x)
+  IL_0060:  ldloc.0
   IL_0061:  call       ""Sub System.Console.WriteLine(Integer)""
   IL_0066:  nop
- -IL_0067:  ret
+  // sequence point: End Sub
+  IL_0067:  ret
 }
-", sequencePointDisplay:=SequencePointDisplayMode.Minimal)
+", displaySequencePoints:=True)
 
             v.VerifyPdb("M1.Main",
 <symbols>
@@ -932,12 +954,14 @@ End Module
                 System.Exception V_1) //e
   .try
   {
-   -IL_0000:  newobj     ""Sub System.InvalidOperationException..ctor()""
+    // sequence point: Throw New InvalidOperationException()
+    IL_0000:  newobj     ""Sub System.InvalidOperationException..ctor()""
     IL_0005:  throw
   }
   filter
   {
-   ~IL_0006:  isinst     ""System.IO.IOException""
+    // sequence point: <hidden>
+    IL_0006:  isinst     ""System.IO.IOException""
     IL_000b:  dup
     IL_000c:  brtrue.s   IL_0012
     IL_000e:  pop
@@ -946,7 +970,8 @@ End Module
     IL_0012:  dup
     IL_0013:  call       ""Sub Microsoft.VisualBasic.CompilerServices.ProjectData.SetProjectError(System.Exception)""
     IL_0018:  stloc.0
-   -IL_0019:  ldloc.0
+    // sequence point: Catch e As IOException When filter(e)
+    IL_0019:  ldloc.0
     IL_001a:  call       ""Function M1.filter(System.Exception) As Object""
     IL_001f:  call       ""Function Microsoft.VisualBasic.CompilerServices.Conversions.ToBoolean(Object) As Boolean""
     IL_0024:  ldc.i4.0
@@ -954,14 +979,17 @@ End Module
     IL_0027:  endfilter
   }  // end filter
   {  // handler
-   ~IL_0029:  pop
-   -IL_002a:  call       ""Sub System.Console.WriteLine()""
+    // sequence point: <hidden>
+    IL_0029:  pop
+    // sequence point: Console.WriteLine()
+    IL_002a:  call       ""Sub System.Console.WriteLine()""
     IL_002f:  call       ""Sub Microsoft.VisualBasic.CompilerServices.ProjectData.ClearProjectError()""
     IL_0034:  leave.s    IL_0066
   }
   filter
   {
-   ~IL_0036:  isinst     ""System.Exception""
+    // sequence point: <hidden>
+    IL_0036:  isinst     ""System.Exception""
     IL_003b:  dup
     IL_003c:  brtrue.s   IL_0042
     IL_003e:  pop
@@ -970,7 +998,8 @@ End Module
     IL_0042:  dup
     IL_0043:  call       ""Sub Microsoft.VisualBasic.CompilerServices.ProjectData.SetProjectError(System.Exception)""
     IL_0048:  stloc.1
-   -IL_0049:  ldloc.1
+    // sequence point: Catch e As Exception When filter(e)
+    IL_0049:  ldloc.1
     IL_004a:  call       ""Function M1.filter(System.Exception) As Object""
     IL_004f:  call       ""Function Microsoft.VisualBasic.CompilerServices.Conversions.ToBoolean(Object) As Boolean""
     IL_0054:  ldc.i4.0
@@ -978,14 +1007,17 @@ End Module
     IL_0057:  endfilter
   }  // end filter
   {  // handler
-   ~IL_0059:  pop
-   -IL_005a:  call       ""Sub System.Console.WriteLine()""
+    // sequence point: <hidden>
+    IL_0059:  pop
+    // sequence point: Console.WriteLine()
+    IL_005a:  call       ""Sub System.Console.WriteLine()""
     IL_005f:  call       ""Sub Microsoft.VisualBasic.CompilerServices.ProjectData.ClearProjectError()""
     IL_0064:  leave.s    IL_0066
   }
- -IL_0066:  ret
+  // sequence point: End Sub
+  IL_0066:  ret
 }
-", sequencePointDisplay:=SequencePointDisplayMode.Minimal)
+", displaySequencePoints:=True)
         End Sub
 
         <ConditionalFact(GetType(WindowsOnly), Reason:=ConditionalSkipReason.NativePdbRequiresDesktop)>
@@ -1159,28 +1191,38 @@ End Class
   // Code size       38 (0x26)
   .maxstack  1
   .locals init (Boolean V_0)
- -IL_0000:  nop
- -IL_0001:  ldarg.0
+  // sequence point: Sub F()
+  IL_0000:  nop
+  // sequence point: If G() Then
+  IL_0001:  ldarg.0
   IL_0002:  call       ""Function C.G() As Boolean""
   IL_0007:  stloc.0
- ~IL_0008:  ldloc.0
+  // sequence point: <hidden>
+  IL_0008:  ldloc.0
   IL_0009:  brfalse.s  IL_0015
- -IL_000b:  ldc.i4.1
+  // sequence point: Console.WriteLine(1)
+  IL_000b:  ldc.i4.1
   IL_000c:  call       ""Sub System.Console.WriteLine(Integer)""
   IL_0011:  nop
- -IL_0012:  nop
+  // sequence point: End If
+  IL_0012:  nop
   IL_0013:  br.s       IL_001e
- -IL_0015:  nop
- -IL_0016:  ldc.i4.2
+  // sequence point: Else
+  IL_0015:  nop
+  // sequence point: Console.WriteLine(2)
+  IL_0016:  ldc.i4.2
   IL_0017:  call       ""Sub System.Console.WriteLine(Integer)""
   IL_001c:  nop
- -IL_001d:  nop
- -IL_001e:  ldc.i4.3
+  // sequence point: End If
+  IL_001d:  nop
+  // sequence point: Console.WriteLine(3)
+  IL_001e:  ldc.i4.3
   IL_001f:  call       ""Sub System.Console.WriteLine(Integer)""
   IL_0024:  nop
- -IL_0025:  ret
+  // sequence point: End Sub
+  IL_0025:  ret
 }
-", sequencePointDisplay:=SequencePointDisplayMode.Minimal)
+", displaySequencePoints:=True)
 
             v.VerifyPdb("C.F",
 <symbols>
@@ -1246,20 +1288,27 @@ End Class
   // Code size       22 (0x16)
   .maxstack  1
   .locals init (Boolean V_0)
- -IL_0000:  nop
- ~IL_0001:  br.s       IL_000b
- -IL_0003:  ldc.i4.1
+  // sequence point: Sub F()
+  IL_0000:  nop
+  // sequence point: <hidden>
+  IL_0001:  br.s       IL_000b
+  // sequence point: Console.WriteLine(1)
+  IL_0003:  ldc.i4.1
   IL_0004:  call       ""Sub System.Console.WriteLine(Integer)""
   IL_0009:  nop
- -IL_000a:  nop
- -IL_000b:  ldarg.0
+  // sequence point: Loop
+  IL_000a:  nop
+  // sequence point: Do While G()
+  IL_000b:  ldarg.0
   IL_000c:  call       ""Function C.G() As Boolean""
   IL_0011:  stloc.0
- ~IL_0012:  ldloc.0
+  // sequence point: <hidden>
+  IL_0012:  ldloc.0
   IL_0013:  brtrue.s   IL_0003
- -IL_0015:  ret
+  // sequence point: End Sub
+  IL_0015:  ret
 }
-", sequencePointDisplay:=SequencePointDisplayMode.Minimal)
+", displaySequencePoints:=True)
 
             v.VerifyPdb("C.F",
 <symbols>
@@ -1322,20 +1371,26 @@ End Class
   // Code size       21 (0x15)
   .maxstack  1
   .locals init (Boolean V_0)
- -IL_0000:  nop
- -IL_0001:  nop
- -IL_0002:  ldc.i4.1
+  // sequence point: Sub F()
+  IL_0000:  nop
+  // sequence point: Do
+  IL_0001:  nop
+  // sequence point: Console.WriteLine(1)
+  IL_0002:  ldc.i4.1
   IL_0003:  call       ""Sub System.Console.WriteLine(Integer)""
   IL_0008:  nop
- -IL_0009:  nop
+  // sequence point: Loop While G()
+  IL_0009:  nop
   IL_000a:  ldarg.0
   IL_000b:  call       ""Function C.G() As Boolean""
   IL_0010:  stloc.0
- ~IL_0011:  ldloc.0
+  // sequence point: <hidden>
+  IL_0011:  ldloc.0
   IL_0012:  brtrue.s   IL_0001
- -IL_0014:  ret
+  // sequence point: End Sub
+  IL_0014:  ret
 }
-", sequencePointDisplay:=SequencePointDisplayMode.Minimal)
+", displaySequencePoints:=True)
 
             v.VerifyPdb("C.F",
 <symbols>
@@ -1400,8 +1455,10 @@ End Class
                 Integer V_1,
                 Integer V_2,
                 Integer V_3) //a
- -IL_0000:  nop
- -IL_0001:  ldarg.0
+  // sequence point: Sub F()
+  IL_0000:  nop
+  // sequence point: For a = G(0) To G(1) Step G(2)
+  IL_0001:  ldarg.0
   IL_0002:  ldc.i4.0
   IL_0003:  call       ""Function C.G(Integer) As Integer""
   IL_0008:  stloc.0
@@ -1415,15 +1472,19 @@ End Class
   IL_0018:  stloc.2
   IL_0019:  ldloc.0
   IL_001a:  stloc.3
- ~IL_001b:  br.s       IL_0028
- -IL_001d:  ldc.i4.1
+  // sequence point: <hidden>
+  IL_001b:  br.s       IL_0028
+  // sequence point: Console.WriteLine(1)
+  IL_001d:  ldc.i4.1
   IL_001e:  call       ""Sub System.Console.WriteLine(Integer)""
   IL_0023:  nop
- -IL_0024:  ldloc.3
+  // sequence point: Next
+  IL_0024:  ldloc.3
   IL_0025:  ldloc.2
   IL_0026:  add.ovf
   IL_0027:  stloc.3
- ~IL_0028:  ldloc.2
+  // sequence point: <hidden>
+  IL_0028:  ldloc.2
   IL_0029:  ldc.i4.s   31
   IL_002b:  shr
   IL_002c:  ldloc.3
@@ -1434,8 +1495,9 @@ End Class
   IL_0032:  ldloc.1
   IL_0033:  xor
   IL_0034:  ble.s      IL_001d
- -IL_0036:  ret
-}", sequencePointDisplay:=SequencePointDisplayMode.Minimal)
+  // sequence point: End Sub
+  IL_0036:  ret
+}", displaySequencePoints:=True)
 
             v.VerifyPdb("C.F",
 <symbols>
@@ -1507,17 +1569,22 @@ End Class
                 Object V_4,
                 Boolean V_5,
                 Boolean V_6)
- -IL_0000:  nop
- -IL_0001:  ldc.i4.0
+  // sequence point: Public Shared Sub Main()
+  IL_0000:  nop
+  // sequence point: initValue As Object = 0
+  IL_0001:  ldc.i4.0
   IL_0002:  box        ""Integer""
   IL_0007:  stloc.1
- -IL_0008:  ldc.i4.2
+  // sequence point: limit As Object = 2
+  IL_0008:  ldc.i4.2
   IL_0009:  box        ""Integer""
   IL_000e:  stloc.2
- -IL_000f:  ldc.i4.1
+  // sequence point: stp As Object = 1
+  IL_000f:  ldc.i4.1
   IL_0010:  box        ""Integer""
   IL_0015:  stloc.3
- -IL_0016:  ldloc.0
+  // sequence point: For ctrlVar = initValue To limit Step stp
+  IL_0016:  ldloc.0
   IL_0017:  ldloc.1
   IL_0018:  ldloc.2
   IL_0019:  ldloc.3
@@ -1525,22 +1592,27 @@ End Class
   IL_001c:  ldloca.s   V_0
   IL_001e:  call       ""Function Microsoft.VisualBasic.CompilerServices.ObjectFlowControl.ForLoopControl.ForLoopInitObj(Object, Object, Object, Object, ByRef Object, ByRef Object) As Boolean""
   IL_0023:  stloc.s    V_5
- ~IL_0025:  ldloc.s    V_5
+  // sequence point: <hidden>
+  IL_0025:  ldloc.s    V_5
   IL_0027:  brfalse.s  IL_0045
- -IL_0029:  ldloc.0
+  // sequence point: System.Console.WriteLine(ctrlVar)
+  IL_0029:  ldloc.0
   IL_002a:  call       ""Function System.Runtime.CompilerServices.RuntimeHelpers.GetObjectValue(Object) As Object""
   IL_002f:  call       ""Sub System.Console.WriteLine(Object)""
   IL_0034:  nop
- -IL_0035:  ldloc.0
+  // sequence point: Next
+  IL_0035:  ldloc.0
   IL_0036:  ldloc.s    V_4
   IL_0038:  ldloca.s   V_0
   IL_003a:  call       ""Function Microsoft.VisualBasic.CompilerServices.ObjectFlowControl.ForLoopControl.ForNextCheckObj(Object, Object, ByRef Object) As Boolean""
   IL_003f:  stloc.s    V_6
- ~IL_0041:  ldloc.s    V_6
+  // sequence point: <hidden>
+  IL_0041:  ldloc.s    V_6
   IL_0043:  brtrue.s   IL_0029
- -IL_0045:  ret
+  // sequence point: End Sub
+  IL_0045:  ret
 }
-", sequencePointDisplay:=SequencePointDisplayMode.Minimal)
+", displaySequencePoints:=True)
 
             v.VerifyPdb("MyClass1.Main",
 <symbols>
@@ -1618,39 +1690,49 @@ End Class
   .maxstack  3
   .locals init (Integer V_0,
                 Boolean V_1)
- -IL_0000:  nop
- -IL_0001:  nop
+  // sequence point: Sub F()
+  IL_0000:  nop
+  // sequence point: Select Case G(1)
+  IL_0001:  nop
   IL_0002:  ldarg.0
   IL_0003:  ldc.i4.1
   IL_0004:  call       ""Function C.G(Integer) As Integer""
   IL_0009:  stloc.0
- -IL_000a:  ldloc.0
+  // sequence point: Case G(2)
+  IL_000a:  ldloc.0
   IL_000b:  ldarg.0
   IL_000c:  ldc.i4.2
   IL_000d:  call       ""Function C.G(Integer) As Integer""
   IL_0012:  ceq
   IL_0014:  stloc.1
- ~IL_0015:  ldloc.1
+  // sequence point: <hidden>
+  IL_0015:  ldloc.1
   IL_0016:  brfalse.s  IL_0021
- -IL_0018:  ldc.i4.4
+  // sequence point: Console.WriteLine(4)
+  IL_0018:  ldc.i4.4
   IL_0019:  call       ""Sub System.Console.WriteLine(Integer)""
   IL_001e:  nop
   IL_001f:  br.s       IL_0036
- -IL_0021:  ldloc.0
+  // sequence point: Case G(3)
+  IL_0021:  ldloc.0
   IL_0022:  ldarg.0
   IL_0023:  ldc.i4.3
   IL_0024:  call       ""Function C.G(Integer) As Integer""
   IL_0029:  ceq
   IL_002b:  stloc.1
- ~IL_002c:  ldloc.1
+  // sequence point: <hidden>
+  IL_002c:  ldloc.1
   IL_002d:  brfalse.s  IL_0036
- -IL_002f:  ldc.i4.5
+  // sequence point: Console.WriteLine(5)
+  IL_002f:  ldc.i4.5
   IL_0030:  call       ""Sub System.Console.WriteLine(Integer)""
   IL_0035:  nop
- -IL_0036:  nop
- -IL_0037:  ret
+  // sequence point: End Select
+  IL_0036:  nop
+  // sequence point: End Sub
+  IL_0037:  ret
 }
-", sequencePointDisplay:=SequencePointDisplayMode.Minimal)
+", displaySequencePoints:=True)
 
             v.VerifyPdb("C.F",
 <symbols>
@@ -2199,24 +2281,32 @@ End Module
   .maxstack  1
   .locals init (Boolean V_0,
                 Boolean V_1)
- -IL_0000:  nop
- -IL_0001:  ldstr      ""B""
+  // sequence point: Public Sub Main()
+  IL_0000:  nop
+  // sequence point: Console.WriteLine(""B"")
+  IL_0001:  ldstr      ""B""
   IL_0006:  call       ""Sub System.Console.WriteLine(String)""
   IL_000b:  nop
- -IL_000c:  ldc.i4.0
+  // sequence point: If ""x""c = ""X""c Then
+  IL_000c:  ldc.i4.0
   IL_000d:  stloc.0
   IL_000e:  br.s       IL_0010
- -IL_0010:  nop
- -IL_0011:  ldc.i4.0
+  // sequence point: End If
+  IL_0010:  nop
+  // sequence point: If ""z""c <> ""z""c Then
+  IL_0011:  ldc.i4.0
   IL_0012:  stloc.1
   IL_0013:  br.s       IL_0015
- -IL_0015:  nop
- -IL_0016:  ldstr      ""E""
+  // sequence point: End If
+  IL_0015:  nop
+  // sequence point: Console.WriteLine(""E"")
+  IL_0016:  ldstr      ""E""
   IL_001b:  call       ""Sub System.Console.WriteLine(String)""
   IL_0020:  nop
- -IL_0021:  ret
+  // sequence point: End Sub
+  IL_0021:  ret
 }
-", sequencePointDisplay:=SequencePointDisplayMode.Minimal)
+", displaySequencePoints:=True)
 
             compilation.VerifyPdb("MyMod.Main",
 <symbols>
@@ -2746,27 +2836,35 @@ End Module
   .locals init (Integer V_0, //num
                 Integer V_1,
                 Boolean V_2)
- -IL_0000:  nop
- -IL_0001:  ldc.i4.0
+  // sequence point: Sub Main()
+  IL_0000:  nop
+  // sequence point: num As Integer = 0
+  IL_0001:  ldc.i4.0
   IL_0002:  stloc.0
- -IL_0003:  nop
+  // sequence point: Select Case num
+  IL_0003:  nop
   IL_0004:  ldloc.0
   IL_0005:  stloc.1
- -IL_0006:  ldloc.1
+  // sequence point: Case 1
+  IL_0006:  ldloc.1
   IL_0007:  ldc.i4.1
   IL_0008:  ceq
   IL_000a:  stloc.2
- ~IL_000b:  ldloc.2
+  // sequence point: <hidden>
+  IL_000b:  ldloc.2
   IL_000c:  brfalse.s  IL_0010
   IL_000e:  br.s       IL_0035
- -IL_0010:  ldloc.1
+  // sequence point: Case 2
+  IL_0010:  ldloc.1
   IL_0011:  ldc.i4.2
   IL_0012:  ceq
   IL_0014:  stloc.2
- ~IL_0015:  ldloc.2
+  // sequence point: <hidden>
+  IL_0015:  ldloc.2
   IL_0016:  brfalse.s  IL_001a
   IL_0018:  br.s       IL_0035
- -IL_001a:  ldloc.1
+  // sequence point: Case 0, 3 To 8
+  IL_001a:  ldloc.1
   IL_001b:  brfalse.s  IL_002d
   IL_001d:  ldloc.1
   IL_001e:  ldc.i4.3
@@ -2781,14 +2879,18 @@ End Module
   IL_002b:  br.s       IL_002e
   IL_002d:  ldc.i4.1
   IL_002e:  stloc.2
- ~IL_002f:  ldloc.2
+  // sequence point: <hidden>
+  IL_002f:  ldloc.2
   IL_0030:  brfalse.s  IL_0034
   IL_0032:  br.s       IL_0035
- -IL_0034:  nop
- -IL_0035:  nop
- -IL_0036:  ret
+  // sequence point: Case Else
+  IL_0034:  nop
+  // sequence point: End Select
+  IL_0035:  nop
+  // sequence point: End Sub
+  IL_0036:  ret
 }
-", sequencePointDisplay:=SequencePointDisplayMode.Minimal)
+", displaySequencePoints:=True)
 
             compilation.VerifyPdb("Module1.Main",
 <symbols>
@@ -4050,17 +4152,20 @@ End Class
   // Code size       18 (0x12)
   .maxstack  1
   .locals init (IntervalUpdate.IntervalElapsedEventHandler V_0)
- -IL_0000:  nop
- -IL_0001:  ldsfld     ""IntervalUpdate.IntervalElapsedEvent As IntervalUpdate.IntervalElapsedEventHandler""
+  // sequence point: Public Shared Sub Update()
+  IL_0000:  nop
+  // sequence point: RaiseEvent IntervalElapsed()
+  IL_0001:  ldsfld     ""IntervalUpdate.IntervalElapsedEvent As IntervalUpdate.IntervalElapsedEventHandler""
   IL_0006:  stloc.0
   IL_0007:  ldloc.0
   IL_0008:  brfalse.s  IL_0011
   IL_000a:  ldloc.0
   IL_000b:  callvirt   ""Sub IntervalUpdate.IntervalElapsedEventHandler.Invoke()""
   IL_0010:  nop
- -IL_0011:  ret
+  // sequence point: End Sub
+  IL_0011:  ret
 }
-", sequencePointDisplay:=SequencePointDisplayMode.Minimal)
+", displaySequencePoints:=True)
 
             compilation.VerifyPdb(
 <symbols>

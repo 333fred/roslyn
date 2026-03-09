@@ -595,8 +595,10 @@ End Class
 {
   // Code size      121 (0x79)
   .maxstack  3
- -IL_0000:  nop
- -IL_0001:  ldarg.0
+  // sequence point: Sub TestProc1(a As TestStruct1)
+  IL_0000:  nop
+  // sequence point: x As Integer = 0
+  IL_0001:  ldarg.0
   IL_0002:  ldfld      "Test.x$Init As Microsoft.VisualBasic.CompilerServices.StaticLocalInitFlag"
   IL_0007:  brtrue.s   IL_001b
   IL_0009:  ldarg.0
@@ -634,7 +636,8 @@ End Class
   }
   finally
   {
-   ~IL_005f:  ldarg.0
+    // sequence point: <hidden>
+    IL_005f:  ldarg.0
     IL_0060:  ldfld      "Test.x$Init As Microsoft.VisualBasic.CompilerServices.StaticLocalInitFlag"
     IL_0065:  ldc.i4.1
     IL_0066:  stfld      "Microsoft.VisualBasic.CompilerServices.StaticLocalInitFlag.State As Short"
@@ -644,9 +647,10 @@ End Class
     IL_0076:  nop
     IL_0077:  endfinally
   }
- -IL_0078:  ret
+  // sequence point: End Sub
+  IL_0078:  ret
 }
-]]>, sequencePointDisplay:=SequencePointDisplayMode.Minimal)
+]]>, displaySequencePoints:=True)
 
             verifier.VerifyIL("Test.TestProc2",
             <![CDATA[

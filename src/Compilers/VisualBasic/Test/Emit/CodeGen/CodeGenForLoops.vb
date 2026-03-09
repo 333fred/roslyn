@@ -432,16 +432,20 @@ End Class
                 Object V_2, //limit
                 Object V_3, //stp
                 Object V_4)
- -IL_0000:  ldc.i4.0
+  // sequence point: initValue As Object = 0
+  IL_0000:  ldc.i4.0
   IL_0001:  box        "Integer"
   IL_0006:  stloc.1
- -IL_0007:  ldc.i4.2
+  // sequence point: limit As Object = 2
+  IL_0007:  ldc.i4.2
   IL_0008:  box        "Integer"
   IL_000d:  stloc.2
- -IL_000e:  ldc.i4.1
+  // sequence point: stp As Object = 1
+  IL_000e:  ldc.i4.1
   IL_000f:  box        "Integer"
   IL_0014:  stloc.3
- -IL_0015:  ldloc.0
+  // sequence point: For ctrlVar = initValue To limit Step stp
+  IL_0015:  ldloc.0
   IL_0016:  ldloc.1
   IL_0017:  ldloc.2
   IL_0018:  ldloc.3
@@ -449,17 +453,20 @@ End Class
   IL_001b:  ldloca.s   V_0
   IL_001d:  call       "Function Microsoft.VisualBasic.CompilerServices.ObjectFlowControl.ForLoopControl.ForLoopInitObj(Object, Object, Object, Object, ByRef Object, ByRef Object) As Boolean"
   IL_0022:  brfalse.s  IL_003b
- -IL_0024:  ldloc.0
+  // sequence point: System.Console.WriteLine(ctrlVar)
+  IL_0024:  ldloc.0
   IL_0025:  call       "Function System.Runtime.CompilerServices.RuntimeHelpers.GetObjectValue(Object) As Object"
   IL_002a:  call       "Sub System.Console.WriteLine(Object)"
- -IL_002f:  ldloc.0
+  // sequence point: Next
+  IL_002f:  ldloc.0
   IL_0030:  ldloc.s    V_4
   IL_0032:  ldloca.s   V_0
   IL_0034:  call       "Function Microsoft.VisualBasic.CompilerServices.ObjectFlowControl.ForLoopControl.ForNextCheckObj(Object, Object, ByRef Object) As Boolean"
   IL_0039:  brtrue.s   IL_0024
- -IL_003b:  ret
+  // sequence point: End Sub
+  IL_003b:  ret
 }
-]]>, sequencePointDisplay:=SequencePointDisplayMode.Minimal)
+]]>, displaySequencePoints:=True)
 
         End Sub
 
@@ -2040,4 +2047,3 @@ End Module
         End Sub
     End Class
 End Namespace
-

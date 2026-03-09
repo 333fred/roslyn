@@ -4454,7 +4454,7 @@ public class C
   IL_012d:  nop
   IL_012e:  ret
 }
-", sequencePointDisplay: SequencePointDisplayMode.Enhanced);
+", displaySequencePoints: true);
 
             comp = CreateRuntimeAsyncCompilation(source, TestOptions.ReleaseExe);
             comp.VerifyDiagnostics();

@@ -41,9 +41,11 @@ public class Test
   .maxstack  2
   .locals init (object V_0,
                 bool V_1)
- -IL_0000:  ldstr      ""Before""
+  // sequence point: System.Console.WriteLine(""Before"");
+  IL_0000:  ldstr      ""Before""
   IL_0005:  call       ""void System.Console.WriteLine(string)""
- -IL_000a:  ldnull
+  // sequence point: lock (null)
+  IL_000a:  ldnull
   IL_000b:  stloc.0
   IL_000c:  ldc.i4.0
   IL_000d:  stloc.1
@@ -52,22 +54,28 @@ public class Test
     IL_000e:  ldloc.0
     IL_000f:  ldloca.s   V_1
     IL_0011:  call       ""void System.Threading.Monitor.Enter(object, ref bool)""
-   -IL_0016:  ldstr      ""In""
+    // sequence point: System.Console.WriteLine(""In"");
+    IL_0016:  ldstr      ""In""
     IL_001b:  call       ""void System.Console.WriteLine(string)""
-   -IL_0020:  leave.s    IL_002c
+    // sequence point: }
+    IL_0020:  leave.s    IL_002c
   }
   finally
   {
-   ~IL_0022:  ldloc.1
+    // sequence point: <hidden>
+    IL_0022:  ldloc.1
     IL_0023:  brfalse.s  IL_002b
     IL_0025:  ldloc.0
     IL_0026:  call       ""void System.Threading.Monitor.Exit(object)""
-   ~IL_002b:  endfinally
+    // sequence point: <hidden>
+    IL_002b:  endfinally
   }
- -IL_002c:  ldstr      ""After""
+  // sequence point: System.Console.WriteLine(""After"");
+  IL_002c:  ldstr      ""After""
   IL_0031:  call       ""void System.Console.WriteLine(string)""
- -IL_0036:  ret
-}", sequencePointDisplay: SequencePointDisplayMode.Minimal);
+  // sequence point: }
+  IL_0036:  ret
+}", displaySequencePoints: true);
         }
 
         [Fact]
@@ -96,10 +104,13 @@ public class Test
   .maxstack  2
   .locals init (object V_0,
                 bool V_1)
- -IL_0000:  newobj     ""object..ctor()""
- -IL_0005:  ldstr      ""Before""
+  // sequence point: object o = new object();
+  IL_0000:  newobj     ""object..ctor()""
+  // sequence point: System.Console.WriteLine(""Before"");
+  IL_0005:  ldstr      ""Before""
   IL_000a:  call       ""void System.Console.WriteLine(string)""
- -IL_000f:  stloc.0
+  // sequence point: lock (o)
+  IL_000f:  stloc.0
   IL_0010:  ldc.i4.0
   IL_0011:  stloc.1
   .try
@@ -107,22 +118,28 @@ public class Test
     IL_0012:  ldloc.0
     IL_0013:  ldloca.s   V_1
     IL_0015:  call       ""void System.Threading.Monitor.Enter(object, ref bool)""
-   -IL_001a:  ldstr      ""In""
+    // sequence point: System.Console.WriteLine(""In"");
+    IL_001a:  ldstr      ""In""
     IL_001f:  call       ""void System.Console.WriteLine(string)""
-   -IL_0024:  leave.s    IL_0030
+    // sequence point: }
+    IL_0024:  leave.s    IL_0030
   }
   finally
   {
-   ~IL_0026:  ldloc.1
+    // sequence point: <hidden>
+    IL_0026:  ldloc.1
     IL_0027:  brfalse.s  IL_002f
     IL_0029:  ldloc.0
     IL_002a:  call       ""void System.Threading.Monitor.Exit(object)""
-   ~IL_002f:  endfinally
+    // sequence point: <hidden>
+    IL_002f:  endfinally
   }
- -IL_0030:  ldstr      ""After""
+  // sequence point: System.Console.WriteLine(""After"");
+  IL_0030:  ldstr      ""After""
   IL_0035:  call       ""void System.Console.WriteLine(string)""
- -IL_003a:  ret
-}", sequencePointDisplay: SequencePointDisplayMode.Minimal);
+  // sequence point: }
+  IL_003a:  ret
+}", displaySequencePoints: true);
         }
 
         [Fact]
@@ -371,9 +388,11 @@ public class Test
   .maxstack  2
   .locals init (object V_0,
                 bool V_1)
- -IL_0000:  ldstr      ""Before""
+  // sequence point: System.Console.WriteLine(""Before"");
+  IL_0000:  ldstr      ""Before""
   IL_0005:  call       ""void System.Console.WriteLine(string)""
- -IL_000a:  newobj     ""object..ctor()""
+  // sequence point: lock (new object())
+  IL_000a:  newobj     ""object..ctor()""
   IL_000f:  stloc.0
   IL_0010:  ldc.i4.0
   IL_0011:  stloc.1
@@ -382,22 +401,28 @@ public class Test
     IL_0012:  ldloc.0
     IL_0013:  ldloca.s   V_1
     IL_0015:  call       ""void System.Threading.Monitor.Enter(object, ref bool)""
-   -IL_001a:  ldstr      ""In""
+    // sequence point: System.Console.WriteLine(""In"");
+    IL_001a:  ldstr      ""In""
     IL_001f:  call       ""void System.Console.WriteLine(string)""
-   -IL_0024:  leave.s    IL_0030
+    // sequence point: }
+    IL_0024:  leave.s    IL_0030
   }
   finally
   {
-   ~IL_0026:  ldloc.1
+    // sequence point: <hidden>
+    IL_0026:  ldloc.1
     IL_0027:  brfalse.s  IL_002f
     IL_0029:  ldloc.0
     IL_002a:  call       ""void System.Threading.Monitor.Exit(object)""
-   ~IL_002f:  endfinally
+    // sequence point: <hidden>
+    IL_002f:  endfinally
   }
- -IL_0030:  ldstr      ""After""
+  // sequence point: System.Console.WriteLine(""After"");
+  IL_0030:  ldstr      ""After""
   IL_0035:  call       ""void System.Console.WriteLine(string)""
- -IL_003a:  ret
-}", sequencePointDisplay: SequencePointDisplayMode.Minimal);
+  // sequence point: }
+  IL_003a:  ret
+}", displaySequencePoints: true);
         }
 
         [Fact]
@@ -1366,28 +1391,35 @@ public class Test
   // Code size       48 (0x30)
   .maxstack  1
   .locals init (object V_0)
- -IL_0000:  ldstr      ""Before""
+  // sequence point: System.Console.WriteLine(""Before"");
+  IL_0000:  ldstr      ""Before""
   IL_0005:  call       ""void System.Console.WriteLine(string)""
- -IL_000a:  ldnull
+  // sequence point: lock (null)
+  IL_000a:  ldnull
   IL_000b:  stloc.0
   IL_000c:  ldloc.0
   IL_000d:  call       ""void System.Threading.Monitor.Enter(object)""
   .try
   {
-   -IL_0012:  ldstr      ""In""
+    // sequence point: System.Console.WriteLine(""In"");
+    IL_0012:  ldstr      ""In""
     IL_0017:  call       ""void System.Console.WriteLine(string)""
-   -IL_001c:  leave.s    IL_0025
+    // sequence point: }
+    IL_001c:  leave.s    IL_0025
   }
   finally
   {
-   ~IL_001e:  ldloc.0
+    // sequence point: <hidden>
+    IL_001e:  ldloc.0
     IL_001f:  call       ""void System.Threading.Monitor.Exit(object)""
     IL_0024:  endfinally
   }
- -IL_0025:  ldstr      ""After""
+  // sequence point: System.Console.WriteLine(""After"");
+  IL_0025:  ldstr      ""After""
   IL_002a:  call       ""void System.Console.WriteLine(string)""
- -IL_002f:  ret
-}", sequencePointDisplay: SequencePointDisplayMode.Minimal);
+  // sequence point: }
+  IL_002f:  ret
+}", displaySequencePoints: true);
         }
 
         [Fact]

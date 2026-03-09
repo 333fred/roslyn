@@ -37,7 +37,8 @@ End Class
   .maxstack  3
   .locals init (Boolean V_0,
                 Integer V_1)
- ~IL_0000:  ldarg.0
+  // sequence point: <hidden>
+  IL_0000:  ldarg.0
   IL_0001:  ldfld      ""C.VB$StateMachine_1_F.$State As Integer""
   IL_0006:  stloc.1
   IL_0007:  ldloc.1
@@ -56,8 +57,10 @@ End Class
   IL_001a:  dup
   IL_001b:  stloc.1
   IL_001c:  stfld      ""C.VB$StateMachine_1_F.$State As Integer""
- -IL_0021:  nop
- -IL_0022:  ldarg.0
+  // sequence point: Public Iterator Function F() As IEnumerable(Of Integer)
+  IL_0021:  nop
+  // sequence point: Yield 1
+  IL_0022:  ldarg.0
   IL_0023:  ldc.i4.1
   IL_0024:  stfld      ""C.VB$StateMachine_1_F.$Current As Integer""
   IL_0029:  ldarg.0
@@ -72,10 +75,11 @@ End Class
   IL_0036:  dup
   IL_0037:  stloc.1
   IL_0038:  stfld      ""C.VB$StateMachine_1_F.$State As Integer""
- -IL_003d:  ldc.i4.0
+  // sequence point: End Function
+  IL_003d:  ldc.i4.0
   IL_003e:  ret
 }
-", sequencePointDisplay:=SequencePointDisplayMode.Minimal)
+", displaySequencePoints:=True)
         End Sub
 
         <WorkItem(651996, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/651996")>

@@ -2001,7 +2001,7 @@ End Module
   IL_01e4:  ret
 }
 ]]>,
-            sequencePointDisplay:=SequencePointDisplayMode.Minimal)
+            displaySequencePoints:=True)
         End Sub
 
         <Fact, WorkItem(1002672, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1002672")>
@@ -12930,4 +12930,3 @@ BC37337: 'MethodImplAttribute.Async' cannot be manually applied to methods.
         End Sub
     End Class
 End Namespace
-

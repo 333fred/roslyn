@@ -655,11 +655,11 @@ namespace Microsoft.CodeAnalysis.Test.Utilities
             string qualifiedMethodName,
             XCData expectedIL,
             bool realIL = false,
-            SequencePointDisplayMode sequencePointDisplay = SequencePointDisplayMode.None,
+            bool displaySequencePoints = false,
             [CallerFilePath] string? callerPath = null,
             [CallerLineNumber] int callerLine = 0)
         {
-            return VerifyILImpl(qualifiedMethodName, expectedIL.Value, realIL, sequencePointDisplay, callerPath, callerLine, escapeQuotes: false, ilFormat: null);
+            return VerifyILImpl(qualifiedMethodName, expectedIL.Value, realIL, displaySequencePoints, callerPath, callerLine, escapeQuotes: false, ilFormat: null);
         }
 
         /// <summary>
@@ -669,12 +669,12 @@ namespace Microsoft.CodeAnalysis.Test.Utilities
             string qualifiedMethodName,
             string expectedIL,
             bool realIL = false,
-            SequencePointDisplayMode sequencePointDisplay = SequencePointDisplayMode.None,
+            bool displaySequencePoints = false,
             [CallerFilePath] string? callerPath = null,
             [CallerLineNumber] int callerLine = 0,
             SymbolDisplayFormat? ilFormat = null)
         {
-            return VerifyILImpl(qualifiedMethodName, expectedIL, realIL, sequencePointDisplay, callerPath, callerLine, escapeQuotes: false, ilFormat);
+            return VerifyILImpl(qualifiedMethodName, expectedIL, realIL, displaySequencePoints, callerPath, callerLine, escapeQuotes: false, ilFormat);
         }
 
         public CompilationVerifier VerifyMethodBody(
@@ -685,7 +685,7 @@ namespace Microsoft.CodeAnalysis.Test.Utilities
             [CallerLineNumber] int callerLine = 0,
             SymbolDisplayFormat? ilFormat = null)
         {
-            return VerifyILImpl(qualifiedMethodName, expectedILWithSequencePoints, realIL, sequencePointDisplay: SequencePointDisplayMode.Enhanced, callerPath, callerLine, escapeQuotes: false, ilFormat);
+            return VerifyILImpl(qualifiedMethodName, expectedILWithSequencePoints, realIL, displaySequencePoints: true, callerPath, callerLine, escapeQuotes: false, ilFormat);
         }
 
         public void VerifyILMultiple(params string[] qualifiedMethodNamesAndExpectedIL)
@@ -740,26 +740,26 @@ namespace Microsoft.CodeAnalysis.Test.Utilities
             string qualifiedMethodName,
             string expectedIL,
             bool realIL,
-            SequencePointDisplayMode sequencePointDisplay,
+            bool displaySequencePoints,
             string? callerPath,
             int callerLine,
             bool escapeQuotes,
             SymbolDisplayFormat? ilFormat)
         {
-            string? actualIL = VisualizeIL(qualifiedMethodName, realIL, sequencePointDisplay, ilFormat);
+            string? actualIL = VisualizeIL(qualifiedMethodName, realIL, displaySequencePoints, ilFormat);
             AssertEx.AssertEqualToleratingWhitespaceDifferences(expectedIL, actualIL, message: null, escapeQuotes, callerPath, callerLine);
             return this;
         }
 
-        public string VisualizeIL(string qualifiedMethodName, bool realIL = false, SequencePointDisplayMode sequencePointDisplay = SequencePointDisplayMode.None, SymbolDisplayFormat? ilFormat = null)
-            => VisualizeIL(GetEmitData().TestData.GetMethodData(qualifiedMethodName), realIL, sequencePointDisplay, ilFormat);
+        public string VisualizeIL(string qualifiedMethodName, bool realIL = false, bool displaySequencePoints = false, SymbolDisplayFormat? ilFormat = null)
+            => VisualizeIL(GetEmitData().TestData.GetMethodData(qualifiedMethodName), realIL, displaySequencePoints, ilFormat);
 
-        internal string VisualizeIL(CompilationTestData.MethodData methodData, bool realIL = false, SequencePointDisplayMode sequencePointDisplay = SequencePointDisplayMode.None, SymbolDisplayFormat? ilFormat = null)
+        internal string VisualizeIL(CompilationTestData.MethodData methodData, bool realIL = false, bool displaySequencePoints = false, SymbolDisplayFormat? ilFormat = null)
         {
             Dictionary<int, string>? markers = null;
 
             var emitData = GetEmitData();
-            if (sequencePointDisplay != SequencePointDisplayMode.None)
+            if (displaySequencePoints)
             {
                 var actualPdbXml = PdbToXmlConverter.ToXml(
                     pdbStream: new MemoryStream(emitData.EmittedAssemblyPdb.ToArray()),
@@ -786,9 +786,9 @@ namespace Microsoft.CodeAnalysis.Test.Utilities
                 {
                     var documentMap = ILValidation.GetDocumentIdToPathMap(xmlDocument);
 
-                    markers = sequencePointDisplay == SequencePointDisplayMode.Enhanced ?
-                        ILValidation.GetSequencePointMarkers(xmlMethod, id => _compilation.SyntaxTrees.Single(tree => tree.FilePath == documentMap[id]).GetText()) :
-                        ILValidation.GetSequencePointMarkers(xmlMethod);
+                    markers = ILValidation.GetSequencePointMarkers(
+                        xmlMethod,
+                        id => _compilation.SyntaxTrees.Single(tree => tree.FilePath == documentMap[id]).GetText());
                 }
             }
 

@@ -54,7 +54,7 @@ class C2
   }
   // sequence point: }
   IL_0012:  ret
-}", sequencePointDisplay: SequencePointDisplayMode.Enhanced);
+}", displaySequencePoints: true);
         }
 
         [Fact]

@@ -1144,12 +1144,14 @@ class Test
                 System.Runtime.CompilerServices.TaskAwaiter<int> V_5,
                 System.Exception V_6,
                 int V_7)
- ~IL_0000:  ldarg.0
+  // sequence point: <hidden>
+  IL_0000:  ldarg.0
   IL_0001:  ldfld      ""int Test.<G>d__1.<>1__state""
   IL_0006:  stloc.0
   .try
   {
-   ~IL_0007:  ldloc.0
+    // sequence point: <hidden>
+    IL_0007:  ldloc.0
     IL_0008:  brfalse.s  IL_0012
     IL_000a:  br.s       IL_000c
     IL_000c:  ldloc.0
@@ -1158,28 +1160,36 @@ class Test
     IL_0010:  br.s       IL_0019
     IL_0012:  br.s       IL_002f
     IL_0014:  br         IL_0115
-   -IL_0019:  nop
-   -IL_001a:  ldarg.0
+    // sequence point: {
+    IL_0019:  nop
+    // sequence point: int x = 0;
+    IL_001a:  ldarg.0
     IL_001b:  ldc.i4.0
     IL_001c:  stfld      ""int Test.<G>d__1.<x>5__1""
-   ~IL_0021:  ldarg.0
+    // sequence point: <hidden>
+    IL_0021:  ldarg.0
     IL_0022:  ldnull
     IL_0023:  stfld      ""object Test.<G>d__1.<>s__2""
     IL_0028:  ldarg.0
     IL_0029:  ldc.i4.0
     IL_002a:  stfld      ""int Test.<G>d__1.<>s__3""
-   ~IL_002f:  nop
+    // sequence point: <hidden>
+    IL_002f:  nop
     .try
     {
-     ~IL_0030:  ldloc.0
+      // sequence point: <hidden>
+      IL_0030:  ldloc.0
       IL_0031:  brfalse.s  IL_0035
       IL_0033:  br.s       IL_0037
       IL_0035:  br.s       IL_0073
-     -IL_0037:  nop
-     -IL_0038:  call       ""System.Threading.Tasks.Task<int> Test.F()""
+      // sequence point: {
+      IL_0037:  nop
+      // sequence point: x = await F();
+      IL_0038:  call       ""System.Threading.Tasks.Task<int> Test.F()""
       IL_003d:  callvirt   ""System.Runtime.CompilerServices.TaskAwaiter<int> System.Threading.Tasks.Task<int>.GetAwaiter()""
       IL_0042:  stloc.2
-     ~IL_0043:  ldloca.s   V_2
+      // sequence point: <hidden>
+      IL_0043:  ldloca.s   V_2
       IL_0045:  call       ""bool System.Runtime.CompilerServices.TaskAwaiter<int>.IsCompleted.get""
       IL_004a:  brtrue.s   IL_008f
       IL_004c:  ldarg.0
@@ -1187,7 +1197,8 @@ class Test
       IL_004e:  dup
       IL_004f:  stloc.0
       IL_0050:  stfld      ""int Test.<G>d__1.<>1__state""
-     <IL_0055:  ldarg.0
+      // async: yield
+      IL_0055:  ldarg.0
       IL_0056:  ldloc.2
       IL_0057:  stfld      ""System.Runtime.CompilerServices.TaskAwaiter<int> Test.<G>d__1.<>u__1""
       IL_005c:  ldarg.0
@@ -1199,7 +1210,8 @@ class Test
       IL_0068:  call       ""void System.Runtime.CompilerServices.AsyncTaskMethodBuilder<int>.AwaitUnsafeOnCompleted<System.Runtime.CompilerServices.TaskAwaiter<int>, Test.<G>d__1>(ref System.Runtime.CompilerServices.TaskAwaiter<int>, ref Test.<G>d__1)""
       IL_006d:  nop
       IL_006e:  leave      IL_01cc
-     >IL_0073:  ldarg.0
+      // async: resume
+      IL_0073:  ldarg.0
       IL_0074:  ldfld      ""System.Runtime.CompilerServices.TaskAwaiter<int> Test.<G>d__1.<>u__1""
       IL_0079:  stloc.2
       IL_007a:  ldarg.0
@@ -1218,7 +1230,8 @@ class Test
       IL_009d:  ldarg.0
       IL_009e:  ldfld      ""int Test.<G>d__1.<>s__5""
       IL_00a3:  stfld      ""int Test.<G>d__1.<x>5__1""
-     -IL_00a8:  ldarg.0
+      // sequence point: return x;
+      IL_00a8:  ldarg.0
       IL_00a9:  ldarg.0
       IL_00aa:  ldfld      ""int Test.<G>d__1.<x>5__1""
       IL_00af:  stfld      ""int Test.<G>d__1.<>s__4""
@@ -1230,21 +1243,25 @@ class Test
     }
     catch object
     {
-     ~IL_00bf:  stloc.s    V_4
+      // sequence point: <hidden>
+      IL_00bf:  stloc.s    V_4
       IL_00c1:  ldarg.0
       IL_00c2:  ldloc.s    V_4
       IL_00c4:  stfld      ""object Test.<G>d__1.<>s__2""
       IL_00c9:  leave.s    IL_00cb
     }
-   -IL_00cb:  nop
-   -IL_00cc:  ldarg.0
+    // sequence point: {
+    IL_00cb:  nop
+    // sequence point: x += await F();
+    IL_00cc:  ldarg.0
     IL_00cd:  ldarg.0
     IL_00ce:  ldfld      ""int Test.<G>d__1.<x>5__1""
     IL_00d3:  stfld      ""int Test.<G>d__1.<>s__6""
     IL_00d8:  call       ""System.Threading.Tasks.Task<int> Test.F()""
     IL_00dd:  callvirt   ""System.Runtime.CompilerServices.TaskAwaiter<int> System.Threading.Tasks.Task<int>.GetAwaiter()""
     IL_00e2:  stloc.s    V_5
-   ~IL_00e4:  ldloca.s   V_5
+    // sequence point: <hidden>
+    IL_00e4:  ldloca.s   V_5
     IL_00e6:  call       ""bool System.Runtime.CompilerServices.TaskAwaiter<int>.IsCompleted.get""
     IL_00eb:  brtrue.s   IL_0132
     IL_00ed:  ldarg.0
@@ -1252,7 +1269,8 @@ class Test
     IL_00ef:  dup
     IL_00f0:  stloc.0
     IL_00f1:  stfld      ""int Test.<G>d__1.<>1__state""
-   <IL_00f6:  ldarg.0
+    // async: yield
+    IL_00f6:  ldarg.0
     IL_00f7:  ldloc.s    V_5
     IL_00f9:  stfld      ""System.Runtime.CompilerServices.TaskAwaiter<int> Test.<G>d__1.<>u__1""
     IL_00fe:  ldarg.0
@@ -1264,7 +1282,8 @@ class Test
     IL_010a:  call       ""void System.Runtime.CompilerServices.AsyncTaskMethodBuilder<int>.AwaitUnsafeOnCompleted<System.Runtime.CompilerServices.TaskAwaiter<int>, Test.<G>d__1>(ref System.Runtime.CompilerServices.TaskAwaiter<int>, ref Test.<G>d__1)""
     IL_010f:  nop
     IL_0110:  leave      IL_01cc
-   >IL_0115:  ldarg.0
+    // async: resume
+    IL_0115:  ldarg.0
     IL_0116:  ldfld      ""System.Runtime.CompilerServices.TaskAwaiter<int> Test.<G>d__1.<>u__1""
     IL_011b:  stloc.s    V_5
     IL_011d:  ldarg.0
@@ -1286,8 +1305,10 @@ class Test
     IL_0147:  ldfld      ""int Test.<G>d__1.<>s__7""
     IL_014c:  add
     IL_014d:  stfld      ""int Test.<G>d__1.<x>5__1""
-   -IL_0152:  nop
-   ~IL_0153:  ldarg.0
+    // sequence point: }
+    IL_0152:  nop
+    // sequence point: <hidden>
+    IL_0153:  ldarg.0
     IL_0154:  ldfld      ""object Test.<G>d__1.<>s__2""
     IL_0159:  stloc.s    V_4
     IL_015b:  ldloc.s    V_4
@@ -1322,7 +1343,8 @@ class Test
   }
   catch System.Exception
   {
-   ~IL_019d:  stloc.s    V_6
+    // sequence point: <hidden>
+    IL_019d:  stloc.s    V_6
     IL_019f:  ldarg.0
     IL_01a0:  ldc.i4.s   -2
     IL_01a2:  stfld      ""int Test.<G>d__1.<>1__state""
@@ -1333,16 +1355,18 @@ class Test
     IL_01b4:  nop
     IL_01b5:  leave.s    IL_01cc
   }
- -IL_01b7:  ldarg.0
+  // sequence point: }
+  IL_01b7:  ldarg.0
   IL_01b8:  ldc.i4.s   -2
   IL_01ba:  stfld      ""int Test.<G>d__1.<>1__state""
- ~IL_01bf:  ldarg.0
+  // sequence point: <hidden>
+  IL_01bf:  ldarg.0
   IL_01c0:  ldflda     ""System.Runtime.CompilerServices.AsyncTaskMethodBuilder<int> Test.<G>d__1.<>t__builder""
   IL_01c5:  ldloc.1
   IL_01c6:  call       ""void System.Runtime.CompilerServices.AsyncTaskMethodBuilder<int>.SetResult(int)""
   IL_01cb:  nop
   IL_01cc:  ret
-}", sequencePointDisplay: SequencePointDisplayMode.Minimal);
+}", displaySequencePoints: true);
 
             var comp = CreateRuntimeAsyncCompilation(source, TestOptions.ReleaseExe);
             var verifier = CompileAndVerify(comp, expectedOutput: RuntimeAsyncTestHelpers.ExpectedOutput(expected), verify: Verification.Fails with

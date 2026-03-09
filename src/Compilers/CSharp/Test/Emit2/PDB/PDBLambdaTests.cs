@@ -1764,19 +1764,25 @@ class C
   .maxstack  1
   .locals init (bool V_0, //result
                 bool V_1)
- -IL_0000:  nop
- -IL_0001:  ldc.i4.0
+  // sequence point: {
+  IL_0000:  nop
+  // sequence point: bool result = false;
+  IL_0001:  ldc.i4.0
   IL_0002:  stloc.0
- -IL_0003:  ldloc.0
+  // sequence point: if (result)
+  IL_0003:  ldloc.0
   IL_0004:  stloc.1
- ~IL_0005:  ldloc.1
+  // sequence point: <hidden>
+  IL_0005:  ldloc.1
   IL_0006:  brfalse.s  IL_000f
- -IL_0008:  ldc.i4.1
+  // sequence point: System.Console.WriteLine(1);
+  IL_0008:  ldc.i4.1
   IL_0009:  call       ""void System.Console.WriteLine(int)""
   IL_000e:  nop
- -IL_000f:  ret
+  // sequence point: }
+  IL_000f:  ret
 }
-", sequencePointDisplay: SequencePointDisplayMode.Minimal);
+", displaySequencePoints: true);
         }
 
         [Fact]
@@ -1806,21 +1812,29 @@ class C
   .maxstack  1
   .locals init (bool V_0, //result
                 bool V_1)
- -IL_0000:  nop
- -IL_0001:  nop
- -IL_0002:  ldc.i4.0
+  // sequence point: {
+  IL_0000:  nop
+  // sequence point: {
+  IL_0001:  nop
+  // sequence point: bool result = false;
+  IL_0002:  ldc.i4.0
   IL_0003:  stloc.0
- -IL_0004:  ldloc.0
+  // sequence point: if (result)
+  IL_0004:  ldloc.0
   IL_0005:  stloc.1
- ~IL_0006:  ldloc.1
+  // sequence point: <hidden>
+  IL_0006:  ldloc.1
   IL_0007:  brfalse.s  IL_0010
- -IL_0009:  ldc.i4.1
+  // sequence point: System.Console.WriteLine(1);
+  IL_0009:  ldc.i4.1
   IL_000a:  call       ""void System.Console.WriteLine(int)""
   IL_000f:  nop
- -IL_0010:  nop
- -IL_0011:  ret
+  // sequence point: }
+  IL_0010:  nop
+  // sequence point: }
+  IL_0011:  ret
 }
-", sequencePointDisplay: SequencePointDisplayMode.Minimal);
+", displaySequencePoints: true);
         }
 
         [Fact]
@@ -2194,7 +2208,7 @@ class C
   // sequence point: }
   IL_003b:  ret
 }
-", sequencePointDisplay: SequencePointDisplayMode.Enhanced);
+", displaySequencePoints: true);
         }
     }
 }

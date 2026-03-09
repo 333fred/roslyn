@@ -8410,7 +8410,7 @@ System.Console.WriteLine(""Hi!"");
 
             var comp = CreateCompilation(text, options: TestOptions.DebugExe, parseOptions: DefaultParseOptions);
             comp.VerifyEmitDiagnostics();
-            CompileAndVerify(comp).VerifyIL("<top-level-statements-entry-point>", sequencePointDisplay: SequencePointDisplayMode.Enhanced, expectedIL:
+            CompileAndVerify(comp).VerifyIL("<top-level-statements-entry-point>", displaySequencePoints: true, expectedIL:
 @"
 {
   // Code size        2 (0x2)
@@ -8488,7 +8488,7 @@ System.Console.WriteLine(i);
 ";
             var comp = CreateCompilation(text, options: TestOptions.DebugExe, parseOptions: DefaultParseOptions);
             comp.VerifyEmitDiagnostics();
-            CompileAndVerify(comp, expectedOutput: "3").VerifyIL("<top-level-statements-entry-point>", sequencePointDisplay: SequencePointDisplayMode.Enhanced, expectedIL:
+            CompileAndVerify(comp, expectedOutput: "3").VerifyIL("<top-level-statements-entry-point>", displaySequencePoints: true, expectedIL:
 @"
 {
   // Code size       20 (0x14)
@@ -8535,7 +8535,7 @@ System.Console.WriteLine(i);
 ";
             var comp = CreateCompilation(text, options: TestOptions.DebugExe.WithOverflowChecks(true), parseOptions: DefaultParseOptions);
             comp.VerifyEmitDiagnostics();
-            CompileAndVerify(comp, expectedOutput: "3").VerifyIL("<top-level-statements-entry-point>", sequencePointDisplay: SequencePointDisplayMode.Enhanced, expectedIL:
+            CompileAndVerify(comp, expectedOutput: "3").VerifyIL("<top-level-statements-entry-point>", displaySequencePoints: true, expectedIL:
 @"
 {
   // Code size       20 (0x14)

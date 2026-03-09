@@ -49,15 +49,20 @@ End Class
                 Object V_1,
                 Boolean V_2,
                 Integer V_3) //x
- -IL_0000:  nop
+  // sequence point: Public Shared Sub Main()
+  IL_0000:  nop
   .try
   {
-   -IL_0001:  nop
-   -IL_0002:  newobj     ""Sub Object..ctor()""
+    // sequence point: Try
+    IL_0001:  nop
+    // sequence point: lock As New Object()
+    IL_0002:  newobj     ""Sub Object..ctor()""
     IL_0007:  call       ""Function System.Runtime.CompilerServices.RuntimeHelpers.GetObjectValue(Object) As Object""
     IL_000c:  stloc.0
-   -IL_000d:  nop
-   -IL_000e:  ldc.i4.s   12
+    // sequence point: SyncLock Something(12)
+    IL_000d:  nop
+    // sequence point: Something(12)
+    IL_000e:  ldc.i4.s   12
     IL_0010:  call       ""Function C1.Something(Integer) As C1""
     IL_0015:  stloc.1
     IL_0016:  ldc.i4.0
@@ -68,32 +73,40 @@ End Class
       IL_0019:  ldloca.s   V_2
       IL_001b:  call       ""Sub System.Threading.Monitor.Enter(Object, ByRef Boolean)""
       IL_0020:  nop
-     -IL_0021:  ldc.i4.s   23
+      // sequence point: x As Integer = 23
+      IL_0021:  ldc.i4.s   23
       IL_0023:  stloc.3
-     -IL_0024:  newobj     ""Sub System.Exception..ctor()""
+      // sequence point: Throw New exception()
+      IL_0024:  newobj     ""Sub System.Exception..ctor()""
       IL_0029:  throw
     }
     finally
     {
-     ~IL_002a:  ldloc.2
+      // sequence point: <hidden>
+      IL_002a:  ldloc.2
       IL_002b:  brfalse.s  IL_0034
       IL_002d:  ldloc.1
       IL_002e:  call       ""Sub System.Threading.Monitor.Exit(Object)""
       IL_0033:  nop
-     -IL_0034:  nop
+      // sequence point: End SyncLock
+      IL_0034:  nop
       IL_0035:  endfinally
     }
   }
   catch System.Exception
   {
-   ~IL_0036:  call       ""Sub Microsoft.VisualBasic.CompilerServices.ProjectData.SetProjectError(System.Exception)""
-   -IL_003b:  nop
+    // sequence point: <hidden>
+    IL_0036:  call       ""Sub Microsoft.VisualBasic.CompilerServices.ProjectData.SetProjectError(System.Exception)""
+    // sequence point: Catch
+    IL_003b:  nop
     IL_003c:  call       ""Sub Microsoft.VisualBasic.CompilerServices.ProjectData.ClearProjectError()""
     IL_0041:  leave.s    IL_0043
   }
- -IL_0043:  nop
- -IL_0044:  ret
-}", sequencePointDisplay:=SequencePointDisplayMode.Minimal)
+  // sequence point: End Try
+  IL_0043:  nop
+  // sequence point: End Sub
+  IL_0044:  ret
+}", displaySequencePoints:=True)
 
             v.VerifyPdb("C1.Main",
 <symbols>

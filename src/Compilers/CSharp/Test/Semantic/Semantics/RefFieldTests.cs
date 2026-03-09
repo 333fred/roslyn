@@ -18275,7 +18275,7 @@ class Program
             var comp = CreateCompilation(source, options: TestOptions.DebugExe, targetFramework: TargetFramework.Net70);
             var verifier = CompileAndVerify(comp, verify: Verification.Skipped);
             verifier.VerifyIL("Program.Main",
-                sequencePointDisplay: SequencePointDisplayMode.Enhanced,
+                displaySequencePoints: true,
                 expectedIL:
 @"{
   // Code size       30 (0x1e)

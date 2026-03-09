@@ -2631,7 +2631,7 @@ public class C
   IL_0000:  ldc.i4.s   -2
   IL_0002:  newobj     ""C.<M>d__0..ctor(int)""
   IL_0007:  ret
-}", sequencePointDisplay: SequencePointDisplayMode.Enhanced);
+}", displaySequencePoints: true);
 
                 if (options == TestOptions.DebugExe)
                 {
@@ -2652,7 +2652,7 @@ public class C
   IL_001a:  call       ""int System.Environment.CurrentManagedThreadId.get""
   IL_001f:  stfld      ""int C.<M>d__0.<>l__initialThreadId""
   IL_0024:  ret
-}", sequencePointDisplay: SequencePointDisplayMode.Enhanced);
+}", displaySequencePoints: true);
                 }
                 else
                 {
@@ -2672,7 +2672,7 @@ public class C
   IL_0019:  call       ""int System.Environment.CurrentManagedThreadId.get""
   IL_001e:  stfld      ""int C.<M>d__0.<>l__initialThreadId""
   IL_0023:  ret
-}", sequencePointDisplay: SequencePointDisplayMode.Enhanced);
+}", displaySequencePoints: true);
                 }
 
                 verifier.VerifyIL("C.<M>d__0.System.Collections.Generic.IAsyncEnumerator<int>.get_Current()", @"
@@ -2999,7 +2999,7 @@ public class C
   IL_0149:  call       ""void System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore<bool>.SetResult(bool)""
   IL_014e:  nop
   IL_014f:  ret
-}", sequencePointDisplay: SequencePointDisplayMode.Enhanced);
+}", displaySequencePoints: true);
                 }
                 else
                 {
@@ -3146,7 +3146,7 @@ public class C
   IL_0133:  ldc.i4.1
   IL_0134:  call       ""void System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore<bool>.SetResult(bool)""
   IL_0139:  ret
-}", sequencePointDisplay: SequencePointDisplayMode.Enhanced);
+}", displaySequencePoints: true);
                 }
             }
         }
@@ -3413,7 +3413,7 @@ class C
   IL_0150:  ldc.i4.1
   IL_0151:  call       ""void System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore<bool>.SetResult(bool)""
   IL_0156:  ret
-}", sequencePointDisplay: SequencePointDisplayMode.Enhanced);
+}", displaySequencePoints: true);
         }
 
         [Theory]
@@ -3681,7 +3681,7 @@ partial class C
   IL_0150:  ldc.i4.1
   IL_0151:  call       ""void System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore<bool>.SetResult(bool)""
   IL_0156:  ret
-}", sequencePointDisplay: SequencePointDisplayMode.Enhanced);
+}", displaySequencePoints: true);
         }
 
         [Fact]
@@ -3950,7 +3950,7 @@ class C
   IL_0150:  ldc.i4.1
   IL_0151:  call       ""void System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore<bool>.SetResult(bool)""
   IL_0156:  ret
-}", sequencePointDisplay: SequencePointDisplayMode.Enhanced);
+}", displaySequencePoints: true);
         }
 
         [Fact]
@@ -4169,7 +4169,7 @@ class C
   IL_0149:  ldc.i4.1
   IL_014a:  call       ""void System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore<bool>.SetResult(bool)""
   IL_014f:  ret
-}", sequencePointDisplay: SequencePointDisplayMode.Enhanced);
+}", displaySequencePoints: true);
         }
 
         private static void VerifyStateMachineFields(CSharpCompilation comp, string methodName, string[] expectedFields)

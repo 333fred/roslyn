@@ -7694,30 +7694,43 @@ End Module
                 Boolean V_2,
                 Boolean V_3,
                 Boolean V_4)
- -IL_0000:  nop
- -IL_0001:  ldc.i4.1
+  // sequence point: Sub Main()
+  IL_0000:  nop
+  // sequence point: b1 As Boolean = True
+  IL_0001:  ldc.i4.1
   IL_0002:  stloc.0
- -IL_0003:  ldc.i4.0
+  // sequence point: b2 As Boolean = False
+  IL_0003:  ldc.i4.0
   IL_0004:  stloc.1
- -IL_0005:  ldloc.0
+  // sequence point: If b1 And b2 Then
+  IL_0005:  ldloc.0
   IL_0006:  ldloc.1
   IL_0007:  and
   IL_0008:  stloc.2
- ~IL_0009:  ldloc.2
+  // sequence point: <hidden>
+  IL_0009:  ldloc.2
   IL_000a:  brfalse.s  IL_000d
- -IL_000c:  nop
- -IL_000d:  nop
- -IL_000e:  ldc.i4.1
+  // sequence point: End If
+  IL_000c:  nop
+  // sequence point: End If
+  IL_000d:  nop
+  // sequence point: If False Or True Then
+  IL_000e:  ldc.i4.1
   IL_000f:  stloc.3
- -IL_0010:  nop
- -IL_0011:  nop
- -IL_0012:  ldc.i4.0
+  // sequence point: End If
+  IL_0010:  nop
+  // sequence point: End If
+  IL_0011:  nop
+  // sequence point: If False And True Then
+  IL_0012:  ldc.i4.0
   IL_0013:  stloc.s    V_4
   IL_0015:  br.s       IL_0017
- -IL_0017:  nop
- -IL_0018:  ret
+  // sequence point: End If
+  IL_0017:  nop
+  // sequence point: End Sub
+  IL_0018:  ret
 }
-", sequencePointDisplay:=SequencePointDisplayMode.Minimal)
+", displaySequencePoints:=True)
         End Sub
 
         <Fact>

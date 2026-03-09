@@ -3488,38 +3488,50 @@ True
   .maxstack  2
   .locals init (bool V_0,
                 bool V_1)
- -IL_0000:  nop
- -IL_0001:  ldarg.0
+  // sequence point: {
+  IL_0000:  nop
+  // sequence point: if (x == null)
+  IL_0001:  ldarg.0
   IL_0002:  box        ""T""
   IL_0007:  ldnull
   IL_0008:  ceq
   IL_000a:  stloc.0
- ~IL_000b:  ldloc.0
+  // sequence point: <hidden>
+  IL_000b:  ldloc.0
   IL_000c:  brfalse.s  IL_001f
- -IL_000e:  nop
- -IL_000f:  ldarg.0
+  // sequence point: {
+  IL_000e:  nop
+  // sequence point: Console.WriteLine(x == null);
+  IL_000f:  ldarg.0
   IL_0010:  box        ""T""
   IL_0015:  ldnull
   IL_0016:  ceq
   IL_0018:  call       ""void System.Console.WriteLine(bool)""
   IL_001d:  nop
- -IL_001e:  nop
- -IL_001f:  ldarg.1
+  // sequence point: }
+  IL_001e:  nop
+  // sequence point: if (e == E1.A)
+  IL_001f:  ldarg.1
   IL_0020:  ldc.i4.0
   IL_0021:  ceq
   IL_0023:  stloc.1
- ~IL_0024:  ldloc.1
+  // sequence point: <hidden>
+  IL_0024:  ldloc.1
   IL_0025:  brfalse.s  IL_0033
- -IL_0027:  nop
- -IL_0028:  ldarg.1
+  // sequence point: {
+  IL_0027:  nop
+  // sequence point: Console.WriteLine(e == E1.A);
+  IL_0028:  ldarg.1
   IL_0029:  ldc.i4.0
   IL_002a:  ceq
   IL_002c:  call       ""void System.Console.WriteLine(bool)""
   IL_0031:  nop
- -IL_0032:  nop
- -IL_0033:  ret
+  // sequence point: }
+  IL_0032:  nop
+  // sequence point: }
+  IL_0033:  ret
 }
-", sequencePointDisplay: SequencePointDisplayMode.Minimal);
+", displaySequencePoints: true);
         }
 
         [WorkItem(543893, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/543893")]

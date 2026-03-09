@@ -1131,17 +1131,21 @@ public class Test
                 System.Runtime.CompilerServices.TaskAwaiter<int> V_3,
                 Test.<F>d__2 V_4,
                 System.Exception V_5)
- ~IL_0000:  ldarg.0
+  // sequence point: <hidden>
+  IL_0000:  ldarg.0
   IL_0001:  ldfld      ""int Test.<F>d__2.<>1__state""
   IL_0006:  stloc.0
   .try
   {
-   ~IL_0007:  ldloc.0
+    // sequence point: <hidden>
+    IL_0007:  ldloc.0
     IL_0008:  brfalse.s  IL_000c
     IL_000a:  br.s       IL_000e
     IL_000c:  br.s       IL_0088
-   -IL_000e:  nop
-   -IL_000f:  ldarg.0
+    // sequence point: {
+    IL_000e:  nop
+    // sequence point: H(array[1] += 2, array[3] += await G(), 4);
+    IL_000f:  ldarg.0
     IL_0010:  ldarg.0
     IL_0011:  ldfld      ""int[] Test.<F>d__2.array""
     IL_0016:  ldc.i4.1
@@ -1173,7 +1177,8 @@ public class Test
     IL_004c:  call       ""System.Threading.Tasks.Task<int> Test.G()""
     IL_0051:  callvirt   ""System.Runtime.CompilerServices.TaskAwaiter<int> System.Threading.Tasks.Task<int>.GetAwaiter()""
     IL_0056:  stloc.3
-   ~IL_0057:  ldloca.s   V_3
+    // sequence point: <hidden>
+    IL_0057:  ldloca.s   V_3
     IL_0059:  call       ""bool System.Runtime.CompilerServices.TaskAwaiter<int>.IsCompleted.get""
     IL_005e:  brtrue.s   IL_00a4
     IL_0060:  ldarg.0
@@ -1181,7 +1186,8 @@ public class Test
     IL_0062:  dup
     IL_0063:  stloc.0
     IL_0064:  stfld      ""int Test.<F>d__2.<>1__state""
-   <IL_0069:  ldarg.0
+    // async: yield
+    IL_0069:  ldarg.0
     IL_006a:  ldloc.3
     IL_006b:  stfld      ""System.Runtime.CompilerServices.TaskAwaiter<int> Test.<F>d__2.<>u__1""
     IL_0070:  ldarg.0
@@ -1193,7 +1199,8 @@ public class Test
     IL_007d:  call       ""void System.Runtime.CompilerServices.AsyncTaskMethodBuilder<int>.AwaitUnsafeOnCompleted<System.Runtime.CompilerServices.TaskAwaiter<int>, Test.<F>d__2>(ref System.Runtime.CompilerServices.TaskAwaiter<int>, ref Test.<F>d__2)""
     IL_0082:  nop
     IL_0083:  leave      IL_0110
-   >IL_0088:  ldarg.0
+    // async: resume
+    IL_0088:  ldarg.0
     IL_0089:  ldfld      ""System.Runtime.CompilerServices.TaskAwaiter<int> Test.<F>d__2.<>u__1""
     IL_008e:  stloc.3
     IL_008f:  ldarg.0
@@ -1228,13 +1235,15 @@ public class Test
     IL_00d6:  ldarg.0
     IL_00d7:  ldnull
     IL_00d8:  stfld      ""int[] Test.<F>d__2.<>s__4""
-   -IL_00dd:  ldc.i4.1
+    // sequence point: return 1;
+    IL_00dd:  ldc.i4.1
     IL_00de:  stloc.1
     IL_00df:  leave.s    IL_00fb
   }
   catch System.Exception
   {
-   ~IL_00e1:  stloc.s    V_5
+    // sequence point: <hidden>
+    IL_00e1:  stloc.s    V_5
     IL_00e3:  ldarg.0
     IL_00e4:  ldc.i4.s   -2
     IL_00e6:  stfld      ""int Test.<F>d__2.<>1__state""
@@ -1245,16 +1254,18 @@ public class Test
     IL_00f8:  nop
     IL_00f9:  leave.s    IL_0110
   }
- -IL_00fb:  ldarg.0
+  // sequence point: }
+  IL_00fb:  ldarg.0
   IL_00fc:  ldc.i4.s   -2
   IL_00fe:  stfld      ""int Test.<F>d__2.<>1__state""
- ~IL_0103:  ldarg.0
+  // sequence point: <hidden>
+  IL_0103:  ldarg.0
   IL_0104:  ldflda     ""System.Runtime.CompilerServices.AsyncTaskMethodBuilder<int> Test.<F>d__2.<>t__builder""
   IL_0109:  ldloc.1
   IL_010a:  call       ""void System.Runtime.CompilerServices.AsyncTaskMethodBuilder<int>.SetResult(int)""
   IL_010f:  nop
   IL_0110:  ret
-}", sequencePointDisplay: SequencePointDisplayMode.Minimal);
+}", displaySequencePoints: true);
 
             var comp = CreateRuntimeAsyncCompilation(source);
             var verifier = CompileAndVerify(comp, verify: Verification.Fails with
@@ -1356,14 +1367,17 @@ public class Test
                 int V_3,
                 System.Runtime.CompilerServices.TaskAwaiter<int> V_4,
                 System.Exception V_5)
- ~IL_0000:  ldarg.0
+  // sequence point: <hidden>
+  IL_0000:  ldarg.0
   IL_0001:  ldfld      ""int Test.<F>d__2.<>1__state""
   IL_0006:  stloc.0
   .try
   {
-   ~IL_0007:  ldloc.0
+    // sequence point: <hidden>
+    IL_0007:  ldloc.0
     IL_0008:  brfalse.s  IL_007d
-   -IL_000a:  ldarg.0
+    // sequence point: H(array[1] += 2, array[3] += await G(), 4);
+    IL_000a:  ldarg.0
     IL_000b:  ldarg.0
     IL_000c:  ldfld      ""int[] Test.<F>d__2.array""
     IL_0011:  ldc.i4.1
@@ -1395,7 +1409,8 @@ public class Test
     IL_0047:  call       ""System.Threading.Tasks.Task<int> Test.G()""
     IL_004c:  callvirt   ""System.Runtime.CompilerServices.TaskAwaiter<int> System.Threading.Tasks.Task<int>.GetAwaiter()""
     IL_0051:  stloc.s    V_4
-   ~IL_0053:  ldloca.s   V_4
+    // sequence point: <hidden>
+    IL_0053:  ldloca.s   V_4
     IL_0055:  call       ""bool System.Runtime.CompilerServices.TaskAwaiter<int>.IsCompleted.get""
     IL_005a:  brtrue.s   IL_009a
     IL_005c:  ldarg.0
@@ -1403,7 +1418,8 @@ public class Test
     IL_005e:  dup
     IL_005f:  stloc.0
     IL_0060:  stfld      ""int Test.<F>d__2.<>1__state""
-   <IL_0065:  ldarg.0
+    // async: yield
+    IL_0065:  ldarg.0
     IL_0066:  ldloc.s    V_4
     IL_0068:  stfld      ""System.Runtime.CompilerServices.TaskAwaiter<int> Test.<F>d__2.<>u__1""
     IL_006d:  ldarg.0
@@ -1412,7 +1428,8 @@ public class Test
     IL_0075:  ldarg.0
     IL_0076:  call       ""void System.Runtime.CompilerServices.AsyncTaskMethodBuilder<int>.AwaitUnsafeOnCompleted<System.Runtime.CompilerServices.TaskAwaiter<int>, Test.<F>d__2>(ref System.Runtime.CompilerServices.TaskAwaiter<int>, ref Test.<F>d__2)""
     IL_007b:  leave.s    IL_00fa
-   >IL_007d:  ldarg.0
+    // async: resume
+    IL_007d:  ldarg.0
     IL_007e:  ldfld      ""System.Runtime.CompilerServices.TaskAwaiter<int> Test.<F>d__2.<>u__1""
     IL_0083:  stloc.s    V_4
     IL_0085:  ldarg.0
@@ -1445,13 +1462,15 @@ public class Test
     IL_00c2:  ldarg.0
     IL_00c3:  ldnull
     IL_00c4:  stfld      ""int[] Test.<F>d__2.<>7__wrap3""
-   -IL_00c9:  ldc.i4.1
+    // sequence point: return 1;
+    IL_00c9:  ldc.i4.1
     IL_00ca:  stloc.1
     IL_00cb:  leave.s    IL_00e6
   }
   catch System.Exception
   {
-   ~IL_00cd:  stloc.s    V_5
+    // sequence point: <hidden>
+    IL_00cd:  stloc.s    V_5
     IL_00cf:  ldarg.0
     IL_00d0:  ldc.i4.s   -2
     IL_00d2:  stfld      ""int Test.<F>d__2.<>1__state""
@@ -1461,15 +1480,17 @@ public class Test
     IL_00df:  call       ""void System.Runtime.CompilerServices.AsyncTaskMethodBuilder<int>.SetException(System.Exception)""
     IL_00e4:  leave.s    IL_00fa
   }
- -IL_00e6:  ldarg.0
+  // sequence point: }
+  IL_00e6:  ldarg.0
   IL_00e7:  ldc.i4.s   -2
   IL_00e9:  stfld      ""int Test.<F>d__2.<>1__state""
- ~IL_00ee:  ldarg.0
+  // sequence point: <hidden>
+  IL_00ee:  ldarg.0
   IL_00ef:  ldflda     ""System.Runtime.CompilerServices.AsyncTaskMethodBuilder<int> Test.<F>d__2.<>t__builder""
   IL_00f4:  ldloc.1
   IL_00f5:  call       ""void System.Runtime.CompilerServices.AsyncTaskMethodBuilder<int>.SetResult(int)""
   IL_00fa:  ret
-}", sequencePointDisplay: SequencePointDisplayMode.Minimal);
+}", displaySequencePoints: true);
 
             var comp = CreateRuntimeAsyncCompilation(source);
             var verifier = CompileAndVerify(comp, verify: Verification.Fails with

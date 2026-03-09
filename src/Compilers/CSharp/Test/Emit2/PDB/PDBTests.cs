@@ -1573,13 +1573,16 @@ class Program
   // Code size        7 (0x7)
   .maxstack  1
   .locals init (int V_0)
- -IL_0000:  nop
- -IL_0001:  ldc.i4.1
+  // sequence point: {
+  IL_0000:  nop
+  // sequence point: return 1;
+  IL_0001:  ldc.i4.1
   IL_0002:  stloc.0
   IL_0003:  br.s       IL_0005
- -IL_0005:  ldloc.0
+  // sequence point: }
+  IL_0005:  ldloc.0
   IL_0006:  ret
-}", sequencePointDisplay: SequencePointDisplayMode.Minimal);
+}", displaySequencePoints: true);
 
             v.VerifyPdb("Program.Main", @"
 <symbols>
@@ -1628,13 +1631,16 @@ class C
   // Code size        7 (0x7)
   .maxstack  1
   .locals init (int V_0)
- -IL_0000:  nop
- -IL_0001:  ldc.i4.1
+  // sequence point: {
+  IL_0000:  nop
+  // sequence point: return 1;
+  IL_0001:  ldc.i4.1
   IL_0002:  stloc.0
   IL_0003:  br.s       IL_0005
- -IL_0005:  ldloc.0
+  // sequence point: }
+  IL_0005:  ldloc.0
   IL_0006:  ret
-}", sequencePointDisplay: SequencePointDisplayMode.Minimal);
+}", displaySequencePoints: true);
 
             v.VerifyPdb("C.get_P", @"
 <symbols>
@@ -1680,10 +1686,13 @@ class Program
 {
   // Code size        4 (0x4)
   .maxstack  0
- -IL_0000:  nop
- -IL_0001:  br.s       IL_0003
- -IL_0003:  ret
-}", sequencePointDisplay: SequencePointDisplayMode.Minimal);
+  // sequence point: {
+  IL_0000:  nop
+  // sequence point: return;
+  IL_0001:  br.s       IL_0003
+  // sequence point: }
+  IL_0003:  ret
+}", displaySequencePoints: true);
         }
 
         [Fact]
@@ -1702,9 +1711,10 @@ class Program
 {
   // Code size        2 (0x2)
   .maxstack  1
- -IL_0000:  ldc.i4.1
+  // sequence point: 1
+  IL_0000:  ldc.i4.1
   IL_0001:  ret
-}", sequencePointDisplay: SequencePointDisplayMode.Minimal);
+}", displaySequencePoints: true);
         }
 
         [Fact]
@@ -1736,27 +1746,35 @@ class Program
   // Code size       20 (0x14)
   .maxstack  1
   .locals init (int V_0)
- -IL_0000:  nop
+  // sequence point: {
+  IL_0000:  nop
   .try
   {
-   -IL_0001:  nop
-   -IL_0002:  call       ""void System.Console.WriteLine()""
+    // sequence point: {
+    IL_0001:  nop
+    // sequence point: Console.WriteLine();
+    IL_0002:  call       ""void System.Console.WriteLine()""
     IL_0007:  nop
-   -IL_0008:  ldc.i4.1
+    // sequence point: return 1;
+    IL_0008:  ldc.i4.1
     IL_0009:  stloc.0
     IL_000a:  leave.s    IL_0012
   }
   catch System.Exception
   {
-   -IL_000c:  pop
-   -IL_000d:  nop
-   -IL_000e:  ldc.i4.2
+    // sequence point: catch (Exception)
+    IL_000c:  pop
+    // sequence point: {
+    IL_000d:  nop
+    // sequence point: return 2;
+    IL_000e:  ldc.i4.2
     IL_000f:  stloc.0
     IL_0010:  leave.s    IL_0012
   }
- -IL_0012:  ldloc.0
+  // sequence point: }
+  IL_0012:  ldloc.0
   IL_0013:  ret
-}", sequencePointDisplay: SequencePointDisplayMode.Minimal);
+}", displaySequencePoints: true);
 
             v.VerifyPdb("Program.Main", @"
 <symbols>
@@ -2318,9 +2336,12 @@ public class C
                 int V_3,
                 int V_4,
                 int V_5) //x
- -IL_0000:  nop
- -IL_0001:  nop
- -IL_0002:  ldc.i4.2
+  // sequence point: {
+  IL_0000:  nop
+  // sequence point: foreach
+  IL_0001:  nop
+  // sequence point: new int[2, 3]
+  IL_0002:  ldc.i4.2
   IL_0003:  ldc.i4.3
   IL_0004:  newobj     ""int[*,*]..ctor""
   IL_0009:  stloc.0
@@ -2336,39 +2357,50 @@ public class C
   IL_001b:  ldc.i4.0
   IL_001c:  callvirt   ""int System.Array.GetLowerBound(int)""
   IL_0021:  stloc.3
- ~IL_0022:  br.s       IL_0053
+  // sequence point: <hidden>
+  IL_0022:  br.s       IL_0053
   IL_0024:  ldloc.0
   IL_0025:  ldc.i4.1
   IL_0026:  callvirt   ""int System.Array.GetLowerBound(int)""
   IL_002b:  stloc.s    V_4
- ~IL_002d:  br.s       IL_004a
- -IL_002f:  ldloc.0
+  // sequence point: <hidden>
+  IL_002d:  br.s       IL_004a
+  // sequence point: var x
+  IL_002f:  ldloc.0
   IL_0030:  ldloc.3
   IL_0031:  ldloc.s    V_4
   IL_0033:  call       ""int[*,*].Get""
   IL_0038:  stloc.s    V_5
- -IL_003a:  nop
- -IL_003b:  ldloc.s    V_5
+  // sequence point: {
+  IL_003a:  nop
+  // sequence point: System.Console.WriteLine(x);
+  IL_003b:  ldloc.s    V_5
   IL_003d:  call       ""void System.Console.WriteLine(int)""
   IL_0042:  nop
- -IL_0043:  nop
- ~IL_0044:  ldloc.s    V_4
+  // sequence point: }
+  IL_0043:  nop
+  // sequence point: <hidden>
+  IL_0044:  ldloc.s    V_4
   IL_0046:  ldc.i4.1
   IL_0047:  add
   IL_0048:  stloc.s    V_4
- -IL_004a:  ldloc.s    V_4
+  // sequence point: in
+  IL_004a:  ldloc.s    V_4
   IL_004c:  ldloc.2
   IL_004d:  ble.s      IL_002f
- ~IL_004f:  ldloc.3
+  // sequence point: <hidden>
+  IL_004f:  ldloc.3
   IL_0050:  ldc.i4.1
   IL_0051:  add
   IL_0052:  stloc.3
- -IL_0053:  ldloc.3
+  // sequence point: in
+  IL_0053:  ldloc.3
   IL_0054:  ldloc.1
   IL_0055:  ble.s      IL_0024
- -IL_0057:  ret
+  // sequence point: }
+  IL_0057:  ret
 }
-", sequencePointDisplay: SequencePointDisplayMode.Minimal);
+", displaySequencePoints: true);
         }
 
         [Fact]
@@ -2451,7 +2483,7 @@ class Program
   IL_004f:  nop
   IL_0050:  ret
 }
-", sequencePointDisplay: SequencePointDisplayMode.Enhanced);
+", displaySequencePoints: true);
 
             v.VerifyPdb(@"<symbols>
   <files>
@@ -2562,7 +2594,7 @@ class C
   // sequence point: }
   IL_0016:  ret
 }
-", sequencePointDisplay: SequencePointDisplayMode.Enhanced);
+", displaySequencePoints: true);
         }
 
         [Fact]
@@ -2647,7 +2679,7 @@ class Program
   IL_004f:  nop
   IL_0050:  ret
 }
-", sequencePointDisplay: SequencePointDisplayMode.Enhanced);
+", displaySequencePoints: true);
         }
 
         [Fact]
@@ -2695,7 +2727,7 @@ class Program
   // sequence point: }
   IL_0011:  ret
 }
-", sequencePointDisplay: SequencePointDisplayMode.Enhanced);
+", displaySequencePoints: true);
         }
 
         [Fact]
@@ -2786,7 +2818,7 @@ class Program
   IL_0061:  nop
   IL_0062:  ret
 }
-", sequencePointDisplay: SequencePointDisplayMode.Enhanced);
+", displaySequencePoints: true);
 
             v.VerifyPdb(@"<symbols>
   <files>
@@ -2908,7 +2940,7 @@ class Program
   // sequence point: }
   IL_001a:  ret
 }
-", sequencePointDisplay: SequencePointDisplayMode.Enhanced);
+", displaySequencePoints: true);
 
             v.VerifyPdb(@"<symbols>
   <files>
@@ -2995,8 +3027,10 @@ class C
                 int V_8, //i
                 bool V_9,
                 bool V_10)
- -IL_0000:  nop
- -IL_0001:  ldc.i4.2
+  // sequence point: {
+  IL_0000:  nop
+  // sequence point: int[, ,] arr ...         };
+  IL_0001:  ldc.i4.2
   IL_0002:  ldc.i4.2
   IL_0003:  ldc.i4.2
   IL_0004:  newobj     ""int[*,*,*]..ctor""
@@ -3004,8 +3038,10 @@ class C
   IL_000a:  ldtoken    ""<PrivateImplementationDetails>.__StaticArrayInitTypeSize=32 <PrivateImplementationDetails>.8B4B2444E57AED8C2D05A1293255DA1B048C63224317D4666230760935FA4A18""
   IL_000f:  call       ""void System.Runtime.CompilerServices.RuntimeHelpers.InitializeArray(System.Array, System.RuntimeFieldHandle)""
   IL_0014:  stloc.0
- -IL_0015:  nop
- -IL_0016:  ldloc.0
+  // sequence point: foreach
+  IL_0015:  nop
+  // sequence point: array
+  IL_0016:  ldloc.0
   IL_0017:  stloc.1
   IL_0018:  ldloc.1
   IL_0019:  ldc.i4.0
@@ -3023,68 +3059,88 @@ class C
   IL_0032:  ldc.i4.0
   IL_0033:  callvirt   ""int System.Array.GetLowerBound(int)""
   IL_0038:  stloc.s    V_5
- ~IL_003a:  br.s       IL_00a3
+  // sequence point: <hidden>
+  IL_003a:  br.s       IL_00a3
   IL_003c:  ldloc.1
   IL_003d:  ldc.i4.1
   IL_003e:  callvirt   ""int System.Array.GetLowerBound(int)""
   IL_0043:  stloc.s    V_6
- ~IL_0045:  br.s       IL_0098
+  // sequence point: <hidden>
+  IL_0045:  br.s       IL_0098
   IL_0047:  ldloc.1
   IL_0048:  ldc.i4.2
   IL_0049:  callvirt   ""int System.Array.GetLowerBound(int)""
   IL_004e:  stloc.s    V_7
- ~IL_0050:  br.s       IL_008c
- -IL_0052:  ldloc.1
+  // sequence point: <hidden>
+  IL_0050:  br.s       IL_008c
+  // sequence point: int i
+  IL_0052:  ldloc.1
   IL_0053:  ldloc.s    V_5
   IL_0055:  ldloc.s    V_6
   IL_0057:  ldloc.s    V_7
   IL_0059:  call       ""int[*,*,*].Get""
   IL_005e:  stloc.s    V_8
- -IL_0060:  nop
- -IL_0061:  ldloc.s    V_8
+  // sequence point: {
+  IL_0060:  nop
+  // sequence point: if (i % 2 == 1)
+  IL_0061:  ldloc.s    V_8
   IL_0063:  ldc.i4.2
   IL_0064:  rem
   IL_0065:  ldc.i4.1
   IL_0066:  ceq
   IL_0068:  stloc.s    V_9
- ~IL_006a:  ldloc.s    V_9
+  // sequence point: <hidden>
+  IL_006a:  ldloc.s    V_9
   IL_006c:  brfalse.s  IL_0070
- -IL_006e:  br.s       IL_0086
- -IL_0070:  ldloc.s    V_8
+  // sequence point: continue;
+  IL_006e:  br.s       IL_0086
+  // sequence point: if (i > 4)
+  IL_0070:  ldloc.s    V_8
   IL_0072:  ldc.i4.4
   IL_0073:  cgt
   IL_0075:  stloc.s    V_10
- ~IL_0077:  ldloc.s    V_10
+  // sequence point: <hidden>
+  IL_0077:  ldloc.s    V_10
   IL_0079:  brfalse.s  IL_007d
- -IL_007b:  br.s       IL_00a8
- -IL_007d:  ldloc.s    V_8
+  // sequence point: break;
+  IL_007b:  br.s       IL_00a8
+  // sequence point: Console.WriteLine(i);
+  IL_007d:  ldloc.s    V_8
   IL_007f:  call       ""void System.Console.WriteLine(int)""
   IL_0084:  nop
- -IL_0085:  nop
- ~IL_0086:  ldloc.s    V_7
+  // sequence point: }
+  IL_0085:  nop
+  // sequence point: <hidden>
+  IL_0086:  ldloc.s    V_7
   IL_0088:  ldc.i4.1
   IL_0089:  add
   IL_008a:  stloc.s    V_7
- -IL_008c:  ldloc.s    V_7
+  // sequence point: in
+  IL_008c:  ldloc.s    V_7
   IL_008e:  ldloc.s    V_4
   IL_0090:  ble.s      IL_0052
- ~IL_0092:  ldloc.s    V_6
+  // sequence point: <hidden>
+  IL_0092:  ldloc.s    V_6
   IL_0094:  ldc.i4.1
   IL_0095:  add
   IL_0096:  stloc.s    V_6
- -IL_0098:  ldloc.s    V_6
+  // sequence point: in
+  IL_0098:  ldloc.s    V_6
   IL_009a:  ldloc.3
   IL_009b:  ble.s      IL_0047
- ~IL_009d:  ldloc.s    V_5
+  // sequence point: <hidden>
+  IL_009d:  ldloc.s    V_5
   IL_009f:  ldc.i4.1
   IL_00a0:  add
   IL_00a1:  stloc.s    V_5
- -IL_00a3:  ldloc.s    V_5
+  // sequence point: in
+  IL_00a3:  ldloc.s    V_5
   IL_00a5:  ldloc.2
   IL_00a6:  ble.s      IL_003c
- -IL_00a8:  ret
+  // sequence point: }
+  IL_00a8:  ret
 }
-", sequencePointDisplay: SequencePointDisplayMode.Minimal);
+", displaySequencePoints: true);
         }
 
         [Fact]
@@ -3124,38 +3180,49 @@ public class C
   .maxstack  1
   .locals init (System.Collections.Generic.List<int>.Enumerator V_0,
                 int V_1) //x
- -IL_0000:  nop
- -IL_0001:  nop
- -IL_0002:  newobj     ""System.Collections.Generic.List<int>..ctor()""
+  // sequence point: {
+  IL_0000:  nop
+  // sequence point: foreach
+  IL_0001:  nop
+  // sequence point: new System.Collections.Generic.List<int>()
+  IL_0002:  newobj     ""System.Collections.Generic.List<int>..ctor()""
   IL_0007:  call       ""System.Collections.Generic.List<int>.Enumerator System.Collections.Generic.List<int>.GetEnumerator()""
   IL_000c:  stloc.0
   .try
   {
-   ~IL_000d:  br.s       IL_0020
-   -IL_000f:  ldloca.s   V_0
+    // sequence point: <hidden>
+    IL_000d:  br.s       IL_0020
+    // sequence point: var x
+    IL_000f:  ldloca.s   V_0
     IL_0011:  call       ""int System.Collections.Generic.List<int>.Enumerator.Current.get""
     IL_0016:  stloc.1
-   -IL_0017:  nop
-   -IL_0018:  ldloc.1
+    // sequence point: {
+    IL_0017:  nop
+    // sequence point: System.Console.WriteLine(x);
+    IL_0018:  ldloc.1
     IL_0019:  call       ""void System.Console.WriteLine(int)""
     IL_001e:  nop
-   -IL_001f:  nop
-   -IL_0020:  ldloca.s   V_0
+    // sequence point: }
+    IL_001f:  nop
+    // sequence point: in
+    IL_0020:  ldloca.s   V_0
     IL_0022:  call       ""bool System.Collections.Generic.List<int>.Enumerator.MoveNext()""
     IL_0027:  brtrue.s   IL_000f
     IL_0029:  leave.s    IL_003a
   }
   finally
   {
-   ~IL_002b:  ldloca.s   V_0
+    // sequence point: <hidden>
+    IL_002b:  ldloca.s   V_0
     IL_002d:  constrained. ""System.Collections.Generic.List<int>.Enumerator""
     IL_0033:  callvirt   ""void System.IDisposable.Dispose()""
     IL_0038:  nop
     IL_0039:  endfinally
   }
- -IL_003a:  ret
+  // sequence point: }
+  IL_003a:  ret
 }
-", sequencePointDisplay: SequencePointDisplayMode.Minimal);
+", displaySequencePoints: true);
         }
 
         [WorkItem(718501, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/718501")]
@@ -3325,7 +3392,7 @@ public class C
   // sequence point: }
   IL_0045:  ret
 }
-", sequencePointDisplay: SequencePointDisplayMode.Enhanced);
+", displaySequencePoints: true);
 
             v.VerifyPdb(@"
 <symbols>
@@ -3720,7 +3787,7 @@ class Program
             c.VerifyDiagnostics();
             var verifier = CompileAndVerify(c, expectedOutput: "1M2");
 
-            verifier.VerifyIL(qualifiedMethodName: "Program.M1", sequencePointDisplay: SequencePointDisplayMode.Enhanced,
+            verifier.VerifyIL(qualifiedMethodName: "Program.M1", displaySequencePoints: true,
 expectedIL: @"{
   // Code size       17 (0x11)
   .maxstack  1
@@ -3744,7 +3811,7 @@ expectedIL: @"{
   // sequence point: }
   IL_0010:  ret
 }");
-            verifier.VerifyIL(qualifiedMethodName: "Program.M2", sequencePointDisplay: SequencePointDisplayMode.Enhanced,
+            verifier.VerifyIL(qualifiedMethodName: "Program.M2", displaySequencePoints: true,
 expectedIL: @"{
   // Code size       29 (0x1d)
   .maxstack  1
@@ -3842,7 +3909,7 @@ class Program
             c.VerifyDiagnostics();
             var verifier = CompileAndVerify(c, expectedOutput: "1234");
 
-            verifier.VerifyIL(qualifiedMethodName: "Program.M1<T>", sequencePointDisplay: SequencePointDisplayMode.Enhanced,
+            verifier.VerifyIL(qualifiedMethodName: "Program.M1<T>", displaySequencePoints: true,
 expectedIL: @"{
   // Code size       60 (0x3c)
   .maxstack  1
@@ -3887,7 +3954,7 @@ expectedIL: @"{
   // sequence point: }
   IL_003b:  ret
 }");
-            verifier.VerifyIL(qualifiedMethodName: "Program.M2<T>", sequencePointDisplay: SequencePointDisplayMode.Enhanced,
+            verifier.VerifyIL(qualifiedMethodName: "Program.M2<T>", displaySequencePoints: true,
 expectedIL: @"{
   // Code size       58 (0x3a)
   .maxstack  1
@@ -4008,7 +4075,7 @@ class Program
             c.VerifyDiagnostics();
             var verifier = CompileAndVerify(c, expectedOutput: "66");
 
-            verifier.VerifyIL(qualifiedMethodName: "Program.M2<T>", sequencePointDisplay: SequencePointDisplayMode.Enhanced,
+            verifier.VerifyIL(qualifiedMethodName: "Program.M2<T>", displaySequencePoints: true,
 expectedIL: @"{
   // Code size       17 (0x11)
   .maxstack  1
@@ -4122,7 +4189,7 @@ internal class Program
       // sequence point: }
       IL_003b:  ret
     }
-", sequencePointDisplay: SequencePointDisplayMode.Enhanced);
+", displaySequencePoints: true);
         }
 
         [Fact]
@@ -4376,7 +4443,7 @@ class B : Node { }
       IL_0191:  nop
       IL_0192:  ret
     }
-", sequencePointDisplay: SequencePointDisplayMode.Enhanced);
+", displaySequencePoints: true);
         }
 
         [Fact]
@@ -4513,7 +4580,7 @@ public class C
       IL_00a0:  nop
       IL_00a1:  ret
     }
-", sequencePointDisplay: SequencePointDisplayMode.Enhanced);
+", displaySequencePoints: true);
         }
 
         [Fact]
@@ -5633,70 +5700,88 @@ class Test
                 bool V_1,
                 System.Exception V_2, //e
                 bool V_3)
- -IL_0000:  nop
+  // sequence point: {
+  IL_0000:  nop
   .try
   {
-   -IL_0001:  nop
-   -IL_0002:  newobj     ""System.InvalidOperationException..ctor()""
+    // sequence point: {
+    IL_0001:  nop
+    // sequence point: throw new InvalidOperationException();
+    IL_0002:  newobj     ""System.InvalidOperationException..ctor()""
     IL_0007:  throw
   }
   filter
   {
-   ~IL_0008:  isinst     ""System.IO.IOException""
+    // sequence point: <hidden>
+    IL_0008:  isinst     ""System.IO.IOException""
     IL_000d:  dup
     IL_000e:  brtrue.s   IL_0014
     IL_0010:  pop
     IL_0011:  ldc.i4.0
     IL_0012:  br.s       IL_0023
     IL_0014:  stloc.0
-   -IL_0015:  ldloc.0
+    // sequence point: when (filter(e) != null)
+    IL_0015:  ldloc.0
     IL_0016:  call       ""string Test.filter(System.Exception)""
     IL_001b:  ldnull
     IL_001c:  cgt.un
     IL_001e:  stloc.1
-   ~IL_001f:  ldloc.1
+    // sequence point: <hidden>
+    IL_001f:  ldloc.1
     IL_0020:  ldc.i4.0
     IL_0021:  cgt.un
     IL_0023:  endfilter
   }  // end filter
   {  // handler
-   ~IL_0025:  pop
-   -IL_0026:  nop
-   -IL_0027:  call       ""void System.Console.WriteLine()""
+    // sequence point: <hidden>
+    IL_0025:  pop
+    // sequence point: {
+    IL_0026:  nop
+    // sequence point: Console.WriteLine();
+    IL_0027:  call       ""void System.Console.WriteLine()""
     IL_002c:  nop
-   -IL_002d:  nop
+    // sequence point: }
+    IL_002d:  nop
     IL_002e:  leave.s    IL_0058
   }
   filter
   {
-   ~IL_0030:  isinst     ""System.Exception""
+    // sequence point: <hidden>
+    IL_0030:  isinst     ""System.Exception""
     IL_0035:  dup
     IL_0036:  brtrue.s   IL_003c
     IL_0038:  pop
     IL_0039:  ldc.i4.0
     IL_003a:  br.s       IL_004b
     IL_003c:  stloc.2
-   -IL_003d:  ldloc.2
+    // sequence point: when (filter(e) != null)
+    IL_003d:  ldloc.2
     IL_003e:  call       ""string Test.filter(System.Exception)""
     IL_0043:  ldnull
     IL_0044:  cgt.un
     IL_0046:  stloc.3
-   ~IL_0047:  ldloc.3
+    // sequence point: <hidden>
+    IL_0047:  ldloc.3
     IL_0048:  ldc.i4.0
     IL_0049:  cgt.un
     IL_004b:  endfilter
   }  // end filter
   {  // handler
-   ~IL_004d:  pop
-   -IL_004e:  nop
-   -IL_004f:  call       ""void System.Console.WriteLine()""
+    // sequence point: <hidden>
+    IL_004d:  pop
+    // sequence point: {
+    IL_004e:  nop
+    // sequence point: Console.WriteLine();
+    IL_004f:  call       ""void System.Console.WriteLine()""
     IL_0054:  nop
-   -IL_0055:  nop
+    // sequence point: }
+    IL_0055:  nop
     IL_0056:  leave.s    IL_0058
   }
- -IL_0058:  ret
+  // sequence point: }
+  IL_0058:  ret
 }
-", sequencePointDisplay: SequencePointDisplayMode.Minimal);
+", displaySequencePoints: true);
 
             v.VerifyPdb("Test.Main", @"
 <symbols>
@@ -5778,34 +5863,45 @@ class Test
   // Code size       33 (0x21)
   .maxstack  2
   .locals init (bool V_0)
- -IL_0000:  nop
+  // sequence point: {
+  IL_0000:  nop
   .try
   {
-   -IL_0001:  nop
-   -IL_0002:  newobj     ""System.Exception..ctor()""
+    // sequence point: {
+    IL_0001:  nop
+    // sequence point: throw new System.Exception();
+    IL_0002:  newobj     ""System.Exception..ctor()""
     IL_0007:  throw
   }
   filter
   {
-   ~IL_0008:  pop
-   -IL_0009:  call       ""bool Test.F()""
+    // sequence point: <hidden>
+    IL_0008:  pop
+    // sequence point: when (F())
+    IL_0009:  call       ""bool Test.F()""
     IL_000e:  stloc.0
-   ~IL_000f:  ldloc.0
+    // sequence point: <hidden>
+    IL_000f:  ldloc.0
     IL_0010:  ldc.i4.0
     IL_0011:  cgt.un
     IL_0013:  endfilter
   }  // end filter
   {  // handler
-   ~IL_0015:  pop
-   -IL_0016:  nop
-   -IL_0017:  call       ""void System.Console.WriteLine()""
+    // sequence point: <hidden>
+    IL_0015:  pop
+    // sequence point: {
+    IL_0016:  nop
+    // sequence point: System.Console.WriteLine();
+    IL_0017:  call       ""void System.Console.WriteLine()""
     IL_001c:  nop
-   -IL_001d:  nop
+    // sequence point: }
+    IL_001d:  nop
     IL_001e:  leave.s    IL_0020
   }
- -IL_0020:  ret
+  // sequence point: }
+  IL_0020:  ret
 }
-", sequencePointDisplay: SequencePointDisplayMode.Minimal);
+", displaySequencePoints: true);
 
             v.VerifyPdb("Test.Main", @"<symbols>
   <files>
@@ -5867,34 +5963,45 @@ class Test
   // Code size       33 (0x21)
   .maxstack  2
   .locals init (bool V_0)
- -IL_0000:  nop
+  // sequence point: {
+  IL_0000:  nop
   .try
   {
-   -IL_0001:  nop
-   -IL_0002:  newobj     ""System.Exception..ctor()""
+    // sequence point: {
+    IL_0001:  nop
+    // sequence point: throw new System.Exception();
+    IL_0002:  newobj     ""System.Exception..ctor()""
     IL_0007:  throw
   }
   filter
   {
-   ~IL_0008:  pop
-   -IL_0009:  ldsfld     ""bool Test.a""
+    // sequence point: <hidden>
+    IL_0008:  pop
+    // sequence point: when (a)
+    IL_0009:  ldsfld     ""bool Test.a""
     IL_000e:  stloc.0
-   ~IL_000f:  ldloc.0
+    // sequence point: <hidden>
+    IL_000f:  ldloc.0
     IL_0010:  ldc.i4.0
     IL_0011:  cgt.un
     IL_0013:  endfilter
   }  // end filter
   {  // handler
-   ~IL_0015:  pop
-   -IL_0016:  nop
-   -IL_0017:  call       ""void System.Console.WriteLine()""
+    // sequence point: <hidden>
+    IL_0015:  pop
+    // sequence point: {
+    IL_0016:  nop
+    // sequence point: System.Console.WriteLine();
+    IL_0017:  call       ""void System.Console.WriteLine()""
     IL_001c:  nop
-   -IL_001d:  nop
+    // sequence point: }
+    IL_001d:  nop
     IL_001e:  leave.s    IL_0020
   }
- -IL_0020:  ret
+  // sequence point: }
+  IL_0020:  ret
 }
-", sequencePointDisplay: SequencePointDisplayMode.Minimal);
+", displaySequencePoints: true);
 
             v.VerifyPdb("Test.Main", @"<symbols>
   <files>
@@ -5957,25 +6064,32 @@ class Test
   .maxstack  2
   .try
   {
-   -IL_0000:  newobj     ""System.Exception..ctor()""
+    // sequence point: throw new System.Exception();
+    IL_0000:  newobj     ""System.Exception..ctor()""
     IL_0005:  throw
   }
   filter
   {
-   ~IL_0006:  pop
-   -IL_0007:  ldsfld     ""bool Test.a""
+    // sequence point: <hidden>
+    IL_0006:  pop
+    // sequence point: when (a)
+    IL_0007:  ldsfld     ""bool Test.a""
     IL_000c:  ldc.i4.0
     IL_000d:  cgt.un
     IL_000f:  endfilter
   }  // end filter
   {  // handler
-   ~IL_0011:  pop
-   -IL_0012:  call       ""void System.Console.WriteLine()""
-   -IL_0017:  leave.s    IL_0019
+    // sequence point: <hidden>
+    IL_0011:  pop
+    // sequence point: System.Console.WriteLine();
+    IL_0012:  call       ""void System.Console.WriteLine()""
+    // sequence point: }
+    IL_0017:  leave.s    IL_0019
   }
- -IL_0019:  ret
+  // sequence point: }
+  IL_0019:  ret
 }
-", sequencePointDisplay: SequencePointDisplayMode.Minimal);
+", displaySequencePoints: true);
 
             v.VerifyPdb("Test.Main", @"<symbols>
   <files>
@@ -6104,7 +6218,7 @@ class C
             var c = CreateCompilation(source, options: TestOptions.DebugDll);
             var v = CompileAndVerify(c);
 
-            v.VerifyIL("C.Main", sequencePointDisplay: SequencePointDisplayMode.Enhanced, expectedIL: @"
+            v.VerifyIL("C.Main", displaySequencePoints: true, expectedIL: @"
  {
    // Code size       53 (0x35)
    .maxstack  1
@@ -6221,7 +6335,7 @@ class C
             var c = CreateCompilation(source, options: TestOptions.DebugDll);
             var v = CompileAndVerify(c);
 
-            v.VerifyIL("C.Main", sequencePointDisplay: SequencePointDisplayMode.Enhanced, expectedIL: @"
+            v.VerifyIL("C.Main", displaySequencePoints: true, expectedIL: @"
 {
   // Code size       55 (0x37)
   .maxstack  1
@@ -6408,7 +6522,7 @@ class C
   IL_002a:  ldloc.s    V_4
   IL_002c:  ret
 }
-", sequencePointDisplay: SequencePointDisplayMode.Enhanced);
+", displaySequencePoints: true);
         }
 
         [WorkItem(18844, "https://github.com/dotnet/roslyn/issues/18844")]
@@ -6505,7 +6619,7 @@ class C
   IL_002c:  ldloc.s    V_4
   IL_002e:  ret
 }
-", sequencePointDisplay: SequencePointDisplayMode.Enhanced);
+", displaySequencePoints: true);
         }
 
         [WorkItem(18844, "https://github.com/dotnet/roslyn/issues/18844")]
@@ -6566,7 +6680,7 @@ class C
   // sequence point: }
   IL_001e:  ret
 }
-", sequencePointDisplay: SequencePointDisplayMode.Enhanced);
+", displaySequencePoints: true);
         }
 
         [WorkItem(18844, "https://github.com/dotnet/roslyn/issues/18844")]
@@ -6627,7 +6741,7 @@ class C
   // sequence point: }
   IL_001e:  ret
 }
-", sequencePointDisplay: SequencePointDisplayMode.Enhanced);
+", displaySequencePoints: true);
         }
 
         [WorkItem(18844, "https://github.com/dotnet/roslyn/issues/18844")]
@@ -6710,7 +6824,7 @@ class C
   // sequence point: }
   IL_0039:  ret
 }
-", sequencePointDisplay: SequencePointDisplayMode.Enhanced);
+", displaySequencePoints: true);
         }
 
         #endregion
@@ -6739,7 +6853,7 @@ class C
             // TODO: https://github.com/dotnet/roslyn/issues/37417
             // Duplicate sequence point at `}`
 
-            v.VerifyIL("C.Main", sequencePointDisplay: SequencePointDisplayMode.Enhanced, expectedIL: @"
+            v.VerifyIL("C.Main", displaySequencePoints: true, expectedIL: @"
 {
   // Code size       45 (0x2d)
   .maxstack  1
@@ -6854,7 +6968,7 @@ class C
             // TODO: https://github.com/dotnet/roslyn/issues/37417
             // Duplicate sequence point at `}`
 
-            v.VerifyIL("C.Main", sequencePointDisplay: SequencePointDisplayMode.Enhanced, expectedIL: @"
+            v.VerifyIL("C.Main", displaySequencePoints: true, expectedIL: @"
 {
   // Code size       31 (0x1f)
   .maxstack  1
@@ -6957,7 +7071,7 @@ class C
             // In this case the sequence point `}` is not emitted on the leave instruction,
             // but to a nop instruction following the disposal.
 
-            v.VerifyIL("C.Main", sequencePointDisplay: SequencePointDisplayMode.Enhanced, expectedIL: @"
+            v.VerifyIL("C.Main", displaySequencePoints: true, expectedIL: @"
 {
   // Code size       46 (0x2e)
   .maxstack  1
@@ -8694,7 +8808,7 @@ class Program
             var c = CreateCompilation(source, options: TestOptions.DebugDll, targetFramework: TargetFramework.NetCoreApp);
             var verifier = CompileAndVerify(c, verify: Verification.Skipped);
 
-            verifier.VerifyIL("Program.Main", sequencePointDisplay: SequencePointDisplayMode.Enhanced, expectedIL: @"
+            verifier.VerifyIL("Program.Main", displaySequencePoints: true, expectedIL: @"
 {
   // Code size      448 (0x1c0)
   .maxstack  3
@@ -9093,7 +9207,7 @@ class Program
 
             // note no sequence points emitted within the switch expression
 
-            verifier.VerifyIL("Program.Main", sequencePointDisplay: SequencePointDisplayMode.Minimal, expectedIL: @"
+            verifier.VerifyIL("Program.Main", displaySequencePoints: true, expectedIL: @"
 {
   // Code size      454 (0x1c6)
   .maxstack  3
@@ -9119,19 +9233,24 @@ class Program
                 D V_19,
                 int V_20,
                 C V_21)
- -IL_0000:  nop
- -IL_0001:  call       ""object Program.F()""
+  // sequence point: {
+  IL_0000:  nop
+  // sequence point: var a = F()  ...         };
+  IL_0001:  call       ""object Program.F()""
   IL_0006:  stloc.s    V_10
   IL_0008:  ldc.i4.1
   IL_0009:  brtrue.s   IL_000c
- -IL_000b:  nop
- ~IL_000c:  ldloc.s    V_10
+  // sequence point: switch ...         }
+  IL_000b:  nop
+  // sequence point: <hidden>
+  IL_000c:  ldloc.s    V_10
   IL_000e:  isinst     ""int""
   IL_0013:  brfalse.s  IL_0022
   IL_0015:  ldloc.s    V_10
   IL_0017:  unbox.any  ""int""
   IL_001c:  stloc.2
- ~IL_001d:  br         IL_0151
+  // sequence point: <hidden>
+  IL_001d:  br         IL_0151
   IL_0022:  ldloc.s    V_10
   IL_0024:  isinst     ""bool""
   IL_0029:  brtrue     IL_0162
@@ -9143,18 +9262,21 @@ class Program
   IL_003b:  ldloc.s    V_11
   IL_003d:  callvirt   ""int System.Runtime.CompilerServices.ITuple.Length.get""
   IL_0042:  stloc.s    V_12
- ~IL_0044:  ldloc.s    V_12
+  // sequence point: <hidden>
+  IL_0044:  ldloc.s    V_12
   IL_0046:  ldc.i4.2
   IL_0047:  bne.un.s   IL_0061
   IL_0049:  ldloc.s    V_11
   IL_004b:  ldc.i4.0
   IL_004c:  callvirt   ""object System.Runtime.CompilerServices.ITuple.this[int].get""
   IL_0051:  stloc.3
- ~IL_0052:  ldloc.s    V_11
+  // sequence point: <hidden>
+  IL_0052:  ldloc.s    V_11
   IL_0054:  ldc.i4.1
   IL_0055:  callvirt   ""object System.Runtime.CompilerServices.ITuple.this[int].get""
   IL_005a:  stloc.s    V_4
- ~IL_005c:  br         IL_0167
+  // sequence point: <hidden>
+  IL_005c:  br         IL_0167
   IL_0061:  ldloc.s    V_10
   IL_0063:  isinst     ""C""
   IL_0068:  brtrue     IL_0173
@@ -9171,7 +9293,8 @@ class Program
   IL_008a:  ldloc.s    V_10
   IL_008c:  unbox.any  ""double""
   IL_0091:  stloc.s    V_13
- ~IL_0093:  ldloc.s    V_13
+  // sequence point: <hidden>
+  IL_0093:  ldloc.s    V_13
   IL_0095:  ldc.r8     4
   IL_009e:  beq        IL_016e
   IL_00a3:  br         IL_01b8
@@ -9182,12 +9305,14 @@ class Program
   IL_00b6:  ldloc.s    V_10
   IL_00b8:  castclass  ""C""
   IL_00bd:  stloc.s    V_14
- ~IL_00bf:  ldloc.s    V_14
+  // sequence point: <hidden>
+  IL_00bf:  ldloc.s    V_14
   IL_00c1:  ldloca.s   V_5
   IL_00c3:  ldloca.s   V_15
   IL_00c5:  callvirt   ""void C.Deconstruct(out int, out object)""
   IL_00ca:  nop
- ~IL_00cb:  ldloc.s    V_15
+  // sequence point: <hidden>
+  IL_00cb:  ldloc.s    V_15
   IL_00cd:  isinst     ""C""
   IL_00d2:  stloc.s    V_16
   IL_00d4:  ldloc.s    V_16
@@ -9196,12 +9321,14 @@ class Program
   IL_00da:  ldloca.s   V_6
   IL_00dc:  callvirt   ""void C.Deconstruct(out int)""
   IL_00e1:  nop
- ~IL_00e2:  br         IL_01a2
+  // sequence point: <hidden>
+  IL_00e2:  br         IL_01a2
   IL_00e7:  ldloc.s    V_14
   IL_00e9:  ldloca.s   V_7
   IL_00eb:  callvirt   ""void C.Deconstruct(out int)""
   IL_00f0:  nop
- ~IL_00f1:  br         IL_01a9
+  // sequence point: <hidden>
+  IL_00f1:  br         IL_01a9
   IL_00f6:  ldloc.s    V_10
   IL_00f8:  isinst     ""D""
   IL_00fd:  stloc.s    V_17
@@ -9210,57 +9337,72 @@ class Program
   IL_0106:  ldloc.s    V_17
   IL_0108:  callvirt   ""int D.P.get""
   IL_010d:  stloc.s    V_18
- ~IL_010f:  ldloc.s    V_18
+  // sequence point: <hidden>
+  IL_010f:  ldloc.s    V_18
   IL_0111:  ldc.i4.1
   IL_0112:  bne.un     IL_01b8
   IL_0117:  ldloc.s    V_17
   IL_0119:  callvirt   ""D D.Q.get""
   IL_011e:  stloc.s    V_19
- ~IL_0120:  ldloc.s    V_19
+  // sequence point: <hidden>
+  IL_0120:  ldloc.s    V_19
   IL_0122:  brfalse    IL_01b8
   IL_0127:  ldloc.s    V_19
   IL_0129:  callvirt   ""int D.P.get""
   IL_012e:  stloc.s    V_20
- ~IL_0130:  ldloc.s    V_20
+  // sequence point: <hidden>
+  IL_0130:  ldloc.s    V_20
   IL_0132:  ldc.i4.2
   IL_0133:  bne.un     IL_01b8
   IL_0138:  ldloc.s    V_17
   IL_013a:  callvirt   ""C D.R.get""
   IL_013f:  stloc.s    V_21
- ~IL_0141:  ldloc.s    V_21
+  // sequence point: <hidden>
+  IL_0141:  ldloc.s    V_21
   IL_0143:  brfalse.s  IL_01b8
   IL_0145:  ldloc.s    V_21
   IL_0147:  ldloca.s   V_8
   IL_0149:  callvirt   ""void C.Deconstruct(out int)""
   IL_014e:  nop
- ~IL_014f:  br.s       IL_01b0
- -IL_0151:  ldloc.2
+  // sequence point: <hidden>
+  IL_014f:  br.s       IL_01b0
+  // sequence point: when G(x) > 10
+  IL_0151:  ldloc.2
   IL_0152:  call       ""int Program.G(int)""
   IL_0157:  ldc.i4.s   10
   IL_0159:  bgt.s      IL_015d
- ~IL_015b:  br.s       IL_01b8
- -IL_015d:  ldc.i4.1
+  // sequence point: <hidden>
+  IL_015b:  br.s       IL_01b8
+  // sequence point: 1
+  IL_015d:  ldc.i4.1
   IL_015e:  stloc.s    V_9
   IL_0160:  br.s       IL_01be
- -IL_0162:  ldc.i4.2
+  // sequence point: 2
+  IL_0162:  ldc.i4.2
   IL_0163:  stloc.s    V_9
   IL_0165:  br.s       IL_01be
- ~IL_0167:  br.s       IL_0169
- -IL_0169:  ldc.i4.3
+  // sequence point: <hidden>
+  IL_0167:  br.s       IL_0169
+  // sequence point: 3
+  IL_0169:  ldc.i4.3
   IL_016a:  stloc.s    V_9
   IL_016c:  br.s       IL_01be
- -IL_016e:  ldc.i4.4
+  // sequence point: 4
+  IL_016e:  ldc.i4.4
   IL_016f:  stloc.s    V_9
   IL_0171:  br.s       IL_01be
- ~IL_0173:  ldc.i4.1
+  // sequence point: <hidden>
+  IL_0173:  ldc.i4.1
   IL_0174:  stloc.1
   IL_0175:  br.s       IL_017b
   IL_0177:  ldc.i4.2
   IL_0178:  stloc.1
   IL_0179:  br.s       IL_017b
- -IL_017b:  call       ""bool Program.B()""
+  // sequence point: when B()
+  IL_017b:  call       ""bool Program.B()""
   IL_0180:  brtrue.s   IL_0198
- ~IL_0182:  ldloc.1
+  // sequence point: <hidden>
+  IL_0182:  ldloc.1
   IL_0183:  ldc.i4.1
   IL_0184:  beq.s      IL_018e
   IL_0186:  br.s       IL_0188
@@ -9270,33 +9412,46 @@ class Program
   IL_018c:  br.s       IL_0198
   IL_018e:  br         IL_006f
   IL_0193:  br         IL_00b6
- -IL_0198:  ldc.i4.5
+  // sequence point: 5
+  IL_0198:  ldc.i4.5
   IL_0199:  stloc.s    V_9
   IL_019b:  br.s       IL_01be
- -IL_019d:  ldc.i4.6
+  // sequence point: 6
+  IL_019d:  ldc.i4.6
   IL_019e:  stloc.s    V_9
   IL_01a0:  br.s       IL_01be
- ~IL_01a2:  br.s       IL_01a4
- -IL_01a4:  ldc.i4.7
+  // sequence point: <hidden>
+  IL_01a2:  br.s       IL_01a4
+  // sequence point: 7
+  IL_01a4:  ldc.i4.7
   IL_01a5:  stloc.s    V_9
   IL_01a7:  br.s       IL_01be
- ~IL_01a9:  br.s       IL_01ab
- -IL_01ab:  ldc.i4.8
+  // sequence point: <hidden>
+  IL_01a9:  br.s       IL_01ab
+  // sequence point: 8
+  IL_01ab:  ldc.i4.8
   IL_01ac:  stloc.s    V_9
   IL_01ae:  br.s       IL_01be
- ~IL_01b0:  br.s       IL_01b2
- -IL_01b2:  ldc.i4.s   9
+  // sequence point: <hidden>
+  IL_01b0:  br.s       IL_01b2
+  // sequence point: 9
+  IL_01b2:  ldc.i4.s   9
   IL_01b4:  stloc.s    V_9
   IL_01b6:  br.s       IL_01be
- -IL_01b8:  ldc.i4.s   10
+  // sequence point: 10
+  IL_01b8:  ldc.i4.s   10
   IL_01ba:  stloc.s    V_9
   IL_01bc:  br.s       IL_01be
- ~IL_01be:  ldc.i4.1
+  // sequence point: <hidden>
+  IL_01be:  ldc.i4.1
   IL_01bf:  brtrue.s   IL_01c2
- -IL_01c1:  nop
- ~IL_01c2:  ldloc.s    V_9
+  // sequence point: var a = F()  ...         };
+  IL_01c1:  nop
+  // sequence point: <hidden>
+  IL_01c2:  ldloc.s    V_9
   IL_01c4:  stloc.0
- -IL_01c5:  ret
+  // sequence point: }
+  IL_01c5:  ret
 }
 ");
 
@@ -9458,7 +9613,7 @@ class Program
             var c = CreateCompilation(source, options: TestOptions.DebugDll, targetFramework: TargetFramework.NetCoreApp);
             var verifier = CompileAndVerify(c, verify: Verification.Skipped);
 
-            verifier.VerifyIL("Program.M", sequencePointDisplay: SequencePointDisplayMode.Minimal, expectedIL: @"
+            verifier.VerifyIL("Program.M", displaySequencePoints: true, expectedIL: @"
 {
   // Code size      301 (0x12d)
   .maxstack  3
@@ -9477,10 +9632,13 @@ class Program
                 D V_12,
                 D V_13,
                 bool V_14)
- -IL_0000:  nop
- -IL_0001:  call       ""object Program.F()""
+  // sequence point: {
+  IL_0000:  nop
+  // sequence point: object obj = F();
+  IL_0001:  call       ""object Program.F()""
   IL_0006:  stloc.0
- -IL_0007:  ldloc.0
+  // sequence point: return  ...  C(int z2) }
+  IL_0007:  ldloc.0
   IL_0008:  isinst     ""int""
   IL_000d:  brfalse.s  IL_001b
   IL_000f:  ldloc.0
@@ -9590,7 +9748,8 @@ class Program
   IL_0125:  ldc.i4.1
   IL_0126:  stloc.s    V_14
   IL_0128:  br.s       IL_012a
- -IL_012a:  ldloc.s    V_14
+  // sequence point: }
+  IL_012a:  ldloc.s    V_14
   IL_012c:  ret
 }
 ");
@@ -9686,7 +9845,7 @@ public class C
 ");
             var c = CreateCompilation(source, options: TestOptions.DebugDll);
             var verifier = CompileAndVerify(c);
-            verifier.VerifyIL("C.M", sequencePointDisplay: SequencePointDisplayMode.Enhanced, expectedIL: @"
+            verifier.VerifyIL("C.M", displaySequencePoints: true, expectedIL: @"
     {
       // Code size      472 (0x1d8)
       .maxstack  2
@@ -10529,7 +10688,7 @@ public class C
             var c = CreateCompilation(source, options: TestOptions.DebugDll);
             var verifier = CompileAndVerify(c);
 
-            verifier.VerifyIL("C.M", sequencePointDisplay: SequencePointDisplayMode.Enhanced, expectedIL: @"
+            verifier.VerifyIL("C.M", displaySequencePoints: true, expectedIL: @"
     {
       // Code size      171 (0xab)
       .maxstack  2
@@ -10700,7 +10859,7 @@ public class C
             var c = CreateCompilation(source, options: TestOptions.DebugDll);
             var verifier = CompileAndVerify(c);
 
-            verifier.VerifyIL("C.M1", sequencePointDisplay: SequencePointDisplayMode.Enhanced, expectedIL: @"
+            verifier.VerifyIL("C.M1", displaySequencePoints: true, expectedIL: @"
     {
       // Code size       26 (0x1a)
       .maxstack  2
@@ -10718,7 +10877,7 @@ public class C
       IL_0019:  ret
     }
 ");
-            verifier.VerifyIL("C.M2", sequencePointDisplay: SequencePointDisplayMode.Enhanced, expectedIL: @"
+            verifier.VerifyIL("C.M2", displaySequencePoints: true, expectedIL: @"
     {
       // Code size       40 (0x28)
       .maxstack  2
@@ -10882,7 +11041,7 @@ public class C
 ";
             var c = CreateCompilation(source, options: TestOptions.DebugDll);
             var verifier = CompileAndVerify(c);
-            verifier.VerifyIL("C.M", sequencePointDisplay: SequencePointDisplayMode.Enhanced, expectedIL: @"
+            verifier.VerifyIL("C.M", displaySequencePoints: true, expectedIL: @"
     {
       // Code size       31 (0x1f)
       .maxstack  2
@@ -10968,7 +11127,7 @@ public class C
     }
 }");
             var c = CreateCompilationWithMscorlib40AndSystemCore(source, options: TestOptions.DebugDll);
-            CompileAndVerify(c).VerifyIL(qualifiedMethodName: "Program.M", sequencePointDisplay: SequencePointDisplayMode.Enhanced,
+            CompileAndVerify(c).VerifyIL(qualifiedMethodName: "Program.M", displaySequencePoints: true,
 expectedIL: @"{
   // Code size      123 (0x7b)
   .maxstack  2
@@ -11310,7 +11469,7 @@ public class C
   // sequence point: }
   IL_001c:  ret
 }
-", sequencePointDisplay: SequencePointDisplayMode.Enhanced);
+", displaySequencePoints: true);
         }
 
         [Fact]
@@ -11732,15 +11891,17 @@ class C
             var c = CreateCompilationWithMscorlib40AndSystemCore(source, options: TestOptions.DebugDll);
 
             var v = CompileAndVerify(c);
-            v.VerifyIL("C..ctor", sequencePointDisplay: SequencePointDisplayMode.Minimal, expectedIL: @"
+            v.VerifyIL("C..ctor", displaySequencePoints: true, expectedIL: @"
 {
   // Code size       90 (0x5a)
   .maxstack  4
   .locals init (C.<>c__DisplayClass4_0 V_0, //CS$<>8__locals0
                 C.<>c__DisplayClass4_1 V_1) //CS$<>8__locals1
- ~IL_0000:  newobj     ""C.<>c__DisplayClass4_0..ctor()""
+  // sequence point: <hidden>
+  IL_0000:  newobj     ""C.<>c__DisplayClass4_0..ctor()""
   IL_0005:  stloc.0
- -IL_0006:  ldarg.0
+  // sequence point: 2000:5-2000:39
+  IL_0006:  ldarg.0
   IL_0007:  ldloc.0
   IL_0008:  ldflda     ""int C.<>c__DisplayClass4_0.z""
   IL_000d:  call       ""int C.G(out int)""
@@ -11750,9 +11911,11 @@ class C
   IL_001e:  call       ""int C.F(System.Func<int>)""
   IL_0023:  add
   IL_0024:  stfld      ""int C.y1""
- ~IL_0029:  newobj     ""C.<>c__DisplayClass4_1..ctor()""
+  // sequence point: <hidden>
+  IL_0029:  newobj     ""C.<>c__DisplayClass4_1..ctor()""
   IL_002e:  stloc.1
- -IL_002f:  ldarg.0
+  // sequence point: 2000:41-2000:71
+  IL_002f:  ldarg.0
   IL_0030:  ldloc.1
   IL_0031:  ldflda     ""int C.<>c__DisplayClass4_1.u""
   IL_0036:  call       ""int C.G(out int)""
@@ -12602,7 +12765,7 @@ class Program
   IL_0052:  call       ""void System.Runtime.CompilerServices.AsyncVoidMethodBuilder.SetResult()""
   IL_0057:  nop
   IL_0058:  ret
-}", sequencePointDisplay: SequencePointDisplayMode.Enhanced);
+}", displaySequencePoints: true);
         }
 
         [Fact]
@@ -12684,7 +12847,7 @@ class Program
   IL_0051:  nop
   IL_0052:  ret
 }
-", sequencePointDisplay: SequencePointDisplayMode.Enhanced);
+", displaySequencePoints: true);
         }
 
         [Fact]
@@ -12775,7 +12938,7 @@ class Program
   IL_0061:  nop
   IL_0062:  ret
 }
-", sequencePointDisplay: SequencePointDisplayMode.Enhanced);
+", displaySequencePoints: true);
         }
 
         [Fact]
@@ -12869,7 +13032,7 @@ class Program
   IL_006b:  nop
   IL_006c:  ret
 }
-", sequencePointDisplay: SequencePointDisplayMode.Enhanced);
+", displaySequencePoints: true);
         }
 
         [ConditionalFact(typeof(WindowsDesktopOnly), Reason = ConditionalSkipReason.NativePdbRequiresDesktop)]

@@ -449,7 +449,14 @@ namespace Roslyn.Test.Utilities
                 if (e.Name == "entry" && e.Parent.Name == "sequencePoints")
                 {
                     var documentId = e.Attribute("document").Value;
-                    var source = getSource(documentId);
+                    SourceText source = null;
+                    try
+                    {
+                        source = getSource(documentId);
+                    }
+                    catch (Exception)
+                    {
+                    }
 
                     add(Convert.ToInt32(e.Attribute("offset").Value, 16), "sequence point: " + SnippetFromSpan(source, e));
                 }
@@ -470,8 +477,25 @@ namespace Roslyn.Test.Utilities
             var endLine = Convert.ToInt32(sequencePointXml.Attribute("endLine").Value) - 1;
             var endColumn = Convert.ToInt32(sequencePointXml.Attribute("endColumn").Value) - 1;
 
+            static string FormatLineSpan(int startLine, int startColumn, int endLine, int endColumn)
+                => $"{startLine + 1}:{startColumn + 1}-{endLine + 1}:{endColumn + 1}";
+
+            if (text is null)
+            {
+                return FormatLineSpan(startLine, startColumn, endLine, endColumn);
+            }
+
             var lineSpan = new LinePositionSpan(new LinePosition(startLine, startColumn), new LinePosition(endLine, endColumn));
-            var span = text.Lines.GetTextSpan(lineSpan);
+            TextSpan span;
+            try
+            {
+                span = text.Lines.GetTextSpan(lineSpan);
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                return FormatLineSpan(startLine, startColumn, endLine, endColumn);
+            }
+
             var subtext = text.GetSubText(span);
 
             if (startLine == endLine)

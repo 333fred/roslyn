@@ -60,20 +60,28 @@ class C
   .maxstack  1
   .locals init (bool V_0, //b
                 bool V_1)
- -IL_0000:  nop
- -IL_0001:  ldc.i4.1
+  // sequence point: {
+  IL_0000:  nop
+  // sequence point: var b = true;
+  IL_0001:  ldc.i4.1
   IL_0002:  stloc.0
- -IL_0003:  nop
- -IL_0004:  ldstr      ""hi""
+  // sequence point: {
+  IL_0003:  nop
+  // sequence point: Console.WriteLine(""hi"");
+  IL_0004:  ldstr      ""hi""
   IL_0009:  call       ""void System.Console.WriteLine(string)""
   IL_000e:  nop
- -IL_000f:  nop
- -IL_0010:  ldloc.0
+  // sequence point: }
+  IL_000f:  nop
+  // sequence point: while (b == true);
+  IL_0010:  ldloc.0
   IL_0011:  stloc.1
- ~IL_0012:  ldloc.1
+  // sequence point: <hidden>
+  IL_0012:  ldloc.1
   IL_0013:  brtrue.s   IL_0003
- -IL_0015:  ret
-}", sequencePointDisplay: SequencePointDisplayMode.Minimal);
+  // sequence point: }
+  IL_0015:  ret
+}", displaySequencePoints: true);
 
             var diff1 = compilation1.EmitDifference(
                 generation0,
@@ -1677,9 +1685,12 @@ class C
                 int V_5,
                 int V_6,
                 double V_7) //x
- -IL_0000:  nop
- -IL_0001:  nop
- -IL_0002:  ldarg.0
+  // sequence point: {
+  IL_0000:  nop
+  // sequence point: foreach
+  IL_0001:  nop
+  // sequence point: c
+  IL_0002:  ldarg.0
   IL_0003:  stloc.0
   IL_0004:  ldloc.0
   IL_0005:  ldc.i4.0
@@ -1697,48 +1708,61 @@ class C
   IL_001d:  ldc.i4.0
   IL_001e:  callvirt   ""int System.Array.GetLowerBound(int)""
   IL_0023:  stloc.s    V_4
- ~IL_0025:  br.s       IL_0069
+  // sequence point: <hidden>
+  IL_0025:  br.s       IL_0069
   IL_0027:  ldloc.0
   IL_0028:  ldc.i4.1
   IL_0029:  callvirt   ""int System.Array.GetLowerBound(int)""
   IL_002e:  stloc.s    V_5
- ~IL_0030:  br.s       IL_005e
+  // sequence point: <hidden>
+  IL_0030:  br.s       IL_005e
   IL_0032:  ldloc.0
   IL_0033:  ldc.i4.2
   IL_0034:  callvirt   ""int System.Array.GetLowerBound(int)""
   IL_0039:  stloc.s    V_6
- ~IL_003b:  br.s       IL_0053
- -IL_003d:  ldloc.0
+  // sequence point: <hidden>
+  IL_003b:  br.s       IL_0053
+  // sequence point: var x
+  IL_003d:  ldloc.0
   IL_003e:  ldloc.s    V_4
   IL_0040:  ldloc.s    V_5
   IL_0042:  ldloc.s    V_6
   IL_0044:  call       ""double[*,*,*].Get""
   IL_0049:  stloc.s    V_7
- -IL_004b:  nop
- -IL_004c:  nop
- ~IL_004d:  ldloc.s    V_6
+  // sequence point: {
+  IL_004b:  nop
+  // sequence point: }
+  IL_004c:  nop
+  // sequence point: <hidden>
+  IL_004d:  ldloc.s    V_6
   IL_004f:  ldc.i4.1
   IL_0050:  add
   IL_0051:  stloc.s    V_6
- -IL_0053:  ldloc.s    V_6
+  // sequence point: in
+  IL_0053:  ldloc.s    V_6
   IL_0055:  ldloc.3
   IL_0056:  ble.s      IL_003d
- ~IL_0058:  ldloc.s    V_5
+  // sequence point: <hidden>
+  IL_0058:  ldloc.s    V_5
   IL_005a:  ldc.i4.1
   IL_005b:  add
   IL_005c:  stloc.s    V_5
- -IL_005e:  ldloc.s    V_5
+  // sequence point: in
+  IL_005e:  ldloc.s    V_5
   IL_0060:  ldloc.2
   IL_0061:  ble.s      IL_0032
- ~IL_0063:  ldloc.s    V_4
+  // sequence point: <hidden>
+  IL_0063:  ldloc.s    V_4
   IL_0065:  ldc.i4.1
   IL_0066:  add
   IL_0067:  stloc.s    V_4
- -IL_0069:  ldloc.s    V_4
+  // sequence point: in
+  IL_0069:  ldloc.s    V_4
   IL_006b:  ldloc.1
   IL_006c:  ble.s      IL_0027
- -IL_006e:  ret
-}", sequencePointDisplay: SequencePointDisplayMode.Minimal);
+  // sequence point: }
+  IL_006e:  ret
+}", displaySequencePoints: true);
 
             var methodData0 = v0.TestData.GetMethodData("C.M");
             var method0 = compilation0.GetMember<MethodSymbol>("C.M");
@@ -2890,12 +2914,16 @@ class C
   .maxstack  2
   .locals init (string V_0,
                 string V_1)
- -IL_0000:  nop
- -IL_0001:  call       ""string C.F()""
+  // sequence point: {
+  IL_0000:  nop
+  // sequence point: switch (F())
+  IL_0001:  call       ""string C.F()""
   IL_0006:  stloc.1
- ~IL_0007:  ldloc.1
+  // sequence point: <hidden>
+  IL_0007:  ldloc.1
   IL_0008:  stloc.0
- ~IL_0009:  ldloc.0
+  // sequence point: <hidden>
+  IL_0009:  ldloc.0
   IL_000a:  ldstr      ""a""
   IL_000f:  call       ""bool string.op_Equality(string, string)""
   IL_0014:  brtrue.s   IL_0025
@@ -2904,16 +2932,21 @@ class C
   IL_001c:  call       ""bool string.op_Equality(string, string)""
   IL_0021:  brtrue.s   IL_002e
   IL_0023:  br.s       IL_0037
- -IL_0025:  ldc.i4.1
+  // sequence point: System.Console.WriteLine(1);
+  IL_0025:  ldc.i4.1
   IL_0026:  call       ""void System.Console.WriteLine(int)""
   IL_002b:  nop
- -IL_002c:  br.s       IL_0037
- -IL_002e:  ldc.i4.2
+  // sequence point: break;
+  IL_002c:  br.s       IL_0037
+  // sequence point: System.Console.WriteLine(2);
+  IL_002e:  ldc.i4.2
   IL_002f:  call       ""void System.Console.WriteLine(int)""
   IL_0034:  nop
- -IL_0035:  br.s       IL_0037
- -IL_0037:  ret
-}", sequencePointDisplay: SequencePointDisplayMode.Minimal);
+  // sequence point: break;
+  IL_0035:  br.s       IL_0037
+  // sequence point: }
+  IL_0037:  ret
+}", displaySequencePoints: true);
 
             var methodData0 = v0.TestData.GetMethodData("C.M");
             var method0 = compilation0.GetMember<MethodSymbol>("C.M");
@@ -3668,25 +3701,35 @@ class C
   .maxstack  1
   .locals init (int V_0, //i
                 bool V_1)
- -IL_0000:  nop
- -IL_0001:  ldc.i4.1
+  // sequence point: {
+  IL_0000:  nop
+  // sequence point: int i = 1
+  IL_0001:  ldc.i4.1
   IL_0002:  stloc.0
- ~IL_0003:  br.s       IL_0015
- -IL_0005:  nop
- -IL_0006:  ldc.i4.1
+  // sequence point: <hidden>
+  IL_0003:  br.s       IL_0015
+  // sequence point: {
+  IL_0005:  nop
+  // sequence point: System.Console.WriteLine(1);
+  IL_0006:  ldc.i4.1
   IL_0007:  call       ""void System.Console.WriteLine(int)""
   IL_000c:  nop
- -IL_000d:  nop
- -IL_000e:  ldloc.0
+  // sequence point: }
+  IL_000d:  nop
+  // sequence point: G(i)
+  IL_000e:  ldloc.0
   IL_000f:  call       ""void C.G(int)""
   IL_0014:  nop
- -IL_0015:  ldloc.0
+  // sequence point: F(i)
+  IL_0015:  ldloc.0
   IL_0016:  call       ""bool C.F(int)""
   IL_001b:  stloc.1
- ~IL_001c:  ldloc.1
+  // sequence point: <hidden>
+  IL_001c:  ldloc.1
   IL_001d:  brtrue.s   IL_0005
- -IL_001f:  ret
-}", sequencePointDisplay: SequencePointDisplayMode.Minimal);
+  // sequence point: }
+  IL_001f:  ret
+}", displaySequencePoints: true);
 
             var methodData0 = v0.TestData.GetMethodData("C.M");
             var method0 = compilation0.GetMember<MethodSymbol>("C.M");
@@ -4090,17 +4133,21 @@ class C
                 System.Runtime.CompilerServices.TaskAwaiter<int> V_2,
                 C.<F>d__0 V_3,
                 System.Exception V_4)
- ~IL_0000:  ldarg.0
+  // sequence point: <hidden>
+  IL_0000:  ldarg.0
   IL_0001:  ldfld      ""int C.<F>d__0.<>1__state""
   IL_0006:  stloc.0
   .try
   {
-   ~IL_0007:  ldloc.0
+    // sequence point: <hidden>
+    IL_0007:  ldloc.0
     IL_0008:  brfalse.s  IL_000c
     IL_000a:  br.s       IL_0011
     IL_000c:  br         IL_009e
-   -IL_0011:  nop
-   -IL_0012:  ldarg.0
+    // sequence point: {
+    IL_0011:  nop
+    // sequence point: lock (F())
+    IL_0012:  ldarg.0
     IL_0013:  ldarg.0
     IL_0014:  ldfld      ""C C.<F>d__0.<>4__this""
     IL_0019:  call       ""System.Threading.Tasks.Task<int> C.F()""
@@ -4116,13 +4163,16 @@ class C
       IL_0031:  ldflda     ""bool C.<F>d__0.<>s__2""
       IL_0036:  call       ""void System.Threading.Monitor.Enter(object, ref bool)""
       IL_003b:  nop
-     -IL_003c:  nop
-     -IL_003d:  nop
+      // sequence point: {
+      IL_003c:  nop
+      // sequence point: }
+      IL_003d:  nop
       IL_003e:  leave.s    IL_0059
     }
     finally
     {
-     ~IL_0040:  ldloc.0
+      // sequence point: <hidden>
+      IL_0040:  ldloc.0
       IL_0041:  ldc.i4.0
       IL_0042:  bge.s      IL_0058
       IL_0044:  ldarg.0
@@ -4132,17 +4182,21 @@ class C
       IL_004d:  ldfld      ""System.Threading.Tasks.Task<int> C.<F>d__0.<>s__1""
       IL_0052:  call       ""void System.Threading.Monitor.Exit(object)""
       IL_0057:  nop
-     ~IL_0058:  endfinally
+      // sequence point: <hidden>
+      IL_0058:  endfinally
     }
-   ~IL_0059:  ldarg.0
+    // sequence point: <hidden>
+    IL_0059:  ldarg.0
     IL_005a:  ldnull
     IL_005b:  stfld      ""System.Threading.Tasks.Task<int> C.<F>d__0.<>s__1""
-   -IL_0060:  ldarg.0
+    // sequence point: await F();
+    IL_0060:  ldarg.0
     IL_0061:  ldfld      ""C C.<F>d__0.<>4__this""
     IL_0066:  call       ""System.Threading.Tasks.Task<int> C.F()""
     IL_006b:  callvirt   ""System.Runtime.CompilerServices.TaskAwaiter<int> System.Threading.Tasks.Task<int>.GetAwaiter()""
     IL_0070:  stloc.2
-   ~IL_0071:  ldloca.s   V_2
+    // sequence point: <hidden>
+    IL_0071:  ldloca.s   V_2
     IL_0073:  call       ""bool System.Runtime.CompilerServices.TaskAwaiter<int>.IsCompleted.get""
     IL_0078:  brtrue.s   IL_00ba
     IL_007a:  ldarg.0
@@ -4150,7 +4204,8 @@ class C
     IL_007c:  dup
     IL_007d:  stloc.0
     IL_007e:  stfld      ""int C.<F>d__0.<>1__state""
-   <IL_0083:  ldarg.0
+    // async: yield
+    IL_0083:  ldarg.0
     IL_0084:  ldloc.2
     IL_0085:  stfld      ""System.Runtime.CompilerServices.TaskAwaiter<int> C.<F>d__0.<>u__1""
     IL_008a:  ldarg.0
@@ -4162,7 +4217,8 @@ class C
     IL_0096:  call       ""void System.Runtime.CompilerServices.AsyncTaskMethodBuilder<int>.AwaitUnsafeOnCompleted<System.Runtime.CompilerServices.TaskAwaiter<int>, C.<F>d__0>(ref System.Runtime.CompilerServices.TaskAwaiter<int>, ref C.<F>d__0)""
     IL_009b:  nop
     IL_009c:  leave.s    IL_00f5
-   >IL_009e:  ldarg.0
+    // async: resume
+    IL_009e:  ldarg.0
     IL_009f:  ldfld      ""System.Runtime.CompilerServices.TaskAwaiter<int> C.<F>d__0.<>u__1""
     IL_00a4:  stloc.2
     IL_00a5:  ldarg.0
@@ -4176,13 +4232,15 @@ class C
     IL_00ba:  ldloca.s   V_2
     IL_00bc:  call       ""int System.Runtime.CompilerServices.TaskAwaiter<int>.GetResult()""
     IL_00c1:  pop
-   -IL_00c2:  ldc.i4.1
+    // sequence point: return 1;
+    IL_00c2:  ldc.i4.1
     IL_00c3:  stloc.1
     IL_00c4:  leave.s    IL_00e0
   }
   catch System.Exception
   {
-   ~IL_00c6:  stloc.s    V_4
+    // sequence point: <hidden>
+    IL_00c6:  stloc.s    V_4
     IL_00c8:  ldarg.0
     IL_00c9:  ldc.i4.s   -2
     IL_00cb:  stfld      ""int C.<F>d__0.<>1__state""
@@ -4193,16 +4251,18 @@ class C
     IL_00dd:  nop
     IL_00de:  leave.s    IL_00f5
   }
- -IL_00e0:  ldarg.0
+  // sequence point: }
+  IL_00e0:  ldarg.0
   IL_00e1:  ldc.i4.s   -2
   IL_00e3:  stfld      ""int C.<F>d__0.<>1__state""
- ~IL_00e8:  ldarg.0
+  // sequence point: <hidden>
+  IL_00e8:  ldarg.0
   IL_00e9:  ldflda     ""System.Runtime.CompilerServices.AsyncTaskMethodBuilder<int> C.<F>d__0.<>t__builder""
   IL_00ee:  ldloc.1
   IL_00ef:  call       ""void System.Runtime.CompilerServices.AsyncTaskMethodBuilder<int>.SetResult(int)""
   IL_00f4:  nop
   IL_00f5:  ret
-}", sequencePointDisplay: SequencePointDisplayMode.Minimal);
+}", displaySequencePoints: true);
 
 #if TODO
             var methodData0 = v0.TestData.GetMethodData("?");

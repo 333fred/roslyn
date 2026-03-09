@@ -632,20 +632,26 @@ A(); // 1
     static void D() { }
 }".NormalizeLineEndings();
             var verifier = CompileAndVerify(source, options: TestOptions.DebugDll);
-            verifier.VerifyIL("Program.Main", sequencePointDisplay: SequencePointDisplayMode.Minimal, expectedIL:
+            verifier.VerifyIL("Program.Main", displaySequencePoints: true, expectedIL:
 @"{
   // Code size       26 (0x1a)
   .maxstack  0
- -IL_0000:  nop
- -IL_0001:  call       ""void Program.A()""
+  // sequence point: {
+  IL_0000:  nop
+  // sequence point: 3:3-3:7
+  IL_0001:  call       ""void Program.A()""
   IL_0006:  nop
- -IL_0007:  call       ""void Program.B()""
+  // sequence point: B();
+  IL_0007:  call       ""void Program.B()""
   IL_000c:  nop
- -IL_000d:  call       ""void Program.C()""
+  // sequence point: 1:9-1:13
+  IL_000d:  call       ""void Program.C()""
   IL_0012:  nop
- -IL_0013:  call       ""void Program.D()""
+  // sequence point: 2:3-2:5
+  IL_0013:  call       ""void Program.D()""
   IL_0018:  nop
- -IL_0019:  ret
+  // sequence point: 3:5-3:6
+  IL_0019:  ret
 }");
             verifier.VerifyPdb("Program.Main", expectedPdb:
 @"<symbols>
