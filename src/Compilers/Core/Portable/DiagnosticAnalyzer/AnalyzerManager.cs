@@ -423,11 +423,11 @@ namespace Microsoft.CodeAnalysis.Diagnostics
             return true;
         }
 
-        internal static bool HasCompilerOrNotConfigurableTagOrCustomConfigurableTag(ImmutableArray<string> customTags)
+        internal static bool HasCompilerOrNotConfigurableTag(ImmutableArray<string> customTags)
         {
             foreach (var customTag in customTags)
             {
-                if (customTag is WellKnownDiagnosticTags.Compiler or WellKnownDiagnosticTags.NotConfigurable or WellKnownDiagnosticTags.CustomSeverityConfigurable)
+                if (customTag is WellKnownDiagnosticTags.Compiler or WellKnownDiagnosticTags.NotConfigurable)
                 {
                     return true;
                 }

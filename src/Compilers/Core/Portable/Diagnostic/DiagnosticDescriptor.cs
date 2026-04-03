@@ -294,21 +294,11 @@ namespace Microsoft.CodeAnalysis
         }
 
         /// <summary>
-        /// Returns true if diagnostic descriptor is custom configurable, i.e. analyzer supports custom
-        /// ways for configuring diagnostic severity that may not be understood by the compiler.
+        /// Returns true if diagnostic descriptor is a built-in compiler diagnostic or is not configurable.
         /// </summary>
-        internal bool IsCustomSeverityConfigurable()
+        internal bool IsCompilerOrNotConfigurable()
         {
-            return AnalyzerManager.HasCustomSeverityConfigurableTag(ImmutableCustomTags);
-        }
-
-        /// <summary>
-        /// Returns true if diagnostic descriptor is a built-in compiler diagnostic or is not configurable
-        /// or is custom configurable.
-        /// </summary>
-        internal bool IsCompilerOrNotConfigurableOrCustomConfigurable()
-        {
-            return AnalyzerManager.HasCompilerOrNotConfigurableTagOrCustomConfigurableTag(ImmutableCustomTags);
+            return AnalyzerManager.HasCompilerOrNotConfigurableTag(ImmutableCustomTags);
         }
     }
 }

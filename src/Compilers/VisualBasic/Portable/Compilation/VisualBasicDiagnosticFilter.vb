@@ -150,32 +150,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 End If
             End If
 
-            Dim isCustomConfigured = False
-            If AnalyzerManager.HasCustomSeverityConfigurableTag(customTags) Then
-                ' 3. Custom severity configuration applied by the analyzer.
-                '    See https://github.com/dotnet/roslyn/issues/52991 for details.
-                isCustomConfigured = True
-
-                ' Respect the custom analyzer configured severity, unless it was already configured with command line switch.
-                ' However, if just "/warnaserror-:DiagnosticId" was specified on the command line, we do respect the custom configured severity.
-                If Not isSpecified OrElse specifiedWarnAsErrorMinus Then
-                    isSpecified = True
-                    report = DiagnosticDescriptor.MapSeverityToReport(severity)
-
-                    ' /warnaserror should promote warning to error.
-                    If report = ReportDiagnostic.Warn AndAlso generalDiagnosticOption = ReportDiagnostic.Error AndAlso Not specifiedWarnAsErrorMinus Then
-                        report = ReportDiagnostic.Error
-                    End If
-                End If
-            End If
-
             ' Apply syntax tree options, if applicable.
             If syntaxTreeOptions IsNot Nothing AndAlso
-               Not isCustomConfigured AndAlso
                (Not isSpecified OrElse specifiedWarnAsErrorMinus) Then
 
-                ' 4. Editor config options (syntax tree level)
-                ' 5. Global analyzer config options (compilation level)
+                ' 3. Editor config options (syntax tree level)
+                ' 4. Global analyzer config options (compilation level)
                 ' Do not apply config options if it is bumping a warning to an error and "/warnaserror-:DiagnosticId" was specified on the command line.
                 Dim reportFromSyntaxTreeOptions As ReportDiagnostic
                 If ((tree IsNot Nothing AndAlso syntaxTreeOptions.TryGetDiagnosticValue(tree, id, cancellationToken, reportFromSyntaxTreeOptions)) OrElse

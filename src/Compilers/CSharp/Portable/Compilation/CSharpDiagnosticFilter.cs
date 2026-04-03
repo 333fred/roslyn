@@ -198,35 +198,12 @@ namespace Microsoft.CodeAnalysis.CSharp
                 }
             }
 
-            var isCustomConfigured = false;
-            if (AnalyzerManager.HasCustomSeverityConfigurableTag(customTags))
-            {
-                // 3. Custom severity configuration applied by the analyzer
-                //    See https://github.com/dotnet/roslyn/issues/52991 for details.
-                isCustomConfigured = true;
-
-                // Respect the custom analyzer configured severity, unless it was already configured with command line switch.
-                // However, if just "/warnaserror-:DiagnosticId" was specified on the command line, we do respect the custom configured severity.
-                if (!isSpecified || specifiedWarnAsErrorMinus)
-                {
-                    isSpecified = true;
-                    report = DiagnosticDescriptor.MapSeverityToReport(severity);
-
-                    // Handle /warnaserror to bump warning to an error
-                    if (report == ReportDiagnostic.Warn && generalDiagnosticOption == ReportDiagnostic.Error && !specifiedWarnAsErrorMinus)
-                    {
-                        report = ReportDiagnostic.Error;
-                    }
-                }
-            }
-
             // Apply syntax tree options, if applicable.
             if (syntaxTreeOptions != null &&
-                !isCustomConfigured &&
                 (!isSpecified || specifiedWarnAsErrorMinus))
             {
-                // 4. Editor config options (syntax tree level)
-                // 5. Global analyzer config options (compilation level)
+                // 3. Editor config options (syntax tree level)
+                // 4. Global analyzer config options (compilation level)
                 // Do not apply config options if it is bumping a warning to an error and "/warnaserror-:DiagnosticId" was specified on the command line.
                 if ((tree != null && syntaxTreeOptions.TryGetDiagnosticValue(tree, id, cancellationToken, out var reportFromSyntaxTreeOptions) ||
                     syntaxTreeOptions.TryGetGlobalDiagnosticValue(id, cancellationToken, out reportFromSyntaxTreeOptions)) &&

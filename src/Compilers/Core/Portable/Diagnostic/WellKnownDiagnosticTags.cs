@@ -46,10 +46,9 @@ namespace Microsoft.CodeAnalysis
 
         /// <summary>
         /// Indicates that the analyzer reporting the diagnostic supports custom severity configuration mechanism(s)
-        /// to allow end users to configure effective severity of the diagnostic.
-        /// Such analyzers are always considered to be enabled by the compiler and always receive analyzer callbacks.
-        /// Additionally, severity of the diagnostics reported with this custom tag is not altered by analyzer config options
-        /// to configure severity, i.e. 'dotnet_diagnostic' and 'dotnet_analyzer_diagnostic' entries. 
+        /// to allow end users to configure effective severity of the diagnostic, for example through analyzer-specific options.
+        /// This tag is informational metadata and does not, by itself, prevent standard command line, ruleset,
+        /// or analyzer config severity settings from applying to the diagnostic.
         /// </summary>
         /// <remarks>
         /// See https://github.com/dotnet/roslyn/issues/52991 for further details.

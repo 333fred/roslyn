@@ -13326,8 +13326,7 @@ dotnet_analyzer_diagnostic.category-{category}.severity = none";
             var diagnosticId = analyzer.Descriptor.Id;
 
             // Verify bulk configuration without any diagnostic ID configuration is respected
-            var defaultReportDiagnostic = DiagnosticDescriptor.MapSeverityToReport(defaultSeverity);
-            var expectedDiagnosticSeverity = customConfigurable ? defaultReportDiagnostic : ReportDiagnostic.Error;
+            var expectedDiagnosticSeverity = ReportDiagnostic.Error;
             var analyzerConfigText = $@"
 [*.cs]
 dotnet_analyzer_diagnostic.severity = error";
@@ -13345,17 +13344,15 @@ dotnet_analyzer_diagnostic.severity = error";
 </RuleSet>";
             TestBulkAnalyzerConfigurationCore(analyzer, analyzerConfigText, errorlog, expectedDiagnosticSeverity: ReportDiagnostic.Warn, rulesetText: rulesetText);
 
-            // Verify bulk configuration before diagnostic ID configuration is not respected.
-            // If the analyzer reports 'CustomConfigurable' diagnostics, all editorconfig configurations are ignored.
-            expectedDiagnosticSeverity = customConfigurable ? defaultReportDiagnostic : ReportDiagnostic.Warn;
+            // Verify the per-diagnostic editorconfig entry prevents bulk configuration from applying.
+            expectedDiagnosticSeverity = ReportDiagnostic.Warn;
             analyzerConfigText = $@"
 [*.cs]
 dotnet_analyzer_diagnostic.severity = error
 dotnet_diagnostic.{diagnosticId}.severity = warning";
             TestBulkAnalyzerConfigurationCore(analyzer, analyzerConfigText, errorlog, expectedDiagnosticSeverity);
 
-            // Verify bulk configuration after diagnostic ID configuration is not respected.
-            // If the analyzer reports 'CustomConfigurable' diagnostics, all editorconfig configurations are ignored.
+            // Verify the per-diagnostic editorconfig entry prevents bulk configuration from applying.
             analyzerConfigText = $@"
 [*.cs]
 dotnet_diagnostic.{diagnosticId}.severity = warning
@@ -13363,17 +13360,15 @@ dotnet_analyzer_diagnostic.severity = error";
             TestBulkAnalyzerConfigurationCore(analyzer, analyzerConfigText, errorlog, expectedDiagnosticSeverity);
 
             // Verify bulk configuration to warning + /warnaserror reports errors.
-            // If the analyzer reports 'CustomConfigurable' diagnostics, all editorconfig configurations are ignored.
-            expectedDiagnosticSeverity = customConfigurable && defaultReportDiagnostic != ReportDiagnostic.Warn ? defaultReportDiagnostic : ReportDiagnostic.Error;
+            expectedDiagnosticSeverity = ReportDiagnostic.Error;
             analyzerConfigText = $@"
 [*.cs]
 dotnet_analyzer_diagnostic.severity = warning";
             TestBulkAnalyzerConfigurationCore(analyzer, analyzerConfigText, errorlog, expectedDiagnosticSeverity, warnAsError: true);
 
             // Verify disabled by default analyzer is not enabled by bulk configuration.
-            // However, analyzer reporting 'CustomConfigurable' diagnostics is considered to be enabled.
             analyzer = new NamedTypeAnalyzerWithConfigurableEnabledByDefault(isEnabledByDefault: false, defaultSeverity, customConfigurable, throwOnAllNamedTypes: false);
-            expectedDiagnosticSeverity = customConfigurable ? defaultReportDiagnostic : ReportDiagnostic.Suppress;
+            expectedDiagnosticSeverity = ReportDiagnostic.Suppress;
             analyzerConfigText = $@"
 [*.cs]
 dotnet_analyzer_diagnostic.severity = error";
@@ -13383,14 +13378,12 @@ dotnet_analyzer_diagnostic.severity = error";
                 defaultSeverity == DiagnosticSeverity.Info && !errorlog)
             {
                 // Verify analyzer with Hidden severity OR Info severity + no /errorlog is not executed.
-                // Unless the analyzer reports 'CustomConfigurable' diagnostics, in which case it is always executed.
-                expectedDiagnosticSeverity = customConfigurable ? defaultReportDiagnostic : ReportDiagnostic.Suppress;
-                analyzer = new NamedTypeAnalyzerWithConfigurableEnabledByDefault(isEnabledByDefault: true, defaultSeverity, customConfigurable, throwOnAllNamedTypes: !customConfigurable);
+                expectedDiagnosticSeverity = ReportDiagnostic.Suppress;
+                analyzer = new NamedTypeAnalyzerWithConfigurableEnabledByDefault(isEnabledByDefault: true, defaultSeverity, customConfigurable, throwOnAllNamedTypes: false);
                 TestBulkAnalyzerConfigurationCore(analyzer, analyzerConfigText: string.Empty, errorlog, expectedDiagnosticSeverity);
 
-                // Verify that bulk configuration 'none' entry does not enable this analyzer.
-                // However, analyzer reporting 'CustomConfigurable' diagnostics is considered to be enabled.
-                expectedDiagnosticSeverity = customConfigurable ? defaultReportDiagnostic : ReportDiagnostic.Suppress;
+                // Verify that bulk configuration 'none' suppresses this diagnostic.
+                expectedDiagnosticSeverity = ReportDiagnostic.Suppress;
                 analyzerConfigText = $@"
 [*.cs]
 dotnet_analyzer_diagnostic.severity = none";
