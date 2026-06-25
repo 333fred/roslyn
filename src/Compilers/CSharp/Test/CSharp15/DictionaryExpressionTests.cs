@@ -5202,10 +5202,61 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests
                 Diagnostic(ErrorCode.ERR_CantInferMethTypeArgs, "Identity").WithArguments($"Program.Identity<K, V>(System.Collections.Generic.{typeName}<K, V>)").WithLocation(7, 9),
                 // (8,9): error CS0411: The type arguments for method 'Program.Identity<K, V>(IDictionary<K, V>)' cannot be inferred from the usage. Try specifying the type arguments explicitly.
                 //         Identity([1:default]);
-                Diagnostic(ErrorCode.ERR_CantInferMethTypeArgs, "Identity").WithArguments($"Program.Identity<K, V>(System.Collections.Generic.{typeName}<K, V>)").WithLocation(8, 9),
-                // (9,9): error CS0411: The type arguments for method 'Program.Identity<K, V>(IDictionary<K, V>)' cannot be inferred from the usage. Try specifying the type arguments explicitly.
-                //         Identity([1:default, default:"2"]);
-                Diagnostic(ErrorCode.ERR_CantInferMethTypeArgs, "Identity").WithArguments($"Program.Identity<K, V>(System.Collections.Generic.{typeName}<K, V>)").WithLocation(9, 9));
+                Diagnostic(ErrorCode.ERR_CantInferMethTypeArgs, "Identity").WithArguments($"Program.Identity<K, V>(System.Collections.Generic.{typeName}<K, V>)").WithLocation(8, 9));
+        }
+
+        [Theory]
+        [InlineData("IDictionary")]
+        [InlineData("IReadOnlyDictionary")]
+        [InlineData("Dictionary")]
+        public void TypeInference_KeyValuePairComponents(string typeName)
+        {
+            string source = $$"""
+                using System.Collections.Generic;
+                class Program
+                {
+                    static void Main()
+                    {
+                        var kvp = new KeyValuePair<object, long>("dustin", 22);
+                        Identity(["mads": 21, kvp]).Report();
+                        Identity([kvp, "mads": 21]).Report();
+
+                        var dictionary = new Dictionary<object, long> { ["dustin"] = 22 };
+                        Identity(["mads": 21, ..dictionary]).Report();
+                        Identity([..dictionary, "mads": 21]).Report();
+                    }
+                    static {{typeName}}<K, V> Identity<K, V>({{typeName}}<K, V> d) => d;
+                }
+                """;
+            var verifier = CompileAndVerify(
+                [source, s_dictionaryExtensions],
+                expectedOutput: IncludeExpectedOutput("[dustin:22, mads:21], [dustin:22, mads:21], [dustin:22, mads:21], [dustin:22, mads:21], "));
+            verifier.VerifyDiagnostics();
+        }
+
+        [Theory]
+        [InlineData("IDictionary")]
+        [InlineData("IReadOnlyDictionary")]
+        [InlineData("Dictionary")]
+        public void TypeInference_KeyValuePairOutputType(string typeName)
+        {
+            string source = $$"""
+                using System;
+                using System.Collections.Generic;
+                class Program
+                {
+                    static void Main()
+                    {
+                        OutputType(["b": () => 2]);
+                    }
+                    static void OutputType<T>({{typeName}}<string, Func<T>> d)
+                    {
+                        Console.Write(typeof(T));
+                    }
+                }
+                """;
+            var verifier = CompileAndVerify(source, expectedOutput: IncludeExpectedOutput("System.Int32"));
+            verifier.VerifyDiagnostics();
         }
 
         // Type inference should not walk into KeyValuePair<A, B> when the KeyValuePair<A, B>
@@ -6013,7 +6064,13 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests
                 }
                 """;
             var comp = CreateCompilation(source);
-            comp.VerifyEmitDiagnostics();
+            comp.VerifyEmitDiagnostics(
+                // (20,37): warning CS8625: Cannot convert null literal to non-nullable reference type.
+                //         MyDictionary1 d1 = [default:default];
+                Diagnostic(ErrorCode.WRN_NullAsNonNullable, "default").WithLocation(20, 37),
+                // (21,29): warning CS8625: Cannot convert null literal to non-nullable reference type.
+                //         MyDictionary2 d2 = [default:default];
+                Diagnostic(ErrorCode.WRN_NullAsNonNullable, "default").WithLocation(21, 29));
         }
 
         [Fact]

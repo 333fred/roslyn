@@ -684,21 +684,89 @@ namespace Microsoft.CodeAnalysis.CSharp
                 return;
             }
 
+            var targetElementIsKeyValuePair = ConversionsBase.IsKeyValuePairType(
+                binder.Compilation,
+                targetElementType,
+                out var targetKeyType,
+                out var targetValueType);
+
             foreach (var element in argument.Elements)
             {
                 switch (element)
                 {
                     case BoundCollectionExpressionSpreadElement spread:
-                        MakeSpreadElementTypeInferences(spread, targetElementType, ref useSiteInfo);
+                        if (targetElementIsKeyValuePair)
+                        {
+                            MakeKeyValuePairSpreadElementTypeInferences(spread, binder.Compilation, targetKeyType, targetValueType, ref useSiteInfo);
+                        }
+                        else
+                        {
+                            MakeSpreadElementTypeInferences(spread, targetElementType, ref useSiteInfo);
+                        }
+
                         break;
-                    case BoundKeyValuePairElement:
-                    case BoundKeyValuePairConversion:
-                        // PROTOTYPE: Handle input type inference for key:value elements.
+                    case BoundKeyValuePairElement keyValuePairElement:
+                        if (targetElementIsKeyValuePair)
+                        {
+                            MakeExplicitParameterTypeInferences(binder, GetKeyValuePairElementInferenceExpression(keyValuePairElement.Key), targetKeyType, kind, ref useSiteInfo);
+                            MakeExplicitParameterTypeInferences(binder, GetKeyValuePairElementInferenceExpression(keyValuePairElement.Value), targetValueType, kind, ref useSiteInfo);
+                        }
+
+                        break;
+                    case BoundKeyValuePairConversion keyValuePairConversion:
+                        if (targetElementIsKeyValuePair)
+                        {
+                            MakeKeyValuePairExpressionTypeInferences(keyValuePairConversion.Expression, binder.Compilation, targetKeyType, targetValueType, ref useSiteInfo);
+                        }
+
                         break;
                     default:
-                        MakeExplicitParameterTypeInferences(binder, (BoundExpression)element, targetElementType, kind, ref useSiteInfo);
+                        var expression = (BoundExpression)element;
+                        if (targetElementIsKeyValuePair)
+                        {
+                            MakeKeyValuePairExpressionTypeInferences(expression, binder.Compilation, targetKeyType, targetValueType, ref useSiteInfo);
+                        }
+                        else
+                        {
+                            MakeExplicitParameterTypeInferences(binder, expression, targetElementType, kind, ref useSiteInfo);
+                        }
+
                         break;
                 }
+            }
+        }
+
+        private void MakeKeyValuePairExpressionTypeInferences(
+            BoundExpression expression,
+            CSharpCompilation compilation,
+            TypeWithAnnotations targetKeyType,
+            TypeWithAnnotations targetValueType,
+            ref CompoundUseSiteInfo<AssemblySymbol> useSiteInfo)
+        {
+            if (ConversionsBase.IsKeyValuePairType(compilation, _extensions.GetTypeWithAnnotations(expression), out var sourceKeyType, out var sourceValueType))
+            {
+                LowerBoundInference(sourceKeyType, targetKeyType, ref useSiteInfo);
+                LowerBoundInference(sourceValueType, targetValueType, ref useSiteInfo);
+            }
+        }
+
+        private void MakeKeyValuePairSpreadElementTypeInferences(
+            BoundCollectionExpressionSpreadElement argument,
+            CSharpCompilation compilation,
+            TypeWithAnnotations targetKeyType,
+            TypeWithAnnotations targetValueType,
+            ref CompoundUseSiteInfo<AssemblySymbol> useSiteInfo)
+        {
+            var enumeratorInfo = argument.EnumeratorInfoOpt;
+            if (enumeratorInfo is null)
+            {
+                return;
+            }
+
+            if (ConversionsBase.IsKeyValuePairType(compilation, enumeratorInfo.ElementTypeWithAnnotations, out var sourceKeyType, out var sourceValueType))
+            {
+                LowerBoundInference(sourceKeyType, targetKeyType, ref useSiteInfo);
+                LowerBoundInference(sourceValueType, targetValueType, ref useSiteInfo);
             }
         }
 
@@ -914,14 +982,37 @@ namespace Microsoft.CodeAnalysis.CSharp
                 return;
             }
 
+            var targetElementIsKeyValuePair = ConversionsBase.IsKeyValuePairType(
+                binder.Compilation,
+                targetElementType,
+                out var targetKeyType,
+                out var targetValueType);
+
             foreach (var element in argument.Elements)
             {
-                // PROTOTYPE: Handle output type inference for key:value elements.
-                if (element is BoundExpression expression)
+                if (targetElementIsKeyValuePair)
+                {
+                    if (element is BoundKeyValuePairElement keyValuePairElement)
+                    {
+                        MakeOutputTypeInferences(binder, GetKeyValuePairElementInferenceExpression(keyValuePairElement.Key), targetKeyType, ref useSiteInfo);
+                        MakeOutputTypeInferences(binder, GetKeyValuePairElementInferenceExpression(keyValuePairElement.Value), targetValueType, ref useSiteInfo);
+                    }
+                }
+                else if (element is BoundExpression expression)
                 {
                     MakeOutputTypeInferences(binder, expression, targetElementType, ref useSiteInfo);
                 }
             }
+        }
+
+        private static BoundExpression GetKeyValuePairElementInferenceExpression(BoundExpression expression)
+        {
+            while (expression is BoundConversion { ExplicitCastInCode: false } conversion)
+            {
+                expression = conversion.Operand;
+            }
+
+            return expression;
         }
 
         private void MakeOutputTypeInferences(Binder binder, BoundTupleLiteral argument, TypeWithAnnotations formalType, ref CompoundUseSiteInfo<AssemblySymbol> useSiteInfo)
@@ -3537,4 +3628,3 @@ OuterBreak:
         }
     }
 }
-

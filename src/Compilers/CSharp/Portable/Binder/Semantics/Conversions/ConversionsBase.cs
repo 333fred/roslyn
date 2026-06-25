@@ -1779,17 +1779,37 @@ namespace Microsoft.CodeAnalysis.CSharp
             [NotNullWhen(true)] out TypeSymbol? keyType,
             [NotNullWhen(true)] out TypeSymbol? valueType)
         {
-            if (type is NamedTypeSymbol { Arity: 2 } namedType
-                && ReferenceEquals(namedType.OriginalDefinition, compilation.GetWellKnownType(WellKnownType.System_Collections_Generic_KeyValuePair_KV)))
+            if (type is not null &&
+                IsKeyValuePairType(compilation, TypeWithAnnotations.Create(type), out var keyTypeWithAnnotations, out var valueTypeWithAnnotations))
             {
-                var typeArguments = namedType.TypeArgumentsWithAnnotationsNoUseSiteDiagnostics;
-                keyType = typeArguments[0].Type;
-                valueType = typeArguments[1].Type;
+                keyType = keyTypeWithAnnotations.Type;
+                valueType = valueTypeWithAnnotations.Type;
                 return true;
             }
 
             keyType = null;
             valueType = null;
+            return false;
+        }
+
+        internal static bool IsKeyValuePairType(
+            CSharpCompilation compilation,
+            TypeWithAnnotations type,
+            out TypeWithAnnotations keyType,
+            out TypeWithAnnotations valueType)
+        {
+            if (type.HasType &&
+                type.Type is NamedTypeSymbol { Arity: 2 } namedType
+                && ReferenceEquals(namedType.OriginalDefinition, compilation.GetWellKnownType(WellKnownType.System_Collections_Generic_KeyValuePair_KV)))
+            {
+                var typeArguments = namedType.TypeArgumentsWithAnnotationsNoUseSiteDiagnostics;
+                keyType = typeArguments[0];
+                valueType = typeArguments[1];
+                return true;
+            }
+
+            keyType = default;
+            valueType = default;
             return false;
         }
 

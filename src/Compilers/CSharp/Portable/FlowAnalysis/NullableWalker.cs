@@ -4167,13 +4167,54 @@ namespace Microsoft.CodeAnalysis.CSharp
                         }
                         break;
                     case BoundKeyValuePairElement keyValuePair:
-                        VisitRvalue(keyValuePair.Key);
-                        VisitRvalue(keyValuePair.Value);
-                        // PROTOTYPE: Check nullability from conversions of key and value.
+                        if (ConversionsBase.IsKeyValuePairType(compilation, targetElementType, out var targetKeyType, out var targetValueType))
+                        {
+                            var keyCompletion = VisitOptionalImplicitConversion(
+                                keyValuePair.Key,
+                                targetKeyType,
+                                useLegacyWarnings: false,
+                                trackMembers: false,
+                                AssignmentKind.Assignment,
+                                delayCompletionForTargetType: true).completion;
+                            var keyResult = _visitResult;
+                            var valueCompletion = VisitOptionalImplicitConversion(
+                                keyValuePair.Value,
+                                targetValueType,
+                                useLegacyWarnings: false,
+                                trackMembers: false,
+                                AssignmentKind.Assignment,
+                                delayCompletionForTargetType: true).completion;
+                            var valueResult = _visitResult;
+
+                            Debug.Assert(keyCompletion is not null);
+                            Debug.Assert(valueCompletion is not null);
+                            elementConversionCompletions.Add((elementType, _) =>
+                            {
+                                if (ConversionsBase.IsKeyValuePairType(compilation, elementType, out var keyType, out var valueType))
+                                {
+                                    keyCompletion(keyType);
+                                    valueCompletion(valueType);
+                                }
+                                else
+                                {
+                                    keyCompletion(targetKeyType);
+                                    valueCompletion(targetValueType);
+                                }
+                            });
+
+                            setKeyValuePairElementResult(keyResult, valueResult);
+                        }
+                        else
+                        {
+                            VisitRvalue(keyValuePair.Key);
+                            var keyResult = _visitResult;
+                            VisitRvalue(keyValuePair.Value);
+                            var valueResult = _visitResult;
+                            setKeyValuePairElementResult(keyResult, valueResult);
+                        }
                         break;
                     case BoundKeyValuePairConversion keyValuePairConversion:
-                        VisitRvalue(keyValuePairConversion);
-                        // PROTOTYPE: Check nullability from conversions of key and value.
+                        visitKeyValuePairConversion(keyValuePairConversion, targetElementType, elementConversionCompletions);
                         break;
                     default:
                         var elementExpr = (BoundExpression)element;
@@ -4191,6 +4232,71 @@ namespace Microsoft.CodeAnalysis.CSharp
                         }
                         break;
                 }
+            }
+
+            void setKeyValuePairElementResult(VisitResult keyResult, VisitResult valueResult)
+            {
+                SetResult(
+                    expression: null,
+                    new VisitResult(
+                        TypeWithState.Create(null, NullableFlowState.NotNull),
+                        default,
+                        new[] { keyResult, valueResult }),
+                    updateAnalyzedNullability: false,
+                    isLvalue: false);
+            }
+
+            void visitKeyValuePairConversion(
+                BoundKeyValuePairConversion keyValuePairConversion,
+                TypeWithAnnotations targetElementType,
+                ArrayBuilder<Action<TypeWithAnnotations, TypeSymbol>> elementConversionCompletions)
+            {
+                var expressionType = VisitRvalueWithState(keyValuePairConversion.Expression);
+                var expressionResult = _visitResult;
+
+                if (ConversionsBase.IsKeyValuePairType(compilation, expressionType.ToTypeWithAnnotations(compilation), out var sourceKeyType, out var sourceValueType) &&
+                    ConversionsBase.IsKeyValuePairType(compilation, targetElementType, out var targetKeyType, out var targetValueType))
+                {
+                    var keyPlaceholderResult = new VisitResult(TypeWithState.Create(sourceKeyType), sourceKeyType);
+                    AddPlaceholderReplacement(keyValuePairConversion.KeyPlaceholder, keyValuePairConversion.KeyPlaceholder, keyPlaceholderResult);
+                    var keyCompletion = VisitOptionalImplicitConversion(
+                        keyValuePairConversion.KeyConversion,
+                        targetKeyType,
+                        useLegacyWarnings: false,
+                        trackMembers: false,
+                        AssignmentKind.Assignment,
+                        delayCompletionForTargetType: true).completion;
+                    RemovePlaceholderReplacement(keyValuePairConversion.KeyPlaceholder);
+
+                    var valuePlaceholderResult = new VisitResult(TypeWithState.Create(sourceValueType), sourceValueType);
+                    AddPlaceholderReplacement(keyValuePairConversion.ValuePlaceholder, keyValuePairConversion.ValuePlaceholder, valuePlaceholderResult);
+                    var valueCompletion = VisitOptionalImplicitConversion(
+                        keyValuePairConversion.ValueConversion,
+                        targetValueType,
+                        useLegacyWarnings: false,
+                        trackMembers: false,
+                        AssignmentKind.Assignment,
+                        delayCompletionForTargetType: true).completion;
+                    RemovePlaceholderReplacement(keyValuePairConversion.ValuePlaceholder);
+
+                    Debug.Assert(keyCompletion is not null);
+                    Debug.Assert(valueCompletion is not null);
+                    elementConversionCompletions.Add((elementType, _) =>
+                    {
+                        if (ConversionsBase.IsKeyValuePairType(compilation, elementType, out var keyType, out var valueType))
+                        {
+                            keyCompletion(keyType);
+                            valueCompletion(valueType);
+                        }
+                        else
+                        {
+                            keyCompletion(targetKeyType);
+                            valueCompletion(targetValueType);
+                        }
+                    });
+                }
+
+                SetResult(expression: null, expressionResult, updateAnalyzedNullability: false, isLvalue: false);
             }
 
             TypeWithState convertCollection(
@@ -8928,6 +9034,17 @@ namespace Microsoft.CodeAnalysis.CSharp
                         {
                             var (elementNoConversion, _) = RemoveConversion(elementExpression, includeExplicitConversions: false);
                             elementsBuilder.Add(getArgumentForMethodTypeInference(elementNoConversion, collectionExpressionVisitResults[i]));
+                        }
+                        else if (collection.Elements[i] is BoundKeyValuePairElement keyValuePairElement)
+                        {
+                            var keyValuePairVisitResults = collectionExpressionVisitResults[i].NestedVisitResults;
+                            Debug.Assert(keyValuePairVisitResults is { Length: 2 });
+
+                            var (keyNoConversion, _) = RemoveConversion(keyValuePairElement.Key, includeExplicitConversions: false);
+                            var (valueNoConversion, _) = RemoveConversion(keyValuePairElement.Value, includeExplicitConversions: false);
+                            elementsBuilder.Add(keyValuePairElement.Update(
+                                getArgumentForMethodTypeInference(keyNoConversion, keyValuePairVisitResults[0]),
+                                getArgumentForMethodTypeInference(valueNoConversion, keyValuePairVisitResults[1])));
                         }
                         else
                         {
