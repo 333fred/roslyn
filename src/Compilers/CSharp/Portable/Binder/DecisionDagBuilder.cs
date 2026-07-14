@@ -3699,7 +3699,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                     {
                         var originalTempMap = tempMap;
                         Tests result = removeEvaluation(tests, builder, state, ref tempMap, e, out Tests? condition);
-                        return result == tests && tempMap == originalTempMap && condition is null;
+                        return result == (object)tests && tempMap == (object)originalTempMap && condition is null;
                     }
                 }
 
@@ -4161,7 +4161,20 @@ namespace Microsoft.CodeAnalysis.CSharp
                     return new RemoveEvaluationAndUpdateTempReferencesResult(this, tempMap, conditionToUseFinalResult: null, tempsUpdatedResult: null);
                 }
 
-                public override Tests RewriteNestedLengthTests() => this;
+                public override Tests RewriteNestedLengthTests()
+                {
+                    if (Input.Source is BoundDagPropertyEvaluation { IsLengthOrCount: true } e &&
+                        TryGetTopLevelLengthTemp(e) is (BoundDagTemp lengthTemp, int offset))
+                    {
+                        Debug.Assert(Factory == ValueSetFactory.ForLength);
+                        IConstantValueSet<int> values = ValueSetFactory.AddLengthOffset(Values, offset);
+                        return values.IsEmpty
+                            ? False.Instance
+                            : new ValueSet(lengthTemp, values, Syntax, Factory);
+                    }
+
+                    return this;
+                }
                 public override string Dump(Func<BoundDagTest, string> dump) => $"VALUES({Values})";
                 public override bool Equals(object? obj) => this == obj || (obj is ValueSet other && Input.Equals(other.Input) && Values.Equals(other.Values));
                 public override int GetHashCode() => Hash.Combine(Input.GetHashCode(), Values.GetHashCode());
@@ -4956,7 +4969,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                             input = vs.Input;
                             factory = vs.Factory;
                             break;
-                        case One { Test: BoundDagValueTest firstValueTest }:
+                        case One { Test: BoundDagValueTest firstValueTest } when !firstValueTest.Value.IsBad:
                             input = firstValueTest.Input;
                             factory = ValueSetFactory.ForInput(input);
                             if (factory is null)
@@ -4966,16 +4979,6 @@ namespace Microsoft.CodeAnalysis.CSharp
                             return false;
                     }
 
-                    // Keep nested slice-length tests separate until RewriteNestedLengthTests updates
-                    // each test to use the top-level length temp and adjusted constant. When that
-                    // rewrite reassembles this sequence, OrSequence.Update calls Create and retries
-                    // collapsing the rewritten tests into a ValueSet.
-                    if (input.Source is BoundDagPropertyEvaluation { IsLengthOrCount: true } lengthEvaluation &&
-                        TryGetTopLevelLengthTemp(lengthEvaluation).lengthTemp is not null)
-                    {
-                        return false;
-                    }
-
                     // All elements must be ValueSet or One(BoundDagValueTest) on the same input
                     for (int i = 1; i < builder.Count; i++)
                     {
@@ -4983,7 +4986,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                         {
                             case ValueSet vs when vs.Input == input:
                                 break;
-                            case One { Test: BoundDagValueTest vt } when vt.Input == input:
+                            case One { Test: BoundDagValueTest vt } when vt.Input == input && !vt.Value.IsBad:
                                 break;
                             default:
                                 return false;

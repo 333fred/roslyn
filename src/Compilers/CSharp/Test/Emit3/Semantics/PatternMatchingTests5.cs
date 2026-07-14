@@ -5216,6 +5216,43 @@ forLowering: false);
         }
 
         [Fact]
+        public void ValueSet_BadConstant()
+        {
+            verify("C.Missing or 1",
+@"[0]: t0 == bad ? [2] : [1]
+[1]: t0 == 1 ? [2] : [3]
+[2]: leaf <isPatternSuccess> `C.Missing or 1`
+[3]: leaf <isPatternFailure> `C.Missing or 1`
+",
+                // (3,47): error CS0117: 'C' does not contain a definition for 'Missing'
+                //     static bool Test(int value) => value is C.Missing or 1;
+                Diagnostic(ErrorCode.ERR_NoSuchMember, "Missing").WithArguments("C", "Missing").WithLocation(3, 47));
+            verify("1 or C.Missing",
+@"[0]: t0 == 1 ? [2] : [1]
+[1]: t0 == bad ? [2] : [3]
+[2]: leaf <isPatternSuccess> `1 or C.Missing`
+[3]: leaf <isPatternFailure> `1 or C.Missing`
+",
+                // (3,52): error CS0117: 'C' does not contain a definition for 'Missing'
+                //     static bool Test(int value) => value is 1 or C.Missing;
+                Diagnostic(ErrorCode.ERR_NoSuchMember, "Missing").WithArguments("C", "Missing").WithLocation(3, 52));
+
+            void verify(string pattern, string expectedDag, DiagnosticDescription expectedDiagnostic)
+            {
+                var source = $$"""
+                    class C
+                    {
+                        static bool Test(int value) => value is {{pattern}};
+                    }
+                    """;
+                var comp = CreateCompilation(source);
+
+                comp.VerifyDiagnostics(expectedDiagnostic);
+                VerifyDecisionDagDump<IsPatternExpressionSyntax>(comp, expectedDag, forLowering: false);
+            }
+        }
+
+        [Fact]
         public void ValueSet_UnionNonNullTest_ExplicitType()
         {
             // Exercises ValueSet.Filter with BoundDagNonNullTest from unions.
