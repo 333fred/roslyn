@@ -5192,7 +5192,6 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests
                 }
                 """;
             var comp = CreateCompilation(source);
-            // https://github.com/dotnet/roslyn/issues/77873: Type inference should succeed for Identity([1:default, default:"2"]);.
             comp.VerifyEmitDiagnostics(
                 // (6,9): error CS0411: The type arguments for method 'Program.Identity<K, V>(IDictionary<K, V>)' cannot be inferred from the usage. Try specifying the type arguments explicitly.
                 //         Identity([default:default]);
@@ -5202,10 +5201,7 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests
                 Diagnostic(ErrorCode.ERR_CantInferMethTypeArgs, "Identity").WithArguments($"Program.Identity<K, V>(System.Collections.Generic.{typeName}<K, V>)").WithLocation(7, 9),
                 // (8,9): error CS0411: The type arguments for method 'Program.Identity<K, V>(IDictionary<K, V>)' cannot be inferred from the usage. Try specifying the type arguments explicitly.
                 //         Identity([1:default]);
-                Diagnostic(ErrorCode.ERR_CantInferMethTypeArgs, "Identity").WithArguments($"Program.Identity<K, V>(System.Collections.Generic.{typeName}<K, V>)").WithLocation(8, 9),
-                // (9,9): error CS0411: The type arguments for method 'Program.Identity<K, V>(IDictionary<K, V>)' cannot be inferred from the usage. Try specifying the type arguments explicitly.
-                //         Identity([1:default, default:"2"]);
-                Diagnostic(ErrorCode.ERR_CantInferMethTypeArgs, "Identity").WithArguments($"Program.Identity<K, V>(System.Collections.Generic.{typeName}<K, V>)").WithLocation(9, 9));
+                Diagnostic(ErrorCode.ERR_CantInferMethTypeArgs, "Identity").WithArguments($"Program.Identity<K, V>(System.Collections.Generic.{typeName}<K, V>)").WithLocation(8, 9));
         }
 
         // Type inference should not walk into KeyValuePair<A, B> when the KeyValuePair<A, B>
@@ -5313,6 +5309,414 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests
                 // (9,9): error CS0411: The type arguments for method 'Program.Identity<T>(params IEnumerable<T>)' cannot be inferred from the usage. Try specifying the type arguments explicitly.
                 //         Identity(y, x);
                 Diagnostic(ErrorCode.ERR_CantInferMethTypeArgs, "Identity").WithArguments($"Program.Identity<T>(params {typeName})").WithLocation(9, 9));
+        }
+
+        [Theory]
+        [InlineData("Dictionary<K, V>")]
+        [InlineData("IDictionary<K, V>")]
+        [InlineData("IReadOnlyDictionary<K, V>")]
+        [InlineData("List<KeyValuePair<K, V>>")]
+        [InlineData("KeyValuePair<K, V>[]")]
+        public void TypeInference_KeyValuePairElementKinds(string parameterType)
+        {
+            string source = $$"""
+                using System;
+                using System.Collections.Generic;
+
+                string x = "one";
+                int y = 1;
+                KeyValuePair<string, long> pair = new("two", 2);
+                Dictionary<object, int> dictionary = new() { ["three"] = 3 };
+
+                Print([x:y]);
+                Print([pair]);
+                Print([..dictionary]);
+                Print([x:y, pair, ..dictionary]);
+
+                static void Print<K, V>({{parameterType}} pairs)
+                    => Console.Write($"{typeof(K).Name}:{typeof(V).Name};");
+                """;
+
+            CompileAndVerify(source, expectedOutput: "String:Int32;String:Int64;Object:Int32;Object:Int64;")
+                .VerifyDiagnostics();
+        }
+
+        [Fact]
+        public void TypeInference_KeyValuePairNullableCollectionTarget()
+        {
+            string source = """
+                using System;
+                using System.Collections;
+                using System.Collections.Generic;
+
+                Print([1:"one"]);
+
+                static void Print<K, V>(PairCollection<K, V>? pairs)
+                    => Console.Write($"{typeof(K).Name}:{typeof(V).Name}");
+
+                struct PairCollection<K, V> : IEnumerable<KeyValuePair<K, V>>
+                {
+                    public void Add(KeyValuePair<K, V> pair) { }
+                    public IEnumerator<KeyValuePair<K, V>> GetEnumerator() => throw null;
+                    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+                }
+                """;
+
+            CompileAndVerify(source, expectedOutput: "Int32:String").VerifyDiagnostics();
+        }
+
+        [Fact]
+        public void TypeInference_KeyValuePairOutputInference()
+        {
+            string source = """
+                using System;
+                using System.Collections.Generic;
+
+                OutputType(["one": () => 1]);
+                OutputTypes([(() => 2): (() => "two")]);
+
+                static void OutputType<T>(Dictionary<string, Func<T>> dictionary)
+                    => Console.Write($"{typeof(T).Name};");
+
+                static void OutputTypes<K, V>(Dictionary<Func<K>, Func<V>> dictionary)
+                    => Console.Write($"{typeof(K).Name}:{typeof(V).Name};");
+                """;
+
+            CompileAndVerify(source, expectedOutput: "Int32;Int32:String;")
+                .VerifyDiagnostics();
+        }
+
+        [Theory]
+        [InlineData("Dictionary<K, V>")]
+        [InlineData("KeyValuePair<K, V>[]")]
+        public void TypeInference_KeyValuePairNullable(string parameterType)
+        {
+            string source = $$"""
+                #nullable enable
+                using System.Collections.Generic;
+
+                string? key = null;
+                object? value = null;
+                Infer([key:value]);
+
+                static void Infer<K, V>({{parameterType}} pairs) { }
+                """;
+
+            var comp = CreateCompilation(source);
+            comp.VerifyEmitDiagnostics();
+
+            var tree = comp.SyntaxTrees.Single();
+            var model = comp.GetSemanticModel(tree);
+            var invocation = tree.GetRoot().DescendantNodes().OfType<InvocationExpressionSyntax>().Single();
+            var method = (IMethodSymbol)model.GetSymbolInfo(invocation).Symbol;
+
+            Assert.Equal("System.String?", method.TypeArguments[0].ToTestDisplayString());
+            Assert.Equal("System.Object?", method.TypeArguments[1].ToTestDisplayString());
+            AssertEx.Equal(
+                [CodeAnalysis.NullableAnnotation.Annotated, CodeAnalysis.NullableAnnotation.Annotated],
+                method.TypeArgumentNullableAnnotations);
+        }
+
+        [Fact]
+        public void TypeInference_KeyValuePairConversions_LanguageVersion()
+        {
+            string source = """
+                using System;
+                using System.Collections.Generic;
+
+                KeyValuePair<int, string> x = new(1, "one");
+                KeyValuePair<long, object> y = new(2, "two");
+                Infer([x, y]);
+
+                static void Infer<K, V>(List<KeyValuePair<K, V>> pairs)
+                    => Console.Write($"{typeof(K).Name}:{typeof(V).Name}");
+                """;
+
+            CompileAndVerify(source, parseOptions: TestOptions.RegularPreview, expectedOutput: "Int64:Object")
+                .VerifyDiagnostics();
+
+            CreateCompilation(source, parseOptions: TestOptions.Regular14).VerifyEmitDiagnostics(
+                // (6,1): error CS0411: The type arguments for method 'Infer<K, V>(List<KeyValuePair<K, V>>)' cannot be inferred from the usage. Try specifying the type arguments explicitly.
+                // Infer([x, y]);
+                Diagnostic(ErrorCode.ERR_CantInferMethTypeArgs, "Infer").WithArguments("Infer<K, V>(System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<K, V>>)").WithLocation(6, 1),
+                // (8,13): warning CS8321: The local function 'Infer' is declared but never used
+                // static void Infer<K, V>(List<KeyValuePair<K, V>> pairs)
+                Diagnostic(ErrorCode.WRN_UnreferencedLocalFunction, "Infer").WithArguments("Infer").WithLocation(8, 13));
+        }
+
+        [Fact]
+        public void BetterConversion_KeyValuePairElement()
+        {
+            string source = """
+                using System;
+                using System.Collections.Generic;
+
+                class Program
+                {
+                    static void Main()
+                    {
+                        Console.Write(Print([1:2]));
+                    }
+                    static string Print(List<KeyValuePair<int, int>> pairs) => "int,int";
+                    static string Print(List<KeyValuePair<byte, object>> pairs) => "byte,object";
+                }
+                """;
+
+            CompileAndVerify(source, expectedOutput: "int,int").VerifyDiagnostics();
+        }
+
+        [Fact]
+        public void BetterConversion_KeyValuePairExpressionAndSpread()
+        {
+            string source = """
+                using System;
+                using System.Collections.Generic;
+
+                class Program
+                {
+                    static void Main()
+                    {
+                        KeyValuePair<byte, string> pair = new(1, "one");
+                        Dictionary<byte, string> dictionary = new() { [2] = "two" };
+
+                        Console.Write(Print([pair]));
+                        Console.Write(Print([..dictionary]));
+                    }
+                    static string Print(List<KeyValuePair<int, object>> pairs) => "int;";
+                    static string Print(List<KeyValuePair<long, object>> pairs) => "long;";
+                }
+                """;
+
+            CompileAndVerify(source, expectedOutput: "int;int;").VerifyDiagnostics();
+        }
+
+        [Fact]
+        public void BetterConversion_KeyValuePairExpressionAndSpread_Identity()
+        {
+            string source = """
+                using System;
+                using System.Collections.Generic;
+
+                class A
+                {
+                    public static implicit operator B(A value) => new();
+                }
+
+                class B
+                {
+                    public static implicit operator A(B value) => new();
+                }
+
+                class Program
+                {
+                    static void Main()
+                    {
+                        KeyValuePair<A, int> pair = new(new(), 1);
+                        Dictionary<A, int> dictionary = new() { [new()] = 2 };
+
+                        Console.Write(Print([pair]));
+                        Console.Write(Print([..dictionary]));
+                    }
+
+                    static string Print(List<KeyValuePair<A, object>> pairs) => "A;";
+                    static string Print(List<KeyValuePair<B, object>> pairs) => "B;";
+                }
+                """;
+
+            CompileAndVerify(source, expectedOutput: "A;A;").VerifyDiagnostics();
+        }
+
+        [Fact]
+        public void BetterConversion_KeyValuePairExpressionAndSpread_UserDefinedConversion_OneApplicable()
+        {
+            string source = """
+                using System;
+                using System.Collections.Generic;
+
+                class Element
+                {
+                    public static implicit operator KeyValuePair<int, object>(Element value) => new(1, value);
+                }
+
+                class Program
+                {
+                    static void Main()
+                    {
+                        Element element = new();
+                        Element[] elements = [element];
+
+                        Console.Write(Print([element]));
+                        Console.Write(Print([..elements]));
+                    }
+
+                    static string Print(List<KeyValuePair<int, object>> pairs) => "int;";
+                    static string Print(List<KeyValuePair<long, object>> pairs) => "long;";
+                }
+                """;
+
+            CompileAndVerify(source, parseOptions: TestOptions.Regular14, expectedOutput: "int;int;").VerifyDiagnostics();
+            CompileAndVerify(source, parseOptions: TestOptions.RegularPreview, expectedOutput: "int;int;").VerifyDiagnostics();
+        }
+
+        [Fact]
+        public void BetterConversion_KeyValuePairExpressionAndSpread_UserDefinedConversion_BothApplicable()
+        {
+            string source = """
+                using System.Collections.Generic;
+
+                class Element
+                {
+                    public static implicit operator KeyValuePair<int, object>(Element value) => new(1, value);
+                    public static implicit operator KeyValuePair<long, object>(Element value) => new(2, value);
+                }
+
+                class Program
+                {
+                    static void Main()
+                    {
+                        Element element = new();
+                        Element[] elements = [element];
+
+                        Print([element]);
+                        Print([..elements]);
+                    }
+
+                    static void Print(List<KeyValuePair<int, object>> pairs) { }
+                    static void Print(List<KeyValuePair<long, object>> pairs) { }
+                }
+                """;
+
+            verify(CreateCompilation(source, parseOptions: TestOptions.Regular14));
+            verify(CreateCompilation(source, parseOptions: TestOptions.RegularPreview));
+
+            static void verify(CSharpCompilation comp)
+            {
+                comp.VerifyEmitDiagnostics(
+                    // (16,9): error CS0121: The call is ambiguous between the following methods or properties: 'Program.Print(List<KeyValuePair<int, object>>)' and 'Program.Print(List<KeyValuePair<long, object>>)'
+                    //         Print([element]);
+                    Diagnostic(ErrorCode.ERR_AmbigCall, "Print").WithArguments("Program.Print(System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<int, object>>)", "Program.Print(System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<long, object>>)").WithLocation(16, 9),
+                    // (17,9): error CS0121: The call is ambiguous between the following methods or properties: 'Program.Print(List<KeyValuePair<int, object>>)' and 'Program.Print(List<KeyValuePair<long, object>>)'
+                    //         Print([..elements]);
+                    Diagnostic(ErrorCode.ERR_AmbigCall, "Print").WithArguments("Program.Print(System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<int, object>>)", "Program.Print(System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<long, object>>)").WithLocation(17, 9));
+            }
+        }
+
+        [Fact]
+        public void BetterConversion_KeyValuePairExpressionAndSpread_Ambiguous()
+        {
+            string source = """
+                using System.Collections.Generic;
+
+                class Program
+                {
+                    static void Main()
+                    {
+                        KeyValuePair<byte, int> pair = new(1, 2);
+                        Dictionary<byte, int> dictionary = new() { [3] = 4 };
+
+                        Print([pair]);
+                        Print([..dictionary]);
+                    }
+                    static void Print(List<KeyValuePair<int, int>> pairs) { }
+                    static void Print(List<KeyValuePair<byte, object>> pairs) { }
+                }
+                """;
+
+            CreateCompilation(source).VerifyEmitDiagnostics(
+                // (10,9): error CS0121: The call is ambiguous between the following methods or properties: 'Program.Print(List<KeyValuePair<int, int>>)' and 'Program.Print(List<KeyValuePair<byte, object>>)'
+                //         Print([pair]);
+                Diagnostic(ErrorCode.ERR_AmbigCall, "Print").WithArguments("Program.Print(System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<int, int>>)", "Program.Print(System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<byte, object>>)").WithLocation(10, 9),
+                // (11,9): error CS0121: The call is ambiguous between the following methods or properties: 'Program.Print(List<KeyValuePair<int, int>>)' and 'Program.Print(List<KeyValuePair<byte, object>>)'
+                //         Print([..dictionary]);
+                Diagnostic(ErrorCode.ERR_AmbigCall, "Print").WithArguments("Program.Print(System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<int, int>>)", "Program.Print(System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<byte, object>>)").WithLocation(11, 9));
+        }
+
+        [Fact]
+        public void BetterConversion_KeyValuePairElement_Conflicting()
+        {
+            string source = """
+                using System.Collections.Generic;
+
+                class Program
+                {
+                    static void Main()
+                    {
+                        Print([1:"one"]);
+                    }
+                    static void Print(List<KeyValuePair<int, object>> pairs) { }
+                    static void Print(List<KeyValuePair<long, string>> pairs) { }
+                }
+                """;
+
+            CreateCompilation(source).VerifyEmitDiagnostics(
+                // (7,9): error CS0121: The call is ambiguous between the following methods or properties: 'Program.Print(List<KeyValuePair<int, object>>)' and 'Program.Print(List<KeyValuePair<long, string>>)'
+                //         Print([1:"one"]);
+                Diagnostic(ErrorCode.ERR_AmbigCall, "Print").WithArguments("Program.Print(System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<int, object>>)", "Program.Print(System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<long, string>>)").WithLocation(7, 9));
+        }
+
+        [Fact]
+        public void BetterConversion_KeyValuePairAndNonKeyValuePairTargets()
+        {
+            string source = """
+                using System;
+                using System.Collections.Generic;
+
+                class Program
+                {
+                    static void Main()
+                    {
+                        KeyValuePair<int, int> pair = new(1, 2);
+                        Console.Write(Print([pair]));
+                    }
+                    static string Print(List<KeyValuePair<int, int>> pairs) => "pair";
+                    static string Print(List<object> pairs) => "object";
+                }
+                """;
+
+            CompileAndVerify(source, parseOptions: TestOptions.Regular14, expectedOutput: "pair")
+                .VerifyDiagnostics();
+
+            CreateCompilation(source, parseOptions: TestOptions.RegularPreview).VerifyEmitDiagnostics(
+                // (9,23): error CS0121: The call is ambiguous between the following methods or properties: 'Program.Print(List<KeyValuePair<int, int>>)' and 'Program.Print(List<object>)'
+                //         Console.Write(Print([pair]));
+                Diagnostic(ErrorCode.ERR_AmbigCall, "Print").WithArguments("Program.Print(System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<int, int>>)", "Program.Print(System.Collections.Generic.List<object>)").WithLocation(9, 23));
+        }
+
+        [Fact]
+        public void BetterConversion_KeyValuePairAndNonKeyValuePairSpanTargets()
+        {
+            string source = """
+                using System;
+                using System.Collections.Generic;
+
+                class Program
+                {
+                    static void Main()
+                    {
+                        M([]);
+                        N([]);
+                    }
+
+                    static void M(ReadOnlySpan<KeyValuePair<int, string>> pairs) { }
+                    static void M(Span<object> pairs) { }
+                    static void N(ReadOnlySpan<KeyValuePair<int, string>> pairs) { }
+                    static void N(object[] pairs) { }
+                }
+                """;
+
+            verify(CreateCompilation(source, parseOptions: TestOptions.Regular14, targetFramework: TargetFramework.Net80));
+            verify(CreateCompilation(source, parseOptions: TestOptions.RegularPreview, targetFramework: TargetFramework.Net80));
+
+            static void verify(CSharpCompilation comp)
+            {
+                comp.VerifyEmitDiagnostics(
+                    // (8,9): error CS0121: The call is ambiguous between the following methods or properties: 'Program.M(ReadOnlySpan<KeyValuePair<int, string>>)' and 'Program.M(Span<object>)'
+                    //         M([]);
+                    Diagnostic(ErrorCode.ERR_AmbigCall, "M").WithArguments("Program.M(System.ReadOnlySpan<System.Collections.Generic.KeyValuePair<int, string>>)", "Program.M(System.Span<object>)").WithLocation(8, 9),
+                    // (9,9): error CS0121: The call is ambiguous between the following methods or properties: 'Program.N(ReadOnlySpan<KeyValuePair<int, string>>)' and 'Program.N(object[])'
+                    //         N([]);
+                    Diagnostic(ErrorCode.ERR_AmbigCall, "N").WithArguments("Program.N(System.ReadOnlySpan<System.Collections.Generic.KeyValuePair<int, string>>)", "Program.N(object[])").WithLocation(9, 9));
+            }
         }
 
         [Theory]
