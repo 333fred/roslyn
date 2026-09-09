@@ -100,6 +100,15 @@ namespace Microsoft.CodeAnalysis.CSharp
                 receiverIsKnownToBeCaptured);
         }
 
+        readonly union IndexerOrInitializer(BoundIndexerAccess, BoundObjectInitializerMember)
+        {
+            public BoundExpression Expression => this switch
+            {
+                BoundIndexerAccess i => i,
+                BoundObjectInitializerMember o => o
+            };
+        }
+
         private BoundExpression MakeIndexerAccess(
             SyntaxNode syntax,
             BoundExpression rewrittenReceiver,
@@ -110,19 +119,18 @@ namespace Microsoft.CodeAnalysis.CSharp
             bool expanded,
             ImmutableArray<int> argsToParamsOpt,
             BitVector defaultArguments,
-            BoundExpression oldNode,
+            IndexerOrInitializer oldNode,
             bool isLeftOfAssignment,
             bool receiverIsKnownToBeCaptured)
         {
-            Debug.Assert(oldNode is BoundIndexerAccess or BoundObjectInitializerMember);
             Debug.Assert(arguments.Length != 0);
             Debug.Assert(rewrittenReceiver is { });
 
             if (isLeftOfAssignment && indexer.RefKind == RefKind.None)
             {
                 TypeSymbol type = indexer.Type;
-                Debug.Assert(oldNode.Type is not null);
-                Debug.Assert(oldNode.Type.Equals(type, TypeCompareKind.ConsiderEverything));
+                Debug.Assert(oldNode.Expression.Type is not null);
+                Debug.Assert(oldNode.Expression.Type.Equals(type, TypeCompareKind.ConsiderEverything));
 
                 // This is an indexer access. We return a BoundIndexerAccess node here. This node will be rewritten
                 // with MakePropertyAssignment when rewriting the enclosing BoundAssignmentOperator.
