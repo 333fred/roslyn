@@ -297,7 +297,7 @@ namespace BoundTreeGenerator
                     {
                         string abstr = "";
                         if (node is AbstractNode and not Node)
-                            abstr = "abstract ";
+                            abstr = "closed ";
                         else if (CanBeSealed(node))
                             abstr = "sealed ";
                         WriteLine("internal {2}partial class {0} : {1}", node.Name, node.Base, abstr);

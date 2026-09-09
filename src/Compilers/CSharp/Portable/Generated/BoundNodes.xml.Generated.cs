@@ -259,7 +259,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         WithExpression,
     }
 
-    internal abstract partial class BoundInitializer : BoundNode
+    internal closed partial class BoundInitializer : BoundNode
     {
         protected BoundInitializer(BoundKind kind, SyntaxNode syntax, bool hasErrors)
             : base(kind, syntax, hasErrors)
@@ -273,7 +273,7 @@ namespace Microsoft.CodeAnalysis.CSharp
 
     }
 
-    internal abstract partial class BoundEqualsValue : BoundInitializer
+    internal closed partial class BoundEqualsValue : BoundInitializer
     {
         protected BoundEqualsValue(BoundKind kind, SyntaxNode syntax, ImmutableArray<LocalSymbol> locals, BoundExpression value, bool hasErrors = false)
             : base(kind, syntax, hasErrors)
@@ -408,7 +408,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         }
     }
 
-    internal abstract partial class BoundExpression : BoundNode
+    internal closed partial class BoundExpression : BoundNode
     {
         protected BoundExpression(BoundKind kind, SyntaxNode syntax, TypeSymbol? type, bool hasErrors)
             : base(kind, syntax, hasErrors)
@@ -425,7 +425,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         public TypeSymbol? Type { get; }
     }
 
-    internal abstract partial class BoundValuePlaceholderBase : BoundExpression
+    internal closed partial class BoundValuePlaceholderBase : BoundExpression
     {
         protected BoundValuePlaceholderBase(BoundKind kind, SyntaxNode syntax, TypeSymbol? type, bool hasErrors)
             : base(kind, syntax, type, hasErrors)
@@ -439,7 +439,7 @@ namespace Microsoft.CodeAnalysis.CSharp
 
     }
 
-    internal abstract partial class BoundEarlyValuePlaceholderBase : BoundValuePlaceholderBase
+    internal closed partial class BoundEarlyValuePlaceholderBase : BoundValuePlaceholderBase
     {
         protected BoundEarlyValuePlaceholderBase(BoundKind kind, SyntaxNode syntax, TypeSymbol? type, bool hasErrors)
             : base(kind, syntax, type, hasErrors)
@@ -1658,7 +1658,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         }
     }
 
-    internal abstract partial class BoundBinaryOperatorBase : BoundExpression
+    internal closed partial class BoundBinaryOperatorBase : BoundExpression
     {
         protected BoundBinaryOperatorBase(BoundKind kind, SyntaxNode syntax, BoundExpression left, BoundExpression right, TypeSymbol type, bool hasErrors = false)
             : base(kind, syntax, type, hasErrors)
@@ -2246,7 +2246,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         }
     }
 
-    internal abstract partial class BoundTypeOf : BoundExpression
+    internal closed partial class BoundTypeOf : BoundExpression
     {
         protected BoundTypeOf(BoundKind kind, SyntaxNode syntax, MethodSymbol? getTypeFromHandle, TypeSymbol type, bool hasErrors)
             : base(kind, syntax, type, hasErrors)
@@ -3179,7 +3179,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         }
     }
 
-    internal abstract partial class BoundStatement : BoundNode
+    internal closed partial class BoundStatement : BoundNode
     {
         protected BoundStatement(BoundKind kind, SyntaxNode syntax, bool hasErrors)
             : base(kind, syntax, hasErrors)
@@ -3482,7 +3482,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         }
     }
 
-    internal abstract partial class BoundMultipleLocalDeclarationsBase : BoundStatement
+    internal closed partial class BoundMultipleLocalDeclarationsBase : BoundStatement
     {
         protected BoundMultipleLocalDeclarationsBase(BoundKind kind, SyntaxNode syntax, ImmutableArray<BoundLocalDeclaration> localDeclarations, bool hasErrors = false)
             : base(kind, syntax, hasErrors)
@@ -3920,7 +3920,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         }
     }
 
-    internal abstract partial class BoundLoopStatement : BoundStatement
+    internal closed partial class BoundLoopStatement : BoundStatement
     {
         protected BoundLoopStatement(BoundKind kind, SyntaxNode syntax, LabelSymbol breakLabel, LabelSymbol continueLabel, bool hasErrors)
             : base(kind, syntax, hasErrors)
@@ -3948,7 +3948,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         public LabelSymbol ContinueLabel { get; }
     }
 
-    internal abstract partial class BoundConditionalLoopStatement : BoundLoopStatement
+    internal closed partial class BoundConditionalLoopStatement : BoundLoopStatement
     {
         protected BoundConditionalLoopStatement(BoundKind kind, SyntaxNode syntax, ImmutableArray<LocalSymbol> locals, BoundExpression condition, BoundStatement body, LabelSymbol breakLabel, LabelSymbol continueLabel, bool hasErrors = false)
             : base(kind, syntax, breakLabel, continueLabel, hasErrors)
@@ -4913,7 +4913,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         }
     }
 
-    internal abstract partial class BoundSwitchExpression : BoundExpression
+    internal closed partial class BoundSwitchExpression : BoundExpression
     {
         protected BoundSwitchExpression(BoundKind kind, SyntaxNode syntax, BoundExpression expression, ImmutableArray<BoundSwitchExpressionArm> switchArms, BoundDecisionDag reachabilityDecisionDag, LabelSymbol? defaultLabel, bool reportedNotExhaustive, TypeSymbol? type, bool hasErrors = false)
             : base(kind, syntax, type, hasErrors)
@@ -5070,7 +5070,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         }
     }
 
-    internal abstract partial class BoundDecisionDagNode : BoundNode
+    internal closed partial class BoundDecisionDagNode : BoundNode
     {
         protected BoundDecisionDagNode(BoundKind kind, SyntaxNode syntax, bool hasErrors)
             : base(kind, syntax, hasErrors)
@@ -5221,7 +5221,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         }
     }
 
-    internal abstract partial class BoundDagTest : BoundNode
+    internal closed partial class BoundDagTest : BoundNode
     {
         protected BoundDagTest(BoundKind kind, SyntaxNode syntax, BoundDagTemp input, bool hasErrors = false)
             : base(kind, syntax, hasErrors)
@@ -5410,7 +5410,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         }
     }
 
-    internal abstract partial class BoundDagEvaluation : BoundDagTest
+    internal closed partial class BoundDagEvaluation : BoundDagTest
     {
         protected BoundDagEvaluation(BoundKind kind, SyntaxNode syntax, BoundDagTemp input, bool hasErrors = false)
             : base(kind, syntax, input, hasErrors)
@@ -5789,7 +5789,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         }
     }
 
-    internal abstract partial class BoundMethodOrPropertyGroup : BoundExpression
+    internal closed partial class BoundMethodOrPropertyGroup : BoundExpression
     {
         protected BoundMethodOrPropertyGroup(BoundKind kind, SyntaxNode syntax, BoundExpression? receiverOpt, LookupResultKind resultKind, bool hasErrors = false)
             : base(kind, syntax, null, hasErrors)
@@ -5942,7 +5942,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         }
     }
 
-    internal abstract partial class BoundDynamicInvocableBase : BoundExpression
+    internal closed partial class BoundDynamicInvocableBase : BoundExpression
     {
         protected BoundDynamicInvocableBase(BoundKind kind, SyntaxNode syntax, BoundExpression expression, ImmutableArray<BoundExpression> arguments, TypeSymbol? type, bool hasErrors = false)
             : base(kind, syntax, type, hasErrors)
@@ -6390,7 +6390,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         }
     }
 
-    internal abstract partial class BoundObjectCreationExpressionBase : BoundExpression
+    internal closed partial class BoundObjectCreationExpressionBase : BoundExpression
     {
         protected BoundObjectCreationExpressionBase(BoundKind kind, SyntaxNode syntax, TypeSymbol type, bool hasErrors)
             : base(kind, syntax, type, hasErrors)
@@ -6462,7 +6462,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         }
     }
 
-    internal abstract partial class BoundCollectionExpressionBase : BoundExpression
+    internal closed partial class BoundCollectionExpressionBase : BoundExpression
     {
         protected BoundCollectionExpressionBase(BoundKind kind, SyntaxNode syntax, ImmutableArray<BoundNode> elements, TypeSymbol? type, bool hasErrors = false)
             : base(kind, syntax, type, hasErrors)
@@ -6658,7 +6658,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         }
     }
 
-    internal abstract partial class BoundTupleExpression : BoundExpression
+    internal closed partial class BoundTupleExpression : BoundExpression
     {
         protected BoundTupleExpression(BoundKind kind, SyntaxNode syntax, ImmutableArray<BoundExpression> arguments, ImmutableArray<string?> argumentNamesOpt, ImmutableArray<bool> inferredNamesOpt, TypeSymbol? type, bool hasErrors = false)
             : base(kind, syntax, type, hasErrors)
@@ -6808,7 +6808,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         }
     }
 
-    internal abstract partial class BoundObjectInitializerExpressionBase : BoundExpression
+    internal closed partial class BoundObjectInitializerExpressionBase : BoundExpression
     {
         protected BoundObjectInitializerExpressionBase(BoundKind kind, SyntaxNode syntax, BoundObjectOrCollectionValuePlaceholder placeholder, ImmutableArray<BoundExpression> initializers, TypeSymbol type, bool hasErrors = false)
             : base(kind, syntax, type, hasErrors)
@@ -7294,7 +7294,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         }
     }
 
-    internal abstract partial class BoundStackAllocArrayCreationBase : BoundExpression
+    internal closed partial class BoundStackAllocArrayCreationBase : BoundExpression
     {
         protected BoundStackAllocArrayCreationBase(BoundKind kind, SyntaxNode syntax, TypeSymbol elementType, BoundExpression count, BoundArrayInitialization? initializerOpt, TypeSymbol? type, bool hasErrors = false)
             : base(kind, syntax, type, hasErrors)
@@ -7892,7 +7892,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         }
     }
 
-    internal abstract partial class BoundInterpolatedStringBase : BoundExpression
+    internal closed partial class BoundInterpolatedStringBase : BoundExpression
     {
         protected BoundInterpolatedStringBase(BoundKind kind, SyntaxNode syntax, ImmutableArray<BoundExpression> parts, ConstantValue? constantValueOpt, TypeSymbol? type, bool hasErrors = false)
             : base(kind, syntax, type, hasErrors)
@@ -8107,7 +8107,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         }
     }
 
-    internal abstract partial class BoundPattern : BoundNode
+    internal closed partial class BoundPattern : BoundNode
     {
         protected BoundPattern(BoundKind kind, SyntaxNode syntax, TypeSymbol inputType, TypeSymbol narrowedType, bool hasErrors)
             : base(kind, syntax, hasErrors)
@@ -8260,7 +8260,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         }
     }
 
-    internal abstract partial class BoundObjectPattern : BoundPattern
+    internal closed partial class BoundObjectPattern : BoundPattern
     {
         protected BoundObjectPattern(BoundKind kind, SyntaxNode syntax, Symbol? variable, BoundExpression? variableAccess, TypeSymbol inputType, TypeSymbol narrowedType, bool hasErrors = false)
             : base(kind, syntax, inputType, narrowedType, hasErrors)
@@ -8481,7 +8481,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         }
     }
 
-    internal abstract partial class BoundSubpattern : BoundNode
+    internal closed partial class BoundSubpattern : BoundNode
     {
         protected BoundSubpattern(BoundKind kind, SyntaxNode syntax, BoundPattern pattern, bool hasErrors = false)
             : base(kind, syntax, hasErrors)
@@ -8804,7 +8804,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         }
     }
 
-    internal abstract partial class VariablePendingInference : BoundExpression
+    internal closed partial class VariablePendingInference : BoundExpression
     {
         protected VariablePendingInference(BoundKind kind, SyntaxNode syntax, Symbol variableSymbol, BoundExpression? receiverOpt, bool hasErrors = false)
             : base(kind, syntax, null, hasErrors)
@@ -8908,7 +8908,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         }
     }
 
-    internal abstract partial class BoundMethodBodyBase : BoundNode
+    internal closed partial class BoundMethodBodyBase : BoundNode
     {
         protected BoundMethodBodyBase(BoundKind kind, SyntaxNode syntax, BoundBlock? blockBody, BoundBlock? expressionBody, bool hasErrors = false)
             : base(kind, syntax, hasErrors)

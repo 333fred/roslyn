@@ -1547,7 +1547,7 @@ namespace Microsoft.CodeAnalysis.Operations
                 {
                     BoundBinaryOperator binaryOp => CreateBoundBinaryOperatorOperation(binaryOp, left, right),
                     BoundUserDefinedConditionalLogicalOperator logicalOp => createBoundUserDefinedConditionalLogicalOperator(logicalOp, left, right),
-                    { Kind: var kind } => throw ExceptionUtilities.UnexpectedValue(kind)
+                    //{ Kind: var kind } => throw ExceptionUtilities.UnexpectedValue(kind)
                 };
             }
 
@@ -2310,7 +2310,7 @@ namespace Microsoft.CodeAnalysis.Operations
                 BoundTupleLiteral { Type: var t } => t,
                 BoundConvertedTupleLiteral { SourceTuple: { Type: var t } } => t,
                 BoundConvertedTupleLiteral => null,
-                { Kind: var kind } => throw ExceptionUtilities.UnexpectedValue(kind)
+                //{ Kind: var kind } => throw ExceptionUtilities.UnexpectedValue(kind)
             };
 
             ImmutableArray<IOperation> elements = CreateFromArray<BoundExpression, IOperation>(boundTupleExpression.Arguments);
