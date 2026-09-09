@@ -9,7 +9,7 @@ using System.Runtime.CompilerServices;
 
 namespace Microsoft.CodeAnalysis.CSharp
 {
-    internal abstract partial class BoundExpression
+    internal partial class BoundExpression
     {
         /// <summary>
         /// Returns a serializable object that is used for displaying this expression in a diagnostic message.

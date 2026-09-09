@@ -154,7 +154,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         protected override ImmutableArray<BoundNode?> Children => ImmutableArray.Create<BoundNode?>(this.Expression);
     }
 
-    internal abstract partial class BoundMethodOrPropertyGroup
+    internal partial class BoundMethodOrPropertyGroup
     {
         protected override ImmutableArray<BoundNode?> Children => ImmutableArray.Create<BoundNode?>(this.ReceiverOpt);
     }

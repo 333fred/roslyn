@@ -9,7 +9,7 @@ using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.CSharp
 {
-    internal abstract partial class BoundNode
+    internal partial class BoundNode
     {
 #if DEBUG
         /// <summary>
