@@ -10,6 +10,7 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.PooledObjects;
 
@@ -23,7 +24,8 @@ namespace Microsoft.CodeAnalysis.Collections
     /// </remarks>
     [DebuggerDisplay("{GetDebuggerDisplay(),nq}")]
     [DebuggerTypeProxy(typeof(OneOrMany<>.DebuggerProxy))]
-    internal readonly struct OneOrMany<T>
+    [Union]
+    internal readonly struct OneOrMany<T> : OneOrMany<T>.IUnionMembers
     {
         public static readonly OneOrMany<T> Empty = new OneOrMany<T>(ImmutableArray<T>.Empty);
 
@@ -55,13 +57,6 @@ namespace Microsoft.CodeAnalysis.Collections
             }
         }
 
-        /// <summary>
-        /// True if the collection has a single item. This item is stored in <see cref="_one"/>.
-        /// </summary>
-        [MemberNotNullWhen(true, nameof(_one))]
-        private bool HasOneItem
-            => _many.IsDefault;
-
         public bool IsDefault
             => _one == null && _many.IsDefault;
 
@@ -69,138 +64,164 @@ namespace Microsoft.CodeAnalysis.Collections
         {
             get
             {
-                if (HasOneItem)
+                return this switch
                 {
-                    if (index != 0)
-                    {
-                        throw new IndexOutOfRangeException();
-                    }
-
-                    return _one;
-                }
-                else
-                {
-                    return _many[index];
-                }
+                    T when index != 0 => throw new InvalidOperationException(),
+                    T one => one,
+                    ImmutableArray<T> many => many[index]
+                };
             }
         }
 
         public int Count
-            => HasOneItem ? 1 : _many.Length;
+            => this switch { T => 1, var many => many.Count };
 
         public bool IsEmpty
             => Count == 0;
 
+        object IUnionMembers.Value => _many.IsDefault ? _one : _many;
+        bool IUnionMembers.TryGetValue([MaybeNullWhen(false)] out T one)
+        {
+            if (_many.IsDefault)
+            {
+                one = _one;
+                return true;
+            }
+
+            one = default;
+            return false;
+        }
+
+        bool IUnionMembers.TryGetValue(out ImmutableArray<T> many)
+        {
+            if (!_many.IsDefault)
+            {
+                many = _many;
+                return true;
+            }
+
+            many = default;
+            return false;
+        }
+
         public OneOrMany<T> Add(T item)
-            => HasOneItem ? OneOrMany.Create(_one, item) :
-               IsEmpty ? OneOrMany.Create(item) :
-               OneOrMany.Create(_many.Add(item));
+            => this switch
+            {
+                T one => OneOrMany.Create(one, item),
+                ImmutableArray<T> { Length: 0 } => item,
+                ImmutableArray<T> many => many.Add(item)
+            };
 
         public void AddRangeTo(ArrayBuilder<T> builder)
         {
-            if (HasOneItem)
+            switch (this)
             {
-                builder.Add(_one);
-            }
-            else
-            {
-                builder.AddRange(_many);
+                case T one:
+                    builder.Add(one);
+                    break;
+                case ImmutableArray<T> many:
+                    builder.AddRange(many);
+                    break;
             }
         }
 
         public bool Contains(T item)
-            => HasOneItem ? EqualityComparer<T>.Default.Equals(item, _one) : _many.Contains(item);
+            => this switch
+            {
+                T one => EqualityComparer<T>.Default.Equals(item, one),
+                ImmutableArray<T> many => many.Contains(item)
+            };
 
         public OneOrMany<T> RemoveAll(T item)
         {
-            if (HasOneItem)
+            return this switch
             {
-                return EqualityComparer<T>.Default.Equals(item, _one) ? Empty : this;
-            }
-
-            return OneOrMany.Create(_many.WhereAsArray(static (value, item) => !EqualityComparer<T>.Default.Equals(value, item), item));
+                T one => EqualityComparer<T>.Default.Equals(item, _one) ? Empty : one,
+                ImmutableArray<T> many => _many.WhereAsArray(static (value, item) => !EqualityComparer<T>.Default.Equals(value, item), item)
+            };
         }
 
         public OneOrMany<TResult> Select<TResult>(Func<T, TResult> selector)
         {
-            return HasOneItem ?
-                OneOrMany.Create(selector(_one)) :
-                OneOrMany.Create(_many.SelectAsArray(selector));
+            return this switch
+            {
+                T one => selector(one),
+                ImmutableArray<T> many => many.SelectAsArray(selector)
+            };
         }
 
         public OneOrMany<TResult> Select<TResult, TArg>(Func<T, TArg, TResult> selector, TArg arg)
         {
-            return HasOneItem ?
-                OneOrMany.Create(selector(_one, arg)) :
-                OneOrMany.Create(_many.SelectAsArray(selector, arg));
+            return this switch
+            {
+                T one => selector(one, arg),
+                ImmutableArray<T> many => many.SelectAsArray(selector, arg)
+            };
         }
 
         public T First() => this[0];
 
         public T? FirstOrDefault()
-            => HasOneItem ? _one : _many.FirstOrDefault();
+            => this switch { T one => one, ImmutableArray<T> many => many.FirstOrDefault() };
 
         public T? FirstOrDefault(Func<T, bool> predicate)
         {
-            if (HasOneItem)
+            return this switch
             {
-                return predicate(_one) ? _one : default;
-            }
-
-            return _many.FirstOrDefault(predicate);
+                T one => predicate(one) ? one : default,
+                ImmutableArray<T> many => many.FirstOrDefault(predicate)
+            };
         }
 
         public T? FirstOrDefault<TArg>(Func<T, TArg, bool> predicate, TArg arg)
         {
-            if (HasOneItem)
+            return this switch
             {
-                return predicate(_one, arg) ? _one : default;
-            }
-
-            return _many.FirstOrDefault(predicate, arg);
+                T one => predicate(one, arg) ? one : default,
+                ImmutableArray<T> many => many.FirstOrDefault(predicate, arg)
+            };
         }
 
         public static OneOrMany<T> CastUp<TDerived>(OneOrMany<TDerived> from) where TDerived : class, T
         {
-            return from.HasOneItem
-                ? new OneOrMany<T>(from._one)
-                : new OneOrMany<T>(ImmutableArray<T>.CastUp(from._many));
+            return from switch
+            {
+                T one => one,
+                ImmutableArray<TDerived> many => ImmutableArray<T>.CastUp(many)
+            };
         }
 
         public bool All(Func<T, bool> predicate)
-            => HasOneItem ? predicate(_one) : _many.All(predicate);
+            => this switch { T one => predicate(one), ImmutableArray<T> many => many.All(predicate) };
 
         public bool All<TArg>(Func<T, TArg, bool> predicate, TArg arg)
-            => HasOneItem ? predicate(_one, arg) : _many.All(predicate, arg);
+            => this switch { T one => predicate(one, arg), ImmutableArray<T> many => many.All(predicate, arg) };
 
         public bool Any()
             => !IsEmpty;
 
         public bool Any(Func<T, bool> predicate)
-            => HasOneItem ? predicate(_one) : _many.Any(predicate);
+            => this switch { T one => predicate(one), ImmutableArray<T> many => many.Any(predicate) };
 
         public bool Any<TArg>(Func<T, TArg, bool> predicate, TArg arg)
-            => HasOneItem ? predicate(_one, arg) : _many.Any(predicate, arg);
+            => this switch { T one => predicate(one, arg), ImmutableArray<T> many => many.Any(predicate, arg) };
 
         public ImmutableArray<T> ToImmutable()
-            => HasOneItem ? ImmutableArray.Create(_one) : _many;
+            => this switch { T one => [one], ImmutableArray<T> many => many };
 
         public T[] ToArray()
-            => HasOneItem ? new[] { _one } : _many.ToArray();
+            => this switch { T one => [one], ImmutableArray<T> many => many.ToArray() };
 
         public bool SequenceEqual(OneOrMany<T> other, IEqualityComparer<T>? comparer = null)
         {
             comparer ??= EqualityComparer<T>.Default;
 
-            if (Count != other.Count)
+            return (this, other) switch
             {
-                return false;
-            }
-
-            Debug.Assert(HasOneItem == other.HasOneItem);
-
-            return HasOneItem ? comparer.Equals(_one, other._one!) :
-                   _many.SequenceEqual(other._many, comparer);
+                (T one, T otherOne) => comparer.Equals(one, otherOne),
+                (ImmutableArray<T> many, ImmutableArray<T> otherMany) => many.Length == otherMany.Length && many.SequenceEqual(otherMany),
+                _ => false
+            };
         }
 
         public bool SequenceEqual(ImmutableArray<T> other, IEqualityComparer<T>? comparer = null)
@@ -210,9 +231,9 @@ namespace Microsoft.CodeAnalysis.Collections
         {
             comparer ??= EqualityComparer<T>.Default;
 
-            if (!HasOneItem)
+            if (this is ImmutableArray<T> many)
             {
-                return _many.SequenceEqual(other, comparer);
+                return many.SequenceEqual(other, comparer);
             }
 
             var first = true;
@@ -262,6 +283,23 @@ namespace Microsoft.CodeAnalysis.Collections
 
         private string GetDebuggerDisplay()
             => "Count = " + Count;
+
+        public interface IUnionMembers
+        {
+            public static OneOrMany<T> Create(T one)
+            {
+                return OneOrMany.Create(one);
+            }
+
+            public static OneOrMany<T> Create(ImmutableArray<T> many)
+            {
+                return OneOrMany.Create(many);
+            }
+
+            public object Value { get; }
+            public bool TryGetValue([MaybeNullWhen(false)] out T one);
+            public bool TryGetValue(out ImmutableArray<T> many);
+        }
     }
 
     internal static class OneOrMany
