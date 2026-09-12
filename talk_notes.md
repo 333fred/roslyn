@@ -37,6 +37,7 @@ Outline:
     * Move ElementAt to indexer
     * Other window
     * Add an element to the collection and use `with(4)`
+    * `strings` HashSet with ignorecase comparer
 * Unsafe
     * Thank #allow-unsafe-blocks for their horrific contributions
     * 
