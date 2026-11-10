@@ -45,6 +45,39 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests
         private SyntaxTree ParsePreview(string text)
             => Parse(text, LanguageVersion.Preview);
 
+        [Theory]
+        [InlineData("union U(int, string);", "union U([A] int, string);")]
+        [InlineData("union U([A] int, string);", "union U(int, [param: A] string);")]
+        [InlineData("union U([A int, string);", "union U([A] int, string);")]
+        [InlineData("union U([A] int, string);", "union U([A] int [B] string);")]
+        [InlineData("class U([A] int value);", "union U([A] int);")]
+        [InlineData("static class C { extension([A] int value) { } }", "static class C { union U([A] int); }")]
+        public void UnionCaseAttributesIncremental(string before, string after)
+        {
+            var oldTree = ParsePreview(before);
+            int start = 0;
+            while (start < before.Length && start < after.Length && before[start] == after[start])
+            {
+                start++;
+            }
+
+            int oldEnd = before.Length;
+            int newEnd = after.Length;
+            while (oldEnd > start && newEnd > start && before[oldEnd - 1] == after[newEnd - 1])
+            {
+                oldEnd--;
+                newEnd--;
+            }
+
+            var newText = oldTree.GetText().WithChanges(new TextChange(new TextSpan(start, oldEnd - start), after.Substring(start, newEnd - start)));
+            var incrementalTree = oldTree.WithChangedText(newText);
+            var parsedTree = SyntaxFactory.ParseSyntaxTree(newText, options: TestOptions.RegularPreview);
+
+            CompareTreeEquivalence(parsedTree.GetRoot(), incrementalTree.GetRoot());
+            CompareIncToFullParseErrors(incrementalTree, parsedTree);
+            Assert.Equal(after, incrementalTree.GetRoot().ToFullString());
+        }
+
         [Fact]
         public void TestChangeClassNameWithNonMatchingMethod()
         {

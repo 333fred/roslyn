@@ -782,6 +782,16 @@ namespace Microsoft.CodeAnalysis.CSharp
             else if (node.Kind() is SyntaxKind.UnionDeclaration)
             {
                 MessageID.IDS_FeatureUnions.CheckFeatureAvailability(diagnostics, node, node.Keyword.GetLocation());
+                if (node.ParameterList is { } parameterList)
+                {
+                    foreach (var parameter in parameterList.Parameters)
+                    {
+                        if (parameter.AttributeLists.Count > 0)
+                        {
+                            MessageID.IDS_FeatureUnionCaseAttributes.CheckFeatureAvailability(diagnostics, parameter.AttributeLists[0]);
+                        }
+                    }
+                }
             }
 
             // Extensions never allow 'partial'.

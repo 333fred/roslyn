@@ -2,9 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using Microsoft.CodeAnalysis.CSharp.Emit;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.PooledObjects;
@@ -15,25 +17,38 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
     {
         private readonly int _memberOffset;
         private readonly SyntaxReference _typeSyntax;
+        private readonly SyntaxReference _parameterSyntax;
 
         public SynthesizedUnionCtor(
             SourceMemberContainerTypeSymbol containingType,
-            TypeSyntax typeSyntax,
+            ParameterSyntax parameterSyntax,
             TypeWithAnnotations parameterType,
             int memberOffset)
             : base(containingType)
         {
+            TypeSyntax typeSyntax = parameterSyntax.Type!;
             _memberOffset = memberOffset;
             _typeSyntax = typeSyntax.GetReference();
-            Parameters = [SynthesizedParameterSymbol.Create(this, parameterType, ordinal: 0, RefKind.None, ParameterSymbol.ValueParameterName)];
+            _parameterSyntax = parameterSyntax.GetReference();
+            Parameters = [parameterSyntax.AttributeLists.Count == 0
+                ? SynthesizedParameterSymbol.Create(this, parameterType, ordinal: 0, RefKind.None, ParameterSymbol.ValueParameterName)
+                : new UnionParameterSymbol(this, parameterSyntax, parameterType)];
             Locations = [typeSyntax.GetLocation()];
         }
+
+        internal bool IsForParameter(ParameterSyntax syntax)
+            => _parameterSyntax.SyntaxTree == syntax.SyntaxTree && _parameterSyntax.Span == syntax.Span;
 
         public override ImmutableArray<ParameterSymbol> Parameters { get; }
 
         public override ImmutableArray<Location> Locations { get; }
 
         public override Accessibility DeclaredAccessibility => Accessibility.Public;
+
+        internal override void ForceComplete(SourceLocation? locationOpt, Predicate<Symbol>? filter, CancellationToken cancellationToken)
+        {
+            Parameters[0].ForceComplete(locationOpt, filter: null, cancellationToken);
+        }
 
         internal override LexicalSortKey GetLexicalSortKey() => LexicalSortKey.GetSynthesizedMemberKey(_memberOffset);
 
@@ -98,6 +113,23 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
                     diagnostics.Add(ErrorCode.ERR_NoImplicitConversionToObject, _typeSyntax.GetLocation(), parameterType);
                 }
             }
+        }
+
+        private sealed class UnionParameterSymbol : SourceComplexParameterSymbolBase
+        {
+            private readonly TypeWithAnnotations _type;
+
+            internal UnionParameterSymbol(SynthesizedUnionCtor owner, ParameterSyntax syntax, TypeWithAnnotations type)
+                : base(owner, ordinal: 0, RefKind.None, ParameterSymbol.ValueParameterName, syntax.Type!.GetLocation(),
+                    syntax.GetReference(), hasParamsModifier: false, isParams: false, isExtensionMethodThis: false,
+                    scope: ScopedKind.None, allowDefaultSyntax: false)
+            {
+                _type = type;
+            }
+
+            public override TypeWithAnnotations TypeWithAnnotations => _type;
+            public override ImmutableArray<CustomModifier> RefCustomModifiers => ImmutableArray<CustomModifier>.Empty;
+            public override bool IsImplicitlyDeclared => true;
         }
     }
 }

@@ -3272,6 +3272,11 @@
         <target state="translated">не привязанные универсальные типы в операторе nameof</target>
         <note />
       </trans-unit>
+      <trans-unit id="IDS_FeatureUnionCaseAttributes">
+        <source>attributes on union case types</source>
+        <target state="new">attributes on union case types</target>
+        <note />
+      </trans-unit>
       <trans-unit id="IDS_FeatureUnions">
         <source>unions</source>
         <target state="translated">объединения</target>

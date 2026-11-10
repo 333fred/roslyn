@@ -241,13 +241,42 @@ namespace Microsoft.CodeAnalysis.CSharp
         {
             position = CheckAndAdjustPositionForSpeculativeAttribute(position);
 
-            var binder = this.GetEnclosingBinder(position);
+            Binder binder;
+            var caseParameter = GetUnionCaseParameterForSpeculativeAttribute(position);
+            if (caseParameter?.Parent?.Parent is UnionDeclarationSyntax unionDeclaration)
+            {
+                binder = Compilation.GetBinderFactory(SyntaxTree, ignoreAccessibility: IgnoresAccessibility)
+                    .GetInTypeBodyBinder(unionDeclaration).WithAdditionalFlags(GetSemanticModelBinderFlags());
+                if (GetDeclaredSymbol(caseParameter).GetSymbol() is { } parameterSymbol)
+                {
+                    binder = new ContextualAttributeBinder(binder, parameterSymbol);
+                }
+            }
+            else
+            {
+                binder = this.GetEnclosingBinder(position);
+            }
+
             if (binder == null)
             {
                 return null;
             }
 
             return new ExecutableCodeBinder(attribute, binder.ContainingMemberOrLambda, binder).GetBinder(attribute);
+        }
+
+        internal ParameterSyntax GetUnionCaseParameterForSpeculativeAttribute(int position)
+        {
+            for (SyntaxNode node = Root.FindToken(position).Parent; node != null; node = node.Parent)
+            {
+                if (node is ParameterSyntax { Parent: ParameterListSyntax { Parent: UnionDeclarationSyntax } } parameter &&
+                    (position == parameter.SpanStart || position == parameter.Type?.SpanStart))
+                {
+                    return parameter;
+                }
+            }
+
+            return null;
         }
 
         private static BoundExpression GetSpeculativelyBoundExpressionHelper(Binder binder, ExpressionSyntax expression, SpeculativeBindingOption bindingOption)

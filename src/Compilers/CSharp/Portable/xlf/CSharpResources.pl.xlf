@@ -3272,6 +3272,11 @@
         <target state="translated">niepowiązane typy ogólne w operatorze nameof</target>
         <note />
       </trans-unit>
+      <trans-unit id="IDS_FeatureUnionCaseAttributes">
+        <source>attributes on union case types</source>
+        <target state="new">attributes on union case types</target>
+        <note />
+      </trans-unit>
       <trans-unit id="IDS_FeatureUnions">
         <source>unions</source>
         <target state="translated">unie</target>

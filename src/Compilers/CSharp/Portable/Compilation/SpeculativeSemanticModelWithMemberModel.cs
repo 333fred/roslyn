@@ -64,7 +64,8 @@ namespace Microsoft.CodeAnalysis.CSharp
                     return model.GetDeclaredSymbolForNode(attributedNode).GetSymbol();
                 }
 
-                return null;
+                var caseParameter = model.GetUnionCaseParameterForSpeculativeAttribute(position);
+                return caseParameter is null ? null : model.GetDeclaredSymbol(caseParameter).GetSymbol();
             }
         }
 

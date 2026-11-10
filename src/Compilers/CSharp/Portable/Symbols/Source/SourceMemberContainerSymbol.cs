@@ -5009,7 +5009,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
 
                     // Constraints are checked in AfterAddingTypeMembersChecks.
                     signatureBinder = signatureBinder.WithAdditionalFlagsAndContainingMemberOrLambda(BinderFlags.SuppressConstraintChecks, this);
-                    var typesBuilder = ArrayBuilder<TypeSyntax>.GetInstance(parameterList.Parameters.Count);
+                    var casesBuilder = ArrayBuilder<ParameterSyntax>.GetInstance(parameterList.Parameters.Count);
 
                     foreach (var parameterSyntax in parameterList.Parameters)
                     {
@@ -5024,33 +5024,36 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
 
                         TypeSyntax? typeSyntax = parameterSyntax.Type;
                         Debug.Assert(typeSyntax != null);
-                        typesBuilder.Add(typeSyntax);
+                        casesBuilder.Add(parameterSyntax);
 
-                        SyntaxToken syntaxToken = parameterSyntax.GetFirstToken();
-                        if (syntaxToken != typeSyntax.GetFirstToken())
+                        if (parameterSyntax.Modifiers.Count > 0)
                         {
-                            diagnostics.Add(ErrorCode.ERR_UnexpectedToken, syntaxToken.GetLocation(), syntaxToken.Text);
+                            SyntaxToken modifier = parameterSyntax.Modifiers[0];
+                            diagnostics.Add(ErrorCode.ERR_UnexpectedToken, modifier.GetLocation(), modifier.Text);
                         }
 
-                        syntaxToken = parameterSyntax.GetLastToken();
-                        if (syntaxToken != typeSyntax.GetLastToken())
+                        if (parameterSyntax.Identifier is { RawKind: not 0, IsMissing: false } identifier)
                         {
-                            var nextToken = typeSyntax.GetLastToken().GetNextToken();
-                            diagnostics.Add(ErrorCode.ERR_UnexpectedToken, nextToken.GetLocation(), nextToken.Text);
+                            diagnostics.Add(ErrorCode.ERR_UnexpectedToken, identifier.GetLocation(), identifier.Text);
+                        }
+                        else if (parameterSyntax.Default is { } defaultValue)
+                        {
+                            var equalsToken = defaultValue.EqualsToken;
+                            diagnostics.Add(ErrorCode.ERR_UnexpectedToken, equalsToken.GetLocation(), equalsToken.Text);
                         }
                     }
 
-                    int memberOffset = members.Count + typesBuilder.Count; // In order to keep the same relative order between constructors during emit we assign offset in decreasing order
-                    foreach (var typeSyntax in typesBuilder)
+                    int memberOffset = members.Count + casesBuilder.Count; // In order to keep the same relative order between constructors during emit we assign offset in decreasing order
+                    foreach (var parameterSyntax in casesBuilder)
                     {
-                        var parameterType = signatureBinder.BindType(typeSyntax, diagnostics, suppressUseSiteDiagnostics: false);
-                        var ctor = new SynthesizedUnionCtor(this, typeSyntax, parameterType, memberOffset: --memberOffset);
+                        var parameterType = signatureBinder.BindType(parameterSyntax.Type!, diagnostics, suppressUseSiteDiagnostics: false);
+                        var ctor = new SynthesizedUnionCtor(this, parameterSyntax, parameterType, memberOffset: --memberOffset);
                         members.Add(ctor);
                     }
 
-                    Debug.Assert(memberOffset == members.Count - typesBuilder.Count);
+                    Debug.Assert(memberOffset == members.Count - casesBuilder.Count);
 
-                    typesBuilder.Free();
+                    casesBuilder.Free();
                 }
 
                 if (report_ERR_UnionDeclarationNeedsCaseTypes)

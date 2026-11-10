@@ -49062,9 +49062,9 @@ class Program
 
             Assert.Same(s1, model.GetDeclaredSymbol(s1Decl).GetSymbol());
             Assert.Null(model.GetDeclaredSymbol(s1Decl.ParameterList));
-            Assert.Null(model.GetDeclaredSymbol(s1Decl.ParameterList.Parameters[0]));
+            Assert.Same(((MethodSymbol)members[^3]).Parameters[0], model.GetDeclaredSymbol(s1Decl.ParameterList.Parameters[0]).GetSymbol());
             Assert.Null(model.GetDeclaredSymbol(s1Decl.ParameterList.Parameters[0].Type));
-            Assert.Null(model.GetDeclaredSymbol(s1Decl.ParameterList.Parameters[1]));
+            Assert.Same(((MethodSymbol)members[^2]).Parameters[0], model.GetDeclaredSymbol(s1Decl.ParameterList.Parameters[1]).GetSymbol());
             Assert.Null(model.GetDeclaredSymbol(s1Decl.ParameterList.Parameters[1].Type));
 
             var typeInfo = model.GetTypeInfo(s1Decl.ParameterList.Parameters[0].Type);
@@ -50250,7 +50250,7 @@ union S16(int, bool)
             var unionSrc = @"
 union U1(
 #line 100
-    [Optional] byte,
+    [System.Runtime.InteropServices.Optional] byte,
 #line 200
     out sbyte,
 #line 300
@@ -50273,9 +50273,6 @@ union U3(
 
             var comp = CreateCompilation([unionSrc, UnionAttributeSource, IUnionSource]);
             comp.VerifyDiagnostics(
-                // (100,5): error CS1073: Unexpected token '['
-                //     [Optional] byte,
-                Diagnostic(ErrorCode.ERR_UnexpectedToken, "[").WithArguments("[").WithLocation(100, 5),
                 // (200,5): error CS1073: Unexpected token 'out'
                 //     out sbyte,
                 Diagnostic(ErrorCode.ERR_UnexpectedToken, "out").WithArguments("out").WithLocation(200, 5),

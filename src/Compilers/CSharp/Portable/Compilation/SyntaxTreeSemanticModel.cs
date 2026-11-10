@@ -2076,6 +2076,24 @@ namespace Microsoft.CodeAnalysis.CSharp
 
             MethodSymbol method;
 
+            if (memberDecl is UnionDeclarationSyntax unionDecl && unionDecl.ParameterList == paramList)
+            {
+                // PROTOTYPE: Decide whether union case syntax should map to its synthesized constructor parameter.
+                var union = GetDeclaredSymbol(unionDecl, cancellationToken).GetSymbol();
+                if (union is not null)
+                {
+                    foreach (var constructor in union.InstanceConstructors)
+                    {
+                        if (constructor is SynthesizedUnionCtor unionConstructor && unionConstructor.IsForParameter(parameter))
+                        {
+                            return unionConstructor.Parameters[0];
+                        }
+                    }
+                }
+
+                return null;
+            }
+
             if (memberDecl is TypeDeclarationSyntax typeDecl && typeDecl.ParameterList == paramList)
             {
                 method = TryGetSynthesizedPrimaryConstructor(typeDecl);

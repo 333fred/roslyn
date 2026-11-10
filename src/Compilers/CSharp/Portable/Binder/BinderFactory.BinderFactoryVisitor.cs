@@ -738,12 +738,30 @@ namespace Microsoft.CodeAnalysis.CSharp
                 {
                     extraInfo = NodeUsage.NamedTypeBodyOrTypeParameters;
                 }
+                else if (parent is UnionDeclarationSyntax { ParameterList: { } parameterList } &&
+                    isInCaseAttributes(_position, parameterList))
+                {
+                    extraInfo = NodeUsage.NamedTypeBodyOrTypeParameters;
+                }
                 else if (LookupPosition.IsBetweenTokens(_position, parent.Keyword, parent.OpenBraceToken))
                 {
                     extraInfo = NodeUsage.NamedTypeBaseListOrParameterList;
                 }
 
                 return VisitTypeDeclarationCore(parent, extraInfo);
+
+                static bool isInCaseAttributes(int position, ParameterListSyntax parameterList)
+                {
+                    foreach (var parameter in parameterList.Parameters)
+                    {
+                        if (LookupPosition.IsInAttributeSpecification(position, parameter.AttributeLists))
+                        {
+                            return true;
+                        }
+                    }
+
+                    return false;
+                }
             }
 
             internal Binder VisitTypeDeclarationCore(TypeDeclarationSyntax parent, NodeUsage extraInfo)

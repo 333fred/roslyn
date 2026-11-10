@@ -3272,6 +3272,11 @@
         <target state="translated">運算子 nameof 中的未系結泛型型別</target>
         <note />
       </trans-unit>
+      <trans-unit id="IDS_FeatureUnionCaseAttributes">
+        <source>attributes on union case types</source>
+        <target state="new">attributes on union case types</target>
+        <note />
+      </trans-unit>
       <trans-unit id="IDS_FeatureUnions">
         <source>unions</source>
         <target state="translated">聯集</target>
