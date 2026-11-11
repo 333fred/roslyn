@@ -60,7 +60,7 @@ namespace Microsoft.CodeAnalysis
         }
     }
 
-    internal sealed unsafe class DynamicAnalysisDataReader
+    internal sealed class DynamicAnalysisDataReader
     {
         public ImmutableArray<DynamicAnalysisDocument> Documents { get; }
         public ImmutableArray<DynamicAnalysisMethod> Methods { get; }
@@ -70,123 +70,129 @@ namespace Microsoft.CodeAnalysis
 
         private const int GuidSize = 16;
 
-        public DynamicAnalysisDataReader(byte* buffer, int size)
+        public unsafe DynamicAnalysisDataReader(byte* buffer, int size)
         {
-            var reader = new BlobReader(buffer, size);
-
-            // header:
-            if (reader.ReadByte() != 'D' || reader.ReadByte() != 'A' || reader.ReadByte() != 'M' || reader.ReadByte() != 'D')
+            unsafe
             {
-                throw new BadImageFormatException();
+                var reader = new BlobReader(buffer, size);
+
+                // header:
+                if (reader.ReadByte() != 'D' || reader.ReadByte() != 'A' || reader.ReadByte() != 'M' || reader.ReadByte() != 'D')
+                {
+                    throw new BadImageFormatException();
+                }
+
+                // version
+                byte major = reader.ReadByte();
+                byte minor = reader.ReadByte();
+                if (major != 0 || minor < 1 || minor > 2)
+                {
+                    throw new NotSupportedException();
+                }
+
+                // table sizes:
+                int documentRowCount = reader.ReadInt32();
+                int methodSpanRowCount = reader.ReadInt32();
+
+                // blob heap sizes:
+                int stringHeapSize = (minor == 1) ? reader.ReadInt32() : 0;
+                int userStringHeapSize = (minor == 1) ? reader.ReadInt32() : 0;
+                int guidHeapSize = reader.ReadInt32();
+                int blobHeapSize = reader.ReadInt32();
+
+                // TODO: check size ranges
+
+                bool isBlobHeapSmall = blobHeapSize <= ushort.MaxValue;
+                bool isGuidHeapSmall = guidHeapSize / GuidSize <= ushort.MaxValue;
+
+                var documentsBuilder = ArrayBuilder<DynamicAnalysisDocument>.GetInstance(documentRowCount);
+
+                for (int i = 0; i < documentRowCount; i++)
+                {
+                    var name = MetadataTokens.BlobHandle(ReadReference(ref reader, isBlobHeapSmall));
+                    var hashAlgorithm = MetadataTokens.GuidHandle(ReadReference(ref reader, isGuidHeapSmall));
+                    var hash = MetadataTokens.BlobHandle(ReadReference(ref reader, isBlobHeapSmall));
+
+                    documentsBuilder.Add(new DynamicAnalysisDocument(name, hashAlgorithm, hash));
+                }
+
+                Documents = documentsBuilder.ToImmutableAndFree();
+
+                var methodsBuilder = ArrayBuilder<DynamicAnalysisMethod>.GetInstance(methodSpanRowCount);
+
+                for (int i = 0; i < methodSpanRowCount; i++)
+                {
+                    methodsBuilder.Add(new DynamicAnalysisMethod(MetadataTokens.BlobHandle(ReadReference(ref reader, isBlobHeapSmall))));
+                }
+
+                Methods = methodsBuilder.ToImmutableAndFree();
+
+                int stringHeapOffset = reader.Offset;
+                int userStringHeapOffset = stringHeapOffset + stringHeapSize;
+                int guidHeapOffset = userStringHeapOffset + userStringHeapSize;
+                int blobHeapOffset = guidHeapOffset + guidHeapSize;
+
+                if (reader.Length != blobHeapOffset + blobHeapSize)
+                {
+                    throw new BadImageFormatException();
+                }
+
+                _guidHeapBlob = new Blob(buffer + guidHeapOffset, guidHeapSize);
+                _blobHeapBlob = new Blob(buffer + blobHeapOffset, blobHeapSize);
             }
-
-            // version
-            byte major = reader.ReadByte();
-            byte minor = reader.ReadByte();
-            if (major != 0 || minor < 1 || minor > 2)
-            {
-                throw new NotSupportedException();
-            }
-
-            // table sizes:
-            int documentRowCount = reader.ReadInt32();
-            int methodSpanRowCount = reader.ReadInt32();
-
-            // blob heap sizes:
-            int stringHeapSize = (minor == 1) ? reader.ReadInt32() : 0;
-            int userStringHeapSize = (minor == 1) ? reader.ReadInt32() : 0;
-            int guidHeapSize = reader.ReadInt32();
-            int blobHeapSize = reader.ReadInt32();
-
-            // TODO: check size ranges
-
-            bool isBlobHeapSmall = blobHeapSize <= ushort.MaxValue;
-            bool isGuidHeapSmall = guidHeapSize / GuidSize <= ushort.MaxValue;
-
-            var documentsBuilder = ArrayBuilder<DynamicAnalysisDocument>.GetInstance(documentRowCount);
-
-            for (int i = 0; i < documentRowCount; i++)
-            {
-                var name = MetadataTokens.BlobHandle(ReadReference(ref reader, isBlobHeapSmall));
-                var hashAlgorithm = MetadataTokens.GuidHandle(ReadReference(ref reader, isGuidHeapSmall));
-                var hash = MetadataTokens.BlobHandle(ReadReference(ref reader, isBlobHeapSmall));
-
-                documentsBuilder.Add(new DynamicAnalysisDocument(name, hashAlgorithm, hash));
-            }
-
-            Documents = documentsBuilder.ToImmutableAndFree();
-
-            var methodsBuilder = ArrayBuilder<DynamicAnalysisMethod>.GetInstance(methodSpanRowCount);
-
-            for (int i = 0; i < methodSpanRowCount; i++)
-            {
-                methodsBuilder.Add(new DynamicAnalysisMethod(MetadataTokens.BlobHandle(ReadReference(ref reader, isBlobHeapSmall))));
-            }
-
-            Methods = methodsBuilder.ToImmutableAndFree();
-
-            int stringHeapOffset = reader.Offset;
-            int userStringHeapOffset = stringHeapOffset + stringHeapSize;
-            int guidHeapOffset = userStringHeapOffset + userStringHeapSize;
-            int blobHeapOffset = guidHeapOffset + guidHeapSize;
-
-            if (reader.Length != blobHeapOffset + blobHeapSize)
-            {
-                throw new BadImageFormatException();
-            }
-
-            _guidHeapBlob = new Blob(buffer + guidHeapOffset, guidHeapSize);
-            _blobHeapBlob = new Blob(buffer + blobHeapOffset, blobHeapSize);
         }
 
         public static DynamicAnalysisDataReader TryCreateFromPE(PEReader peReader, string resourceName)
         {
-            // TODO: review all range checks, better error messages
-
-            var mdReader = peReader.GetMetadataReader();
-            long offset = -1;
-            foreach (var resourceHandle in mdReader.ManifestResources)
+            unsafe
             {
-                var resource = mdReader.GetManifestResource(resourceHandle);
-                if (resource.Implementation.IsNil &&
-                    resource.Attributes == ManifestResourceAttributes.Private &&
-                    mdReader.StringComparer.Equals(resource.Name, resourceName))
+                // TODO: review all range checks, better error messages
+
+                var mdReader = peReader.GetMetadataReader();
+                long offset = -1;
+                foreach (var resourceHandle in mdReader.ManifestResources)
                 {
-                    offset = resource.Offset;
+                    var resource = mdReader.GetManifestResource(resourceHandle);
+                    if (resource.Implementation.IsNil &&
+                        resource.Attributes == ManifestResourceAttributes.Private &&
+                        mdReader.StringComparer.Equals(resource.Name, resourceName))
+                    {
+                        offset = resource.Offset;
+                    }
                 }
-            }
 
-            if (offset < 0)
-            {
-                return null;
-            }
+                if (offset < 0)
+                {
+                    return null;
+                }
 
-            var resourcesDir = peReader.PEHeaders.CorHeader.ResourcesDirectory;
-            if (resourcesDir.Size < 0)
-            {
-                throw new BadImageFormatException();
-            }
+                var resourcesDir = peReader.PEHeaders.CorHeader.ResourcesDirectory;
+                if (resourcesDir.Size < 0)
+                {
+                    throw new BadImageFormatException();
+                }
 
-            if (!peReader.PEHeaders.TryGetDirectoryOffset(resourcesDir, out var start))
-            {
-                return null;
-            }
+                if (!peReader.PEHeaders.TryGetDirectoryOffset(resourcesDir, out var start))
+                {
+                    return null;
+                }
 
-            var peImage = peReader.GetEntireImage();
-            if (start >= peImage.Length - resourcesDir.Size)
-            {
-                throw new BadImageFormatException();
-            }
+                var peImage = peReader.GetEntireImage();
+                if (start >= peImage.Length - resourcesDir.Size)
+                {
+                    throw new BadImageFormatException();
+                }
 
-            byte* resourceStart = peImage.Pointer + start;
-            BlobReader tmpresource = peImage.GetReader(start, peImage.Length - start);
-            int resourceSize = tmpresource.ReadInt32();
-            if (resourceSize > resourcesDir.Size - sizeof(int))
-            {
-                throw new BadImageFormatException();
-            }
+                byte* resourceStart = peImage.Pointer + start;
+                BlobReader tmpresource = peImage.GetReader(start, peImage.Length - start);
+                int resourceSize = tmpresource.ReadInt32();
+                if (resourceSize > resourcesDir.Size - sizeof(int))
+                {
+                    throw new BadImageFormatException();
+                }
 
-            return new DynamicAnalysisDataReader(resourceStart + sizeof(int), resourceSize);
+                return new DynamicAnalysisDataReader(resourceStart + sizeof(int), resourceSize);
+            }
         }
 
         private static int ReadReference(ref BlobReader reader, bool smallRefSize)
@@ -253,32 +259,38 @@ namespace Microsoft.CodeAnalysis
 
         //TODO: some of the helpers below should be provided by System.Reflection.Metadata
 
-        private readonly unsafe struct Blob
+        private readonly struct Blob
         {
-            public readonly byte* Pointer;
+            public readonly unsafe byte* Pointer;
             public readonly int Length;
 
-            public Blob(byte* pointer, int length)
+            public unsafe Blob(byte* pointer, int length)
             {
-                Pointer = pointer;
-                Length = length;
+                unsafe
+                {
+                    Pointer = pointer;
+                    Length = length;
+                }
             }
         }
 
         public Guid GetGuid(GuidHandle handle)
         {
-            if (handle.IsNil)
+            unsafe
             {
-                return default(Guid);
-            }
+                if (handle.IsNil)
+                {
+                    return default(Guid);
+                }
 
-            int offset = (MetadataTokens.GetHeapOffset(handle) - 1) * GuidSize;
-            if (offset + GuidSize > _guidHeapBlob.Length)
-            {
-                throw new BadImageFormatException();
-            }
+                int offset = (MetadataTokens.GetHeapOffset(handle) - 1) * GuidSize;
+                if (offset + GuidSize > _guidHeapBlob.Length)
+                {
+                    throw new BadImageFormatException();
+                }
 
-            return *(Guid*)(_guidHeapBlob.Pointer + offset);
+                return *(Guid*)(_guidHeapBlob.Pointer + offset);
+            }
         }
 
         internal byte[] GetBytes(BlobHandle handle)
@@ -289,11 +301,14 @@ namespace Microsoft.CodeAnalysis
 
         private BlobReader GetBlobReader(BlobHandle handle)
         {
-            int offset = MetadataTokens.GetHeapOffset(handle);
-            byte* start = _blobHeapBlob.Pointer + offset;
-            var reader = new BlobReader(start, _blobHeapBlob.Length - offset);
-            int size = reader.ReadCompressedInteger();
-            return new BlobReader(start + reader.Offset, size);
+            unsafe
+            {
+                int offset = MetadataTokens.GetHeapOffset(handle);
+                byte* start = _blobHeapBlob.Pointer + offset;
+                var reader = new BlobReader(start, _blobHeapBlob.Length - offset);
+                int size = reader.ReadCompressedInteger();
+                return new BlobReader(start + reader.Offset, size);
+            }
         }
 
         public string GetDocumentName(BlobHandle handle)

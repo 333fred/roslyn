@@ -4,6 +4,7 @@
 
   <PropertyGroup>
     <TargetFrameworks>$(NetRoslynSourceBuild)</TargetFrameworks>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
     <!-- NuGet -->
     <IsPackable>true</IsPackable>

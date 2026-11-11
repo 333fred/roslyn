@@ -207,28 +207,31 @@ internal abstract class EditAndContinueDebugInfoReader
     /// <remarks>
     /// Automatically detects the underlying PDB format and returns the appropriate reader.
     /// </remarks>
-    public static unsafe EditAndContinueDebugInfoReader Create(ISymUnmanagedReader5 symReader, int version = 1)
+    public static EditAndContinueDebugInfoReader Create(ISymUnmanagedReader5 symReader, int version = 1)
     {
-        if (symReader == null)
+        unsafe
         {
-            throw new ArgumentNullException(nameof(symReader));
-        }
+            if (symReader == null)
+            {
+                throw new ArgumentNullException(nameof(symReader));
+            }
 
-        if (version <= 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(version));
-        }
+            if (version <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(version));
+            }
 
-        var hr = symReader.GetPortableDebugMetadataByVersion(version, metadata: out var metadata, size: out var size);
-        Marshal.ThrowExceptionForHR(hr);
+            var hr = symReader.GetPortableDebugMetadataByVersion(version, metadata: out var metadata, size: out var size);
+            Marshal.ThrowExceptionForHR(hr);
 
-        if (hr == 0)
-        {
-            return new Portable(new MetadataReader(metadata, size));
-        }
-        else
-        {
-            return new Native(symReader, version);
+            if (hr == 0)
+            {
+                return new Portable(new MetadataReader(metadata, size));
+            }
+            else
+            {
+                return new Native(symReader, version);
+            }
         }
     }
 
@@ -240,8 +243,8 @@ internal abstract class EditAndContinueDebugInfoReader
     /// <returns>
     /// The resulting reader does not take ownership of the <paramref name="pdbReader"/> or the memory it reads.
     /// </returns>
-    public static unsafe EditAndContinueDebugInfoReader Create(MetadataReader pdbReader)
-       => new Portable(pdbReader ?? throw new ArgumentNullException(nameof(pdbReader)));
+    public static EditAndContinueDebugInfoReader Create(MetadataReader pdbReader)
+       => unsafe (new Portable(pdbReader ?? throw new ArgumentNullException(nameof(pdbReader))));
 
     internal static bool TryGetDocumentChecksum(ISymUnmanagedReader5 symReader, string documentPath, out ImmutableArray<byte> checksum, out Guid algorithmId)
     {

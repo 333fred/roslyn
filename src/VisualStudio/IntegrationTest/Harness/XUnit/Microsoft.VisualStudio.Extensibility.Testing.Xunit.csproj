@@ -3,6 +3,8 @@
 
   <PropertyGroup>
     <TargetFramework>net472</TargetFramework>
+    <!-- CsWin32 generates type-level unsafe modifiers and extern declarations without V2 safety annotations. -->
+    <MemorySafetyRulesVersion>1</MemorySafetyRulesVersion>
     <RootNamespace>Xunit</RootNamespace>
     <DefineConstants>$(DefineConstants);MERGED_PIA</DefineConstants>
 

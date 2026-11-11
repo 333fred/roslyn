@@ -604,9 +604,9 @@ Error for double input ""{s}""
         private struct FloatUnion
         {
             [FieldOffset(0)]
-            public uint IntData;
+            public safe uint IntData;
             [FieldOffset(0)]
-            public float FloatData;
+            public safe float FloatData;
         }
     }
 }

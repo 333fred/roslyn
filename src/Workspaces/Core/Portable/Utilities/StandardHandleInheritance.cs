@@ -28,11 +28,11 @@ internal static class StandardHandleInheritance
     private static readonly IntPtr s_invalidHandleValue = new(-1);
 
     [DllImport("kernel32.dll", SetLastError = true)]
-    private static extern IntPtr GetStdHandle(int nStdHandle);
+    private static extern safe IntPtr GetStdHandle(int nStdHandle);
 
     [DllImport("kernel32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool SetHandleInformation(IntPtr hObject, uint dwMask, uint dwFlags);
+    private static extern safe bool SetHandleInformation(IntPtr hObject, uint dwMask, uint dwFlags);
 
     /// <summary>
     /// On Windows, sets whether this process's standard input, output, and error handles are inheritable by child

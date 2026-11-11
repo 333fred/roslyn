@@ -27,5 +27,5 @@ internal static class NativeMethods
         QS_EVENT = 0x2000;
 
     [DllImport("user32.dll")]
-    internal static extern uint GetQueueStatus(uint flags);
+    internal static extern safe uint GetQueueStatus(uint flags);
 }

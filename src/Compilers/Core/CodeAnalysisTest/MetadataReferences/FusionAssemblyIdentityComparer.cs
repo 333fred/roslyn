@@ -95,7 +95,7 @@ namespace Microsoft.CodeAnalysis.UnitTests
 
         // internal for testing
         [DllImport("clr", CallingConvention = CallingConvention.StdCall, CharSet = CharSet.Unicode, PreserveSig = true)]
-        private static extern int CompareAssemblyIdentityWithConfig(
+        private static extern safe int CompareAssemblyIdentityWithConfig(
             [MarshalAs(UnmanagedType.LPWStr)] string identity1,
             bool isUnified1,
             [MarshalAs(UnmanagedType.LPWStr)] string identity2,

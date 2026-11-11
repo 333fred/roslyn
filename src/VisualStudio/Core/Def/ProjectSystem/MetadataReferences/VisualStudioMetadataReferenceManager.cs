@@ -293,7 +293,8 @@ internal sealed partial class VisualStudioMetadataReferenceManager : IWorkspaceS
 
             Debug.Assert(pImage != IntPtr.Zero, "Base address should not be zero if GetFileFlatMapping call succeeded.");
 
-            var metadata = ModuleMetadata.CreateFromImage(pImage, (int)length);
+            // The lifetime map retains the importer that owns this image for as long as the metadata is used.
+            var metadata = unsafe (ModuleMetadata.CreateFromImage(pImage, (int)length));
             s_lifetimeMap.Add(metadata, info);
 
             return metadata;

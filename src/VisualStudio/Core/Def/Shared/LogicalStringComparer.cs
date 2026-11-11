@@ -10,7 +10,7 @@ namespace Microsoft.CodeAnalysis.Shared.Utilities;
 internal sealed class LogicalStringComparer : IComparer<string>
 {
     [DllImport("shlwapi.dll", CharSet = CharSet.Unicode)]
-    private static extern int StrCmpLogicalW(string psz1, string psz2);
+    private static extern safe int StrCmpLogicalW(string psz1, string psz2);
 
     public static readonly IComparer<string> Instance = new LogicalStringComparer();
 

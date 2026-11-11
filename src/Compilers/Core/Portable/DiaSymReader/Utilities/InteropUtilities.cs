@@ -33,57 +33,60 @@ namespace Microsoft.DiaSymReader
 
         internal static unsafe void CopyQualifiedTypeName(char* qualifiedName, int qualifiedNameBufferLength, int* qualifiedNameLength, string namespaceStr, string nameStr)
         {
-            Debug.Assert(nameStr != null);
-
-            if (namespaceStr == null)
+            unsafe
             {
-                namespaceStr = string.Empty;
-            }
+                Debug.Assert(nameStr != null);
 
-            if (qualifiedNameLength != null)
-            {
-                int fullLength = (namespaceStr.Length > 0 ? namespaceStr.Length + 1 : 0) + nameStr.Length;
-                if (qualifiedName != null)
+                if (namespaceStr == null)
                 {
-                    // If the buffer is given return the length of the possibly truncated name not including NUL.
-                    // If we returned length greater than the buffer length the SymWriter would replace the name with CRC32 hash.
-                    *qualifiedNameLength = Math.Min(fullLength, Math.Max(0, qualifiedNameBufferLength - 1));
+                    namespaceStr = string.Empty;
                 }
-                else
-                {
-                    // If the buffer is not given then return the full length.
-                    *qualifiedNameLength = fullLength;
-                }
-            }
 
-            if (qualifiedName != null && qualifiedNameBufferLength > 0)
-            {
-                char* dst = qualifiedName;
-                char* dstEndPtr = dst + qualifiedNameBufferLength - 1;
-
-                if (namespaceStr.Length > 0)
+                if (qualifiedNameLength != null)
                 {
-                    for (int i = 0; i < namespaceStr.Length && dst < dstEndPtr; i++)
+                    int fullLength = (namespaceStr.Length > 0 ? namespaceStr.Length + 1 : 0) + nameStr.Length;
+                    if (qualifiedName != null)
                     {
-                        *dst = namespaceStr[i];
-                        dst++;
+                        // If the buffer is given return the length of the possibly truncated name not including NUL.
+                        // If we returned length greater than the buffer length the SymWriter would replace the name with CRC32 hash.
+                        *qualifiedNameLength = Math.Min(fullLength, Math.Max(0, qualifiedNameBufferLength - 1));
                     }
-
-                    if (dst < dstEndPtr)
+                    else
                     {
-                        *dst = '.';
-                        dst++;
+                        // If the buffer is not given then return the full length.
+                        *qualifiedNameLength = fullLength;
                     }
                 }
 
-                for (int i = 0; i < nameStr.Length && dst < dstEndPtr; i++)
+                if (qualifiedName != null && qualifiedNameBufferLength > 0)
                 {
-                    *dst = nameStr[i];
-                    dst++;
-                }
+                    char* dst = qualifiedName;
+                    char* dstEndPtr = dst + qualifiedNameBufferLength - 1;
 
-                Debug.Assert(dst <= dstEndPtr);
-                *dst = '\0';
+                    if (namespaceStr.Length > 0)
+                    {
+                        for (int i = 0; i < namespaceStr.Length && dst < dstEndPtr; i++)
+                        {
+                            *dst = namespaceStr[i];
+                            dst++;
+                        }
+
+                        if (dst < dstEndPtr)
+                        {
+                            *dst = '.';
+                            dst++;
+                        }
+                    }
+
+                    for (int i = 0; i < nameStr.Length && dst < dstEndPtr; i++)
+                    {
+                        *dst = nameStr[i];
+                        dst++;
+                    }
+
+                    Debug.Assert(dst <= dstEndPtr);
+                    *dst = '\0';
+                }
             }
         }
     }

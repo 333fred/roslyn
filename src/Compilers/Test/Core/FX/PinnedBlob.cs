@@ -25,11 +25,14 @@ namespace Roslyn.Test.Utilities
             : this(blob.AsMemory())
         { }
 
-        public unsafe PinnedBlob(ReadOnlyMemory<byte> blob)
+        public PinnedBlob(ReadOnlyMemory<byte> blob)
         {
-            _handle = blob.Pin();
-            this.Size = blob.Length;
-            this.Pointer = (IntPtr)_handle.Pointer;
+            unsafe
+            {
+                _handle = blob.Pin();
+                this.Size = blob.Length;
+                this.Pointer = (IntPtr)_handle.Pointer;
+            }
         }
 
         public virtual void Dispose()

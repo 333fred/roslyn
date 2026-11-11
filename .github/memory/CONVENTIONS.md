@@ -34,6 +34,10 @@ Running the formatter:
 
 - Put explanations for `Contract.ThrowIfNull` invariants in its string message argument rather than a preceding comment, so the explanation is included in the exception.
 
+### Memory safety
+
+Under memory-safety V2, an `unsafe` declaration is a caller-facing contract, not an unsafe context for its method body. Keep audited implementation details in `unsafe` blocks or expressions. APIs that borrow unmanaged memory must require unsafe callers and document who keeps that memory readable, immovable, and unchanged, and for how long. Mark native entry points `safe` only when their marshalling and managed contract discharge the caller's memory-safety obligations.
+
 ### Immutability (all layers)
 ```csharp
 // Use With*/Add*/Replace* to produce new instances — never mutate.

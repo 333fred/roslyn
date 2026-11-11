@@ -35,25 +35,28 @@ namespace Microsoft.CodeAnalysis
         internal void StartSingleGeneratorRunTime(string generatorName, string assemblyPath, string id) => WriteEvent(3, generatorName, assemblyPath, id);
 
         [Event(4, Message = "Generator {0} ran for {2} ticks", Keywords = Keywords.Performance, Level = EventLevel.Informational, Opcode = EventOpcode.Stop, Task = Tasks.SingleGeneratorRunTime)]
-        internal unsafe void StopSingleGeneratorRunTime(string generatorName, string assemblyPath, long elapsedTicks, string id)
+        internal void StopSingleGeneratorRunTime(string generatorName, string assemblyPath, long elapsedTicks, string id)
         {
-            if (IsEnabled())
+            unsafe
             {
-                fixed (char* generatorNameBytes = generatorName)
-                fixed (char* assemblyPathBytes = assemblyPath)
-                fixed (char* idBytes = id)
+                if (IsEnabled())
                 {
-                    Span<EventData> data = stackalloc EventData[]
+                    fixed (char* generatorNameBytes = generatorName)
+                    fixed (char* assemblyPathBytes = assemblyPath)
+                    fixed (char* idBytes = id)
                     {
+                        Span<EventData> data = stackalloc EventData[]
+                        {
                         GetEventDataForString(generatorName, generatorNameBytes),
                         GetEventDataForString(assemblyPath, assemblyPathBytes),
                         GetEventDataForInt64(&elapsedTicks),
                         GetEventDataForString(id, idBytes),
                     };
 
-                    fixed (EventSource.EventData* dataPtr = data)
-                    {
-                        WriteEventCore(eventId: 4, data.Length, dataPtr);
+                        fixed (EventSource.EventData* dataPtr = data)
+                        {
+                            WriteEventCore(eventId: 4, data.Length, dataPtr);
+                        }
                     }
                 }
             }
@@ -63,17 +66,19 @@ namespace Microsoft.CodeAnalysis
         internal void GeneratorException(string generatorName, string exception) => WriteEvent(5, generatorName, exception);
 
         [Event(6, Message = "Node {0} transformed", Keywords = Keywords.Correctness, Level = EventLevel.Verbose, Task = Tasks.BuildStateTable)]
-        internal unsafe void NodeTransform(int nodeHashCode, string name, string tableType, int previousTable, string previousTableContent, int newTable, string newTableContent, int input1, int input2)
+        internal void NodeTransform(int nodeHashCode, string name, string tableType, int previousTable, string previousTableContent, int newTable, string newTableContent, int input1, int input2)
         {
-            if (IsEnabled())
+            unsafe
             {
-                fixed (char* nameBytes = name)
-                fixed (char* tableTypeBytes = tableType)
-                fixed (char* previousTableContentBytes = previousTableContent)
-                fixed (char* newTableContentBytes = newTableContent)
+                if (IsEnabled())
                 {
-                    Span<EventData> data = stackalloc EventData[]
+                    fixed (char* nameBytes = name)
+                    fixed (char* tableTypeBytes = tableType)
+                    fixed (char* previousTableContentBytes = previousTableContent)
+                    fixed (char* newTableContentBytes = newTableContent)
                     {
+                        Span<EventData> data = stackalloc EventData[]
+                        {
                         GetEventDataForInt32(&nodeHashCode),
                         GetEventDataForString(name, nameBytes),
                         GetEventDataForString(tableType, tableTypeBytes),
@@ -85,9 +90,10 @@ namespace Microsoft.CodeAnalysis
                         GetEventDataForInt32(&input2),
                     };
 
-                    fixed (EventSource.EventData* dataPtr = data)
-                    {
-                        WriteEventCore(eventId: 6, data.Length, dataPtr);
+                        fixed (EventSource.EventData* dataPtr = data)
+                        {
+                            WriteEventCore(eventId: 6, data.Length, dataPtr);
+                        }
                     }
                 }
             }
@@ -124,96 +130,111 @@ namespace Microsoft.CodeAnalysis
         internal void AnalyzerReferenceRemovedFromProject(string path, string projectName) => WriteEvent(16, path, projectName);
 
         [Event(17, Message = "Analyzer reference was redirected by '{0}' from '{1}' to '{2}' for project '{3}'", Keywords = Keywords.AnalyzerLoading, Level = EventLevel.Informational)]
-        internal unsafe void AnanlyzerReferenceRedirected(string redirectorType, string originalPath, string newPath, string project)
+        internal void AnanlyzerReferenceRedirected(string redirectorType, string originalPath, string newPath, string project)
         {
-            if (IsEnabled())
+            unsafe
             {
-                fixed (char* redirectorTypeBytes = redirectorType)
-                fixed (char* originalPathBytes = originalPath)
-                fixed (char* newPathBytes = newPath)
-                fixed (char* projectBytes = project)
+                if (IsEnabled())
                 {
-                    Span<EventData> data =
-                    [
-                        GetEventDataForString(redirectorType, redirectorTypeBytes),
+                    fixed (char* redirectorTypeBytes = redirectorType)
+                    fixed (char* originalPathBytes = originalPath)
+                    fixed (char* newPathBytes = newPath)
+                    fixed (char* projectBytes = project)
+                    {
+                        Span<EventData> data =
+                        [
+                            GetEventDataForString(redirectorType, redirectorTypeBytes),
                         GetEventDataForString(originalPath, originalPathBytes),
                         GetEventDataForString(newPath, newPathBytes),
                         GetEventDataForString(project, projectBytes),
                     ];
 
-                    fixed (EventData* dataPtr = data)
-                    {
-                        WriteEventCore(eventId: 17, data.Length, dataPtr);
+                        fixed (EventData* dataPtr = data)
+                        {
+                            WriteEventCore(eventId: 17, data.Length, dataPtr);
+                        }
                     }
                 }
             }
         }
 
         [Event(18, Message = "ALC for directory '{0}': Assembly '{1}' was resolved by '{2}' ", Keywords = Keywords.AnalyzerLoading, Level = EventLevel.Informational)]
-        internal unsafe void ResolvedAssembly(string directory, string assemblyName, string resolver, string filePath, string alc)
+        internal void ResolvedAssembly(string directory, string assemblyName, string resolver, string filePath, string alc)
         {
-            if (IsEnabled())
+            unsafe
             {
-                fixed (char* directoryBytes = directory)
-                fixed (char* assemblyNameBytes = assemblyName)
-                fixed (char* resolverBytes = resolver)
-                fixed (char* filePathBytes = filePath)
-                fixed (char* alcBytes = alc)
+                if (IsEnabled())
                 {
-                    Span<EventData> data =
-                    [
-                        GetEventDataForString(directory, directoryBytes),
+                    fixed (char* directoryBytes = directory)
+                    fixed (char* assemblyNameBytes = assemblyName)
+                    fixed (char* resolverBytes = resolver)
+                    fixed (char* filePathBytes = filePath)
+                    fixed (char* alcBytes = alc)
+                    {
+                        Span<EventData> data =
+                        [
+                            GetEventDataForString(directory, directoryBytes),
                         GetEventDataForString(assemblyName, assemblyNameBytes),
                         GetEventDataForString(resolver, resolverBytes),
                         GetEventDataForString(filePath, filePathBytes),
                         GetEventDataForString(alc, alcBytes),
                     ];
 
-                    fixed (EventData* dataPtr = data)
-                    {
-                        WriteEventCore(eventId: 18, data.Length, dataPtr);
+                        fixed (EventData* dataPtr = data)
+                        {
+                            WriteEventCore(eventId: 18, data.Length, dataPtr);
+                        }
                     }
                 }
             }
         }
 
         [Event(19, Message = "ALC for directory '{0}': Failed to resolve assembly '{1}' ", Keywords = Keywords.AnalyzerLoading, Level = EventLevel.Informational)]
-        internal unsafe void ResolveAssemblyFailed(string directory, string assemblyName) => WriteEvent(19, directory, assemblyName);
+        internal void ResolveAssemblyFailed(string directory, string assemblyName) => WriteEvent(19, directory, assemblyName);
 
         [Event(20, Message = "Project '{0}' created with file path '{1}'", Level = EventLevel.Informational)]
         internal void ProjectCreated(string projectSystemName, string? filePath) => WriteEvent(20, projectSystemName, filePath ?? string.Empty);
 
         private static unsafe EventData GetEventDataForString(string value, char* ptr)
         {
-            fixed (char* ptr2 = value)
+            unsafe
             {
-                if (ptr2 != ptr)
-                    throw new ArgumentException("Pinned value must match string.");
-            }
+                fixed (char* ptr2 = value)
+                {
+                    if (ptr2 != ptr)
+                        throw new ArgumentException("Pinned value must match string.");
+                }
 
-            return new EventData()
-            {
-                DataPointer = (IntPtr)ptr,
-                Size = (value.Length + 1) * sizeof(char),
-            };
+                return new EventData()
+                {
+                    DataPointer = (IntPtr)ptr,
+                    Size = (value.Length + 1) * sizeof(char),
+                };
+            }
         }
 
         private static unsafe EventData GetEventDataForInt32(int* ptr)
         {
-            return new EventData()
+            unsafe
             {
-                DataPointer = (IntPtr)ptr,
-                Size = sizeof(int),
-            };
+                return new EventData()
+                {
+                    DataPointer = (IntPtr)ptr,
+                    Size = sizeof(int),
+                };
+            }
         }
 
         private static unsafe EventData GetEventDataForInt64(long* ptr)
         {
-            return new EventData()
+            unsafe
             {
-                DataPointer = (IntPtr)ptr,
-                Size = sizeof(long),
-            };
+                return new EventData()
+                {
+                    DataPointer = (IntPtr)ptr,
+                    Size = sizeof(long),
+                };
+            }
         }
     }
 }

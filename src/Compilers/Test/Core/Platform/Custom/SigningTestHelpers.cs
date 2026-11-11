@@ -42,7 +42,7 @@ namespace Roslyn.Test.Utilities
         /// <summary>
         /// Installs the keys used for testing into the machine cache on Windows.
         /// </summary>
-        internal static unsafe void InstallKey()
+        internal static void InstallKey()
         {
             if (ExecutionConditionUtil.IsWindows)
             {
@@ -57,22 +57,25 @@ namespace Roslyn.Test.Utilities
             }
         }
 
-        private static unsafe void InstallKey(byte[] keyBlob, string keyName)
+        private static void InstallKey(byte[] keyBlob, string keyName)
         {
-            try
+            unsafe
             {
-                IClrStrongName strongName = new DesktopStrongNameProvider().GetStrongNameInterface();
-
-                //EDMAURER use marshal to be safe?
-                fixed (byte* p = keyBlob)
+                try
                 {
-                    strongName.StrongNameKeyInstall(keyName, (IntPtr)p, keyBlob.Length);
+                    IClrStrongName strongName = new DesktopStrongNameProvider().GetStrongNameInterface();
+
+                    //EDMAURER use marshal to be safe?
+                    fixed (byte* p = keyBlob)
+                    {
+                        strongName.StrongNameKeyInstall(keyName, (IntPtr)p, keyBlob.Length);
+                    }
                 }
-            }
-            catch (COMException ex)
-            {
-                if (unchecked((uint)ex.ErrorCode) != 0x8009000F)
-                    throw;
+                catch (COMException ex)
+                {
+                    if (unchecked((uint)ex.ErrorCode) != 0x8009000F)
+                        throw;
+                }
             }
         }
 

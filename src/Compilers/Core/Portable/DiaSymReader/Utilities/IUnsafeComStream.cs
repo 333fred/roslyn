@@ -16,17 +16,18 @@ namespace Microsoft.DiaSymReader
     /// the Read and Write methods take an <see cref="IntPtr"/> instead of a byte[] to avoid the
     /// allocation cost when called from native code.
     /// </summary>
+    // Buffers and optional result pointers must remain valid and fixed for the duration of a call.
     [Guid("0000000c-0000-0000-C000-000000000046"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown), ComImport]
-    internal unsafe interface IUnsafeComStream
+    internal interface IUnsafeComStream
     {
         // ISequentialStream portion
-        void Read(byte* pv, int cb, int* pcbRead);
-        void Write(byte* pv, int cb, int* pcbWritten);
+        unsafe void Read(byte* pv, int cb, int* pcbRead);
+        unsafe void Write(byte* pv, int cb, int* pcbWritten);
 
         // IStream portion
-        void Seek(long dlibMove, int dwOrigin, long* plibNewPosition);
+        unsafe void Seek(long dlibMove, int dwOrigin, long* plibNewPosition);
         void SetSize(long libNewSize);
-        void CopyTo(IStream pstm, long cb, int* pcbRead, int* pcbWritten);
+        unsafe void CopyTo(IStream pstm, long cb, int* pcbRead, int* pcbWritten);
         void Commit(int grfCommitFlags);
         void Revert();
         void LockRegion(long libOffset, long cb, int dwLockType);

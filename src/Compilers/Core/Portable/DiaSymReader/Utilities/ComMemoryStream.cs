@@ -20,7 +20,7 @@ namespace Microsoft.DiaSymReader
     /// 2. Read and Write are optimized to avoid copying (see <see cref="IUnsafeComStream"/>)
     /// 3. Allocates in chunks instead of a contiguous buffer to avoid re-alloc and copy costs when growing.
     /// </summary>
-    internal sealed unsafe class ComMemoryStream : IUnsafeComStream
+    internal sealed class ComMemoryStream : IUnsafeComStream
     {
         // internal for testing
         internal const int STREAM_SEEK_SET = 0;
@@ -102,48 +102,54 @@ namespace Microsoft.DiaSymReader
         }
         private static unsafe void ZeroMemory(byte* dest, int count)
         {
-            var p = dest;
-            while (count-- > 0)
+            unsafe
             {
-                *p++ = 0;
+                var p = dest;
+                while (count-- > 0)
+                {
+                    *p++ = 0;
+                }
             }
         }
 
         unsafe void IUnsafeComStream.Read(byte* pv, int cb, int* pcbRead)
         {
-            int chunkIndex = _position / _chunkSize;
-            int chunkOffset = _position % _chunkSize;
-            int destinationIndex = 0;
-            int bytesRead = 0;
-
-            while (true)
+            unsafe
             {
-                int bytesToCopy = Math.Min(_length - _position, Math.Min(cb, _chunkSize - chunkOffset));
-                if (bytesToCopy == 0)
+                int chunkIndex = _position / _chunkSize;
+                int chunkOffset = _position % _chunkSize;
+                int destinationIndex = 0;
+                int bytesRead = 0;
+
+                while (true)
                 {
-                    break;
+                    int bytesToCopy = Math.Min(_length - _position, Math.Min(cb, _chunkSize - chunkOffset));
+                    if (bytesToCopy == 0)
+                    {
+                        break;
+                    }
+
+                    if (chunkIndex < _chunks.Count)
+                    {
+                        Marshal.Copy(_chunks[chunkIndex], chunkOffset, (IntPtr)(pv + destinationIndex), bytesToCopy);
+                    }
+                    else
+                    {
+                        ZeroMemory(pv + destinationIndex, bytesToCopy);
+                    }
+
+                    bytesRead += bytesToCopy;
+                    _position += bytesToCopy;
+                    cb -= bytesToCopy;
+                    destinationIndex += bytesToCopy;
+                    chunkIndex++;
+                    chunkOffset = 0;
                 }
 
-                if (chunkIndex < _chunks.Count)
+                if (pcbRead != null)
                 {
-                    Marshal.Copy(_chunks[chunkIndex], chunkOffset, (IntPtr)(pv + destinationIndex), bytesToCopy);
+                    *pcbRead = bytesRead;
                 }
-                else
-                {
-                    ZeroMemory(pv + destinationIndex, bytesToCopy);
-                }
-
-                bytesRead += bytesToCopy;
-                _position += bytesToCopy;
-                cb -= bytesToCopy;
-                destinationIndex += bytesToCopy;
-                chunkIndex++;
-                chunkOffset = 0;
-            }
-
-            if (pcbRead != null)
-            {
-                *pcbRead = bytesRead;
             }
         }
 
@@ -166,29 +172,32 @@ namespace Microsoft.DiaSymReader
 
         unsafe void IUnsafeComStream.Seek(long dlibMove, int origin, long* plibNewPosition)
         {
-            int newPosition;
-
-            switch (origin)
+            unsafe
             {
-                case STREAM_SEEK_SET:
-                    newPosition = SetPosition((int)dlibMove);
-                    break;
+                int newPosition;
 
-                case STREAM_SEEK_CUR:
-                    newPosition = SetPosition(_position + (int)dlibMove);
-                    break;
+                switch (origin)
+                {
+                    case STREAM_SEEK_SET:
+                        newPosition = SetPosition((int)dlibMove);
+                        break;
 
-                case STREAM_SEEK_END:
-                    newPosition = SetPosition(_length + (int)dlibMove);
-                    break;
+                    case STREAM_SEEK_CUR:
+                        newPosition = SetPosition(_position + (int)dlibMove);
+                        break;
 
-                default:
-                    throw new ArgumentException($"{nameof(origin)} ({origin}) is invalid.", nameof(origin));
-            }
+                    case STREAM_SEEK_END:
+                        newPosition = SetPosition(_length + (int)dlibMove);
+                        break;
 
-            if (plibNewPosition != null)
-            {
-                *plibNewPosition = newPosition;
+                    default:
+                        throw new ArgumentException($"{nameof(origin)} ({origin}) is invalid.", nameof(origin));
+                }
+
+                if (plibNewPosition != null)
+                {
+                    *plibNewPosition = newPosition;
+                }
             }
         }
 
@@ -207,34 +216,37 @@ namespace Microsoft.DiaSymReader
 
         unsafe void IUnsafeComStream.Write(byte* pv, int cb, int* pcbWritten)
         {
-            int chunkIndex = _position / _chunkSize;
-            int chunkOffset = _position % _chunkSize;
-            int bytesWritten = 0;
-            while (true)
+            unsafe
             {
-                int bytesToCopy = Math.Min(cb, _chunkSize - chunkOffset);
-                if (bytesToCopy == 0)
+                int chunkIndex = _position / _chunkSize;
+                int chunkOffset = _position % _chunkSize;
+                int bytesWritten = 0;
+                while (true)
                 {
-                    break;
+                    int bytesToCopy = Math.Min(cb, _chunkSize - chunkOffset);
+                    if (bytesToCopy == 0)
+                    {
+                        break;
+                    }
+
+                    while (chunkIndex >= _chunks.Count)
+                    {
+                        _chunks.Add(new byte[_chunkSize]);
+                    }
+
+                    Marshal.Copy((IntPtr)(pv + bytesWritten), _chunks[chunkIndex], chunkOffset, bytesToCopy);
+                    bytesWritten += bytesToCopy;
+                    cb -= bytesToCopy;
+                    chunkIndex++;
+                    chunkOffset = 0;
                 }
 
-                while (chunkIndex >= _chunks.Count)
+                SetPosition(_position + bytesWritten);
+
+                if (pcbWritten != null)
                 {
-                    _chunks.Add(new byte[_chunkSize]);
+                    *pcbWritten = bytesWritten;
                 }
-
-                Marshal.Copy((IntPtr)(pv + bytesWritten), _chunks[chunkIndex], chunkOffset, bytesToCopy);
-                bytesWritten += bytesToCopy;
-                cb -= bytesToCopy;
-                chunkIndex++;
-                chunkOffset = 0;
-            }
-
-            SetPosition(_position + bytesWritten);
-
-            if (pcbWritten != null)
-            {
-                *pcbWritten = bytesWritten;
             }
         }
 
@@ -247,9 +259,12 @@ namespace Microsoft.DiaSymReader
             throw new NotSupportedException();
         }
 
-        void IUnsafeComStream.CopyTo(IStream pstm, long cb, int* pcbRead, int* pcbWritten)
+        unsafe void IUnsafeComStream.CopyTo(IStream pstm, long cb, int* pcbRead, int* pcbWritten)
         {
-            throw new NotSupportedException();
+            unsafe
+            {
+                throw new NotSupportedException();
+            }
         }
 
         void IUnsafeComStream.LockRegion(long libOffset, long cb, int lockType)

@@ -412,5 +412,5 @@ internal sealed class BrokeredServiceConnection<TService> : RemoteServiceConnect
 internal static partial class NativeMethods
 {
     [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
-    public static extern bool GetExitCodeProcess(SafeProcessHandle processHandle, out int exitCode);
+    public static extern safe bool GetExitCodeProcess(SafeProcessHandle processHandle, out int exitCode);
 }

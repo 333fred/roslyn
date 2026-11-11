@@ -12,30 +12,40 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
     /// Module metadata block
     /// </summary>
     [DebuggerDisplay("{GetDebuggerDisplay(), nq}")]
-    internal readonly struct MetadataBlock(ModuleId moduleId, Guid generationId, IntPtr pointer, int size) : IEquatable<MetadataBlock>
+    internal readonly struct MetadataBlock : IEquatable<MetadataBlock>
     {
         /// <summary>
         /// Module id.
         /// </summary>
-        internal readonly ModuleId ModuleId = moduleId;
+        internal readonly ModuleId ModuleId;
 
         /// <summary>
         /// Module generation id.
         /// </summary>
-        internal readonly Guid GenerationId = generationId;
+        internal readonly Guid GenerationId;
 
         /// <summary>
         /// Pointer to memory block managed by the caller.
         /// </summary>
-        internal readonly IntPtr Pointer = pointer;
+        internal readonly IntPtr Pointer;
 
         /// <summary>
         /// Size of memory block.
         /// </summary>
-        internal readonly int Size = size;
+        internal readonly int Size;
+
+        // The caller must keep size bytes at pointer readable, at a fixed address, and unchanged while the block is used.
+        internal unsafe MetadataBlock(ModuleId moduleId, Guid generationId, IntPtr pointer, int size)
+        {
+            ModuleId = moduleId;
+            GenerationId = generationId;
+            Pointer = pointer;
+            Size = size;
+        }
 
         // Used by VS debugger (/src/debugger/ProductionDebug/CodeAnalysis/CodeAnalysis/ExpressionEvaluator.cs)
-        internal MetadataBlock(Guid moduleId, Guid generationId, IntPtr pointer, int size)
+        // The caller must satisfy the same memory lifetime contract as the ModuleId overload.
+        internal unsafe MetadataBlock(Guid moduleId, Guid generationId, IntPtr pointer, int size)
             : this(new ModuleId(moduleId, "<unknown>"), generationId, pointer, size)
         {
         }

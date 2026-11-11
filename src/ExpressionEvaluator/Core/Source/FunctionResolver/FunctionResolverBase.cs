@@ -70,20 +70,23 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
             }
         }
 
-        private unsafe MetadataReader GetMetadataReader(TModule module)
+        private MetadataReader GetMetadataReader(TModule module)
         {
-            if (!TryGetMetadata(module, out var pointer, out var length))
+            unsafe
             {
-                return null;
-            }
+                if (!TryGetMetadata(module, out var pointer, out var length))
+                {
+                    return null;
+                }
 
-            try
-            {
-                return new MetadataReader(pointer, length);
-            }
-            catch (BadImageFormatException)
-            {
-                return null;
+                try
+                {
+                    return new MetadataReader(pointer, length);
+                }
+                catch (BadImageFormatException)
+                {
+                    return null;
+                }
             }
         }
 

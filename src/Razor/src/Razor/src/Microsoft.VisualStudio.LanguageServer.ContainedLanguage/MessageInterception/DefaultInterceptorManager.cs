@@ -74,8 +74,14 @@ internal sealed class DefaultInterceptorManager : InterceptorManager
         return false;
     }
 
-    public override async Task<TJsonToken?> ProcessGenericInterceptorsAsync<TJsonToken>(string methodName, TJsonToken message, string contentType, CancellationToken cancellationToken)
+    // Restore the nullable return annotation after the compiler crash is fixed:
+    // https://github.com/dotnet/roslyn/issues/86386
+#pragma warning disable RS0057
+#nullable disable annotations
+    public override async Task<TJsonToken> ProcessGenericInterceptorsAsync<TJsonToken>(string methodName, TJsonToken message, string contentType, CancellationToken cancellationToken)
         where TJsonToken : default
+#nullable restore annotations
+#pragma warning restore RS0057
     {
         _ = message ?? throw new ArgumentNullException(nameof(message));
         if (string.IsNullOrEmpty(methodName))

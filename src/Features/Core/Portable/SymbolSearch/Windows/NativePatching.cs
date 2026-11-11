@@ -12,21 +12,24 @@ namespace Microsoft.CodeAnalysis.SymbolSearch;
 /// Wrapper around the msdelta api so we can consume patches produced by the Elfie service.
 /// Pinvokes and code provided by Dan Thompson
 /// </summary>
-internal static unsafe class NativePatching
+internal static class NativePatching
 {
     [StructLayout(LayoutKind.Sequential)]
     private struct DeltaInput
     {
-        public byte* pBuf;
+        public unsafe byte* pBuf;
         public IntPtr cbBuf; // SIZE_T, so different size on x86/x64
         [MarshalAs(UnmanagedType.Bool)]
         public bool editable;
 
-        public DeltaInput(byte* pBuf_, int cbBuf_, bool editable_) : this()
+        public unsafe DeltaInput(byte* pBuf_, int cbBuf_, bool editable_) : this()
         {
-            pBuf = pBuf_;
-            cbBuf = new IntPtr(cbBuf_);
-            editable = editable_;
+            unsafe
+            {
+                pBuf = pBuf_;
+                cbBuf = new IntPtr(cbBuf_);
+                editable = editable_;
+            }
         }
 
         public static DeltaInput Empty = new();
@@ -48,7 +51,7 @@ internal static unsafe class NativePatching
 
     [return: MarshalAs(UnmanagedType.Bool)]
     [DllImport("msdelta.dll", SetLastError = true)]
-    private static extern bool ApplyDeltaB(
+    private static extern unsafe bool ApplyDeltaB(
             DeltaApplyFlag applyFlags,
             DeltaInput source,
             DeltaInput delta,
@@ -56,27 +59,30 @@ internal static unsafe class NativePatching
 
     [return: MarshalAs(UnmanagedType.Bool)]
     [DllImport("msdelta.dll", SetLastError = true)]
-    private static extern bool DeltaFree(IntPtr memory);
+    private static extern unsafe bool DeltaFree(IntPtr memory);
 
-    public static unsafe byte[] ApplyPatch(byte[] sourceBytes, byte[] patchBytes)
+    public static byte[] ApplyPatch(byte[] sourceBytes, byte[] patchBytes)
     {
-        fixed (byte* pSourceBuf = sourceBytes)
-        fixed (byte* pPatchBuf = patchBytes)
+        unsafe
         {
-            var ds = new DeltaInput(pSourceBuf, sourceBytes.Length, true);
-            var dp = new DeltaInput(pPatchBuf, patchBytes.Length, true);
-            if (!ApplyDeltaB(DeltaApplyFlag.None,
-                              ds,
-                              dp,
-                              out var output))
+            fixed (byte* pSourceBuf = sourceBytes)
+            fixed (byte* pPatchBuf = patchBytes)
             {
-                throw new Win32Exception();
-            }
+                var ds = new DeltaInput(pSourceBuf, sourceBytes.Length, true);
+                var dp = new DeltaInput(pPatchBuf, patchBytes.Length, true);
+                if (!ApplyDeltaB(DeltaApplyFlag.None,
+                                  ds,
+                                  dp,
+                                  out var output))
+                {
+                    throw new Win32Exception();
+                }
 
-            var targetBytes = new byte[output.cbBuf.ToInt32()];
-            Marshal.Copy(output.pBuf, targetBytes, 0, targetBytes.Length);
-            DeltaFree(output.pBuf);
-            return targetBytes;
+                var targetBytes = new byte[output.cbBuf.ToInt32()];
+                Marshal.Copy(output.pBuf, targetBytes, 0, targetBytes.Length);
+                DeltaFree(output.pBuf);
+                return targetBytes;
+            }
         }
     }
 }

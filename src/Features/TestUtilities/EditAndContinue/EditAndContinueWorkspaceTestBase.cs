@@ -543,24 +543,27 @@ public abstract class EditAndContinueWorkspaceTestBase : TestBase, IDisposable
     internal static EditAndContinueLogEntry Row(int rowNumber, TableIndex table, EditAndContinueOperation operation)
         => new(MetadataTokens.Handle(table, rowNumber), operation);
 
-    internal static unsafe void VerifyEncLogMetadata(ImmutableArray<byte> delta, params EditAndContinueLogEntry[] expectedRows)
+    internal static void VerifyEncLogMetadata(ImmutableArray<byte> delta, params EditAndContinueLogEntry[] expectedRows)
     {
-        fixed (byte* ptr = delta.ToArray())
+        unsafe
         {
-            var reader = new MetadataReader(ptr, delta.Length);
-            AssertEx.Equal(expectedRows, reader.GetEditAndContinueLogEntries(), itemInspector: EncLogRowToString);
-        }
+            fixed (byte* ptr = delta.ToArray())
+            {
+                var reader = new MetadataReader(ptr, delta.Length);
+                AssertEx.Equal(expectedRows, reader.GetEditAndContinueLogEntries(), itemInspector: EncLogRowToString);
+            }
 
-        static string EncLogRowToString(EditAndContinueLogEntry row)
-        {
-            TableIndex tableIndex;
-            MetadataTokens.TryGetTableIndex(row.Handle.Kind, out tableIndex);
+            static string EncLogRowToString(EditAndContinueLogEntry row)
+            {
+                TableIndex tableIndex;
+                MetadataTokens.TryGetTableIndex(row.Handle.Kind, out tableIndex);
 
-            return string.Format(
-                "Row({0}, TableIndex.{1}, EditAndContinueOperation.{2})",
-                MetadataTokens.GetRowNumber(row.Handle),
-                tableIndex,
-                row.Operation);
+                return string.Format(
+                    "Row({0}, TableIndex.{1}, EditAndContinueOperation.{2})",
+                    MetadataTokens.GetRowNumber(row.Handle),
+                    tableIndex,
+                    row.Operation);
+            }
         }
     }
 

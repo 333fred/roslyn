@@ -26,8 +26,9 @@ namespace Microsoft.DiaSymReader
     /// <summary>
     /// The highest version of the interface available on Desktop FX 4.0+.
     /// </summary>
+    // Buffer pointers must remain valid and fixed for their declared lengths for the duration of a call.
     [ComImport, InterfaceType(ComInterfaceType.InterfaceIsIUnknown), Guid("DCF7780D-BDE9-45DF-ACFE-21731A32000C"), SuppressUnmanagedCodeSecurity]
-    internal unsafe interface ISymUnmanagedWriter5
+    internal interface ISymUnmanagedWriter5
     {
         #region ISymUnmanagedWriter
 
@@ -38,18 +39,18 @@ namespace Microsoft.DiaSymReader
         uint OpenScope(int startOffset);
         void CloseScope(int endOffset);
         void SetScopeRange(uint scopeID, uint startOffset, uint endOffset);
-        void DefineLocalVariable(string name, uint attributes, uint sig, byte* signature, uint addrKind, uint addr1, uint addr2, uint startOffset, uint endOffset);
+        unsafe void DefineLocalVariable(string name, uint attributes, uint sig, byte* signature, uint addrKind, uint addr1, uint addr2, uint startOffset, uint endOffset);
         void DefineParameter(string name, uint attributes, uint sequence, uint addrKind, uint addr1, uint addr2, uint addr3);
-        void DefineField(uint parent, string name, uint attributes, uint sig, byte* signature, uint addrKind, uint addr1, uint addr2, uint addr3);
-        void DefineGlobalVariable(string name, uint attributes, uint sig, byte* signature, uint addrKind, uint addr1, uint addr2, uint addr3);
+        unsafe void DefineField(uint parent, string name, uint attributes, uint sig, byte* signature, uint addrKind, uint addr1, uint addr2, uint addr3);
+        unsafe void DefineGlobalVariable(string name, uint attributes, uint sig, byte* signature, uint addrKind, uint addr1, uint addr2, uint addr3);
         void Close();
-        void SetSymAttribute(uint parent, string name, int length, byte* data);
+        unsafe void SetSymAttribute(uint parent, string name, int length, byte* data);
         void OpenNamespace(string name);
         void CloseNamespace();
         void UsingNamespace(string fullName);
         void SetMethodSourceRange(ISymUnmanagedDocumentWriter startDoc, uint startLine, uint startColumn, object endDoc, uint endLine, uint endColumn);
         void Initialize([MarshalAs(UnmanagedType.IUnknown)] object emitter, string filename, [MarshalAs(UnmanagedType.IUnknown)] object ptrIStream, bool fullBuild);
-        void GetDebugInfo(ref ImageDebugDirectory debugDirectory, uint dataCount, out uint dataCountPtr, byte* data);
+        unsafe void GetDebugInfo(ref ImageDebugDirectory debugDirectory, uint dataCount, out uint dataCountPtr, byte* data);
         void DefineSequencePoints(ISymUnmanagedDocumentWriter document, int count,
           [MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 1)] int[] offsets,
           [MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 1)] int[] lines,
@@ -58,7 +59,7 @@ namespace Microsoft.DiaSymReader
           [MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 1)] int[] endColumns);
         void RemapToken(uint oldToken, uint newToken);
         void Initialize2([MarshalAs(UnmanagedType.IUnknown)] object emitter, string tempfilename, [MarshalAs(UnmanagedType.IUnknown)] object ptrIStream, bool fullBuild, string finalfilename);
-        void DefineConstant(string name, object value, uint sig, byte* signature);
+        unsafe void DefineConstant(string name, object value, uint sig, byte* signature);
         void Abort();
 
         #endregion
@@ -87,7 +88,7 @@ namespace Microsoft.DiaSymReader
 
         #region ISymUnmanagedWriter4
 
-        void GetDebugInfoWithPadding(ref ImageDebugDirectory debugDirectory, uint dataCount, out uint dataCountPtr, byte* data);
+        unsafe void GetDebugInfoWithPadding(ref ImageDebugDirectory debugDirectory, uint dataCount, out uint dataCountPtr, byte* data);
 
         #endregion
 
@@ -153,53 +154,53 @@ namespace Microsoft.DiaSymReader
         }
 
         [FieldOffset(0)]
-        private readonly short _type;
+        private readonly safe short _type;
 
         [FieldOffset(8)]
-        private readonly long _longValue;
+        private readonly safe long _longValue;
 
         /// <summary>
         /// This field determines the size of the struct 
         /// (16 bytes on 32-bit platforms, 24 bytes on 64-bit platforms).
         /// </summary>
         [FieldOffset(8)]
-        private readonly VariantPadding _padding;
+        private readonly safe VariantPadding _padding;
 
         // Fields below this point are only used to make inspecting this struct in the debugger easier.
 
         [FieldOffset(0)] // NB: 0, not 8
-        private readonly decimal _decimalValue;
+        private readonly safe decimal _decimalValue;
 
         [FieldOffset(8)]
-        private readonly bool _boolValue;
+        private readonly safe bool _boolValue;
 
         [FieldOffset(8)]
-        private readonly long _intValue;
+        private readonly safe long _intValue;
 
         [FieldOffset(8)]
-        private readonly double _doubleValue;
+        private readonly safe double _doubleValue;
     }
 
     /// <summary>
     /// This type is 8 bytes on a 32-bit platforms and 16 bytes on 64-bit platforms.
     /// </summary>
     [StructLayout(LayoutKind.Sequential)]
-    internal readonly unsafe struct VariantPadding
+    internal readonly struct VariantPadding
     {
-        public readonly byte* Data2;
-        public readonly byte* Data3;
+        public readonly unsafe byte* Data2;
+        public readonly unsafe byte* Data3;
     }
 
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     internal struct ImageDebugDirectory
     {
-        internal int Characteristics;
-        internal int TimeDateStamp;
-        internal short MajorVersion;
-        internal short MinorVersion;
-        internal int Type;
-        internal int SizeOfData;
-        internal int AddressOfRawData;
-        internal int PointerToRawData;
+        internal safe int Characteristics;
+        internal safe int TimeDateStamp;
+        internal safe short MajorVersion;
+        internal safe short MinorVersion;
+        internal safe int Type;
+        internal safe int SizeOfData;
+        internal safe int AddressOfRawData;
+        internal safe int PointerToRawData;
     }
 }

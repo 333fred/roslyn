@@ -240,7 +240,8 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator.UnitTests
             return result;
         }
 
-        internal static bool CompileExpressionWithRetry(
+        // Callback buffers must satisfy ExpressionCompiler.TryCompileWithRetry's lifetime contract.
+        internal static unsafe bool CompileExpressionWithRetry(
             ImmutableArray<MetadataBlock> metadataBlocks,
             EvaluationContextBase context,
             ExpressionCompiler.CompileDelegate<CompileResult> compile,
@@ -248,17 +249,21 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator.UnitTests
             out CompileResult compileResult,
             out string errorMessage)
         {
-            return ExpressionCompiler.TryCompileWithRetry(
-                metadataBlocks,
-                DebuggerDiagnosticFormatter.Instance,
-                (blocks, useReferencedModulesOnly) => context,
-                compile,
-                getMetaDataBytesPtr,
-                out compileResult,
-                out errorMessage);
+            unsafe
+            {
+                return ExpressionCompiler.TryCompileWithRetry(
+                    metadataBlocks,
+                    DebuggerDiagnosticFormatter.Instance,
+                    (blocks, useReferencedModulesOnly) => context,
+                    compile,
+                    getMetaDataBytesPtr,
+                    out compileResult,
+                    out errorMessage);
+            }
         }
 
-        internal static CompileResult CompileExpressionWithRetry(
+        // Callback buffers must satisfy ExpressionCompiler.TryCompileWithRetry's lifetime contract.
+        internal static unsafe CompileResult CompileExpressionWithRetry(
             ImmutableArray<MetadataBlock> metadataBlocks,
             string expr,
             ImmutableArray<Alias> aliases,
@@ -267,28 +272,31 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator.UnitTests
             out string errorMessage,
             out CompilationTestData testData)
         {
-            ExpressionCompiler.TryCompileWithRetry(
-                metadataBlocks,
-                DebuggerDiagnosticFormatter.Instance,
-                createContext,
-                (context, diagnostics) =>
-                {
-                    var td = new CompilationTestData();
-                    ResultProperties resultProperties;
-                    var compileResult = context.CompileExpression(
-                        expr,
-                        DkmEvaluationFlags.TreatAsExpression,
-                        aliases,
-                        diagnostics,
-                        out resultProperties,
-                        td);
-                    return new CompileExpressionResult(compileResult, td);
-                },
-                getMetaDataBytesPtr,
-                out var r,
-                out errorMessage);
-            testData = r.TestData;
-            return r.CompileResult;
+            unsafe
+            {
+                ExpressionCompiler.TryCompileWithRetry(
+                    metadataBlocks,
+                    DebuggerDiagnosticFormatter.Instance,
+                    createContext,
+                    (context, diagnostics) =>
+                    {
+                        var td = new CompilationTestData();
+                        ResultProperties resultProperties;
+                        var compileResult = context.CompileExpression(
+                            expr,
+                            DkmEvaluationFlags.TreatAsExpression,
+                            aliases,
+                            diagnostics,
+                            out resultProperties,
+                            td);
+                        return new CompileExpressionResult(compileResult, td);
+                    },
+                    getMetaDataBytesPtr,
+                    out var r,
+                    out errorMessage);
+                testData = r.TestData;
+                return r.CompileResult;
+            }
         }
 
         private readonly struct CompileExpressionResult
@@ -767,18 +775,24 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator.UnitTests
             return methodName;
         }
 
-        internal static unsafe ModuleMetadata ToModuleMetadata(this PEMemoryBlock metadata, bool ignoreAssemblyRefs)
+        internal static ModuleMetadata ToModuleMetadata(this PEMemoryBlock metadata, bool ignoreAssemblyRefs)
         {
-            return ModuleMetadata.CreateFromMetadata(
-                (IntPtr)metadata.Pointer,
-                metadata.Length,
-                includeEmbeddedInteropTypes: false,
-                ignoreAssemblyRefs: ignoreAssemblyRefs);
+            unsafe
+            {
+                return ModuleMetadata.CreateFromMetadata(
+                    (IntPtr)metadata.Pointer,
+                    metadata.Length,
+                    includeEmbeddedInteropTypes: false,
+                    ignoreAssemblyRefs: ignoreAssemblyRefs);
+            }
         }
 
-        internal static unsafe MetadataReader ToMetadataReader(this PEMemoryBlock metadata)
+        internal static MetadataReader ToMetadataReader(this PEMemoryBlock metadata)
         {
-            return new MetadataReader(metadata.Pointer, metadata.Length, MetadataReaderOptions.None);
+            unsafe
+            {
+                return new MetadataReader(metadata.Pointer, metadata.Length, MetadataReaderOptions.None);
+            }
         }
 
         internal static void EmitCorLibWithAssemblyReferences(

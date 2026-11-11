@@ -63,7 +63,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator.UnitTests
         }
 
         internal override unsafe bool TryGetMetadata(Module module, out byte* pointer, out int length)
-            => module.TryGetMetadata(out pointer, out length);
+            => unsafe (module.TryGetMetadata(out pointer, out length));
 
         internal override Request[] GetRequests(Process process)
         {

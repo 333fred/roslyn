@@ -259,12 +259,12 @@ namespace Microsoft.VisualStudio.Extensibility.Testing
         private partial struct VariantHelper
         {
             // Most of the data types in the VariantHelper are carried in _typeUnion
-            [FieldOffset(0)] private TypeUnion _typeUnion;
+            [FieldOffset(0)] private /*safe*/TypeUnion _typeUnion;
 
             // Decimal is the largest data type and it needs to use the space that is normally unused in TypeUnion._wReserved1, etc.
             // Hence, it is declared to completely overlap with TypeUnion. A Decimal does not use the first two bytes, and so
             // TypeUnion._vt can still be used to encode the type.
-            [FieldOffset(0)] private decimal _decimal;
+            [FieldOffset(0)] private /*safe*/decimal _decimal;
 
             [StructLayout(LayoutKind.Sequential)]
             private struct TypeUnion
@@ -287,28 +287,28 @@ namespace Microsoft.VisualStudio.Extensibility.Testing
             [StructLayout(LayoutKind.Explicit)]
             private struct UnionTypes
             {
-                [FieldOffset(0)] public sbyte _i1;
-                [FieldOffset(0)] public short _i2;
-                [FieldOffset(0)] public int _i4;
-                [FieldOffset(0)] public long _i8;
-                [FieldOffset(0)] public byte _ui1;
-                [FieldOffset(0)] public ushort _ui2;
-                [FieldOffset(0)] public uint _ui4;
-                [FieldOffset(0)] public ulong _ui8;
-                [FieldOffset(0)] public int _int;
-                [FieldOffset(0)] public uint _uint;
-                [FieldOffset(0)] public short _bool;
-                [FieldOffset(0)] public int _error;
-                [FieldOffset(0)] public float _r4;
-                [FieldOffset(0)] public double _r8;
-                [FieldOffset(0)] public long _cy;
-                [FieldOffset(0)] public double _date;
-                [FieldOffset(0)] public IntPtr _bstr;
-                [FieldOffset(0)] public IntPtr _unknown;
-                [FieldOffset(0)] public IntPtr _dispatch;
-                [FieldOffset(0)] public IntPtr _pvarVal;
-                [FieldOffset(0)] public IntPtr _byref;
-                [FieldOffset(0)] public Record _record;
+                [FieldOffset(0)] public /*safe*/sbyte _i1;
+                [FieldOffset(0)] public /*safe*/short _i2;
+                [FieldOffset(0)] public /*safe*/int _i4;
+                [FieldOffset(0)] public /*safe*/long _i8;
+                [FieldOffset(0)] public /*safe*/byte _ui1;
+                [FieldOffset(0)] public /*safe*/ushort _ui2;
+                [FieldOffset(0)] public /*safe*/uint _ui4;
+                [FieldOffset(0)] public /*safe*/ulong _ui8;
+                [FieldOffset(0)] public /*safe*/int _int;
+                [FieldOffset(0)] public /*safe*/uint _uint;
+                [FieldOffset(0)] public /*safe*/short _bool;
+                [FieldOffset(0)] public /*safe*/int _error;
+                [FieldOffset(0)] public /*safe*/float _r4;
+                [FieldOffset(0)] public /*safe*/double _r8;
+                [FieldOffset(0)] public /*safe*/long _cy;
+                [FieldOffset(0)] public /*safe*/double _date;
+                [FieldOffset(0)] public /*safe*/IntPtr _bstr;
+                [FieldOffset(0)] public /*safe*/IntPtr _unknown;
+                [FieldOffset(0)] public /*safe*/IntPtr _dispatch;
+                [FieldOffset(0)] public /*safe*/IntPtr _pvarVal;
+                [FieldOffset(0)] public /*safe*/IntPtr _byref;
+                [FieldOffset(0)] public /*safe*/Record _record;
             }
 
             /// <summary>
@@ -538,7 +538,7 @@ namespace Microsoft.VisualStudio.Extensibility.Testing
                     try
                     {
                         Marshal.StructureToPtr(this, unmanagedCopy, false);
-                        VariantClear(unmanagedCopy);
+                        /*clear-variant*/
                         this = Marshal.PtrToStructure<VariantHelper>(unmanagedCopy);
                     }
                     finally
@@ -952,8 +952,9 @@ namespace Microsoft.VisualStudio.Extensibility.Testing
                 }
             }
 
+            // The caller must own a writable VARIANT and its unmanaged resources for the duration of the call.
             [DllImport(""oleaut32.dll"")]
-            private static extern void VariantClear(IntPtr variant);
+            private static /*unsafe*/extern void VariantClear(IntPtr variant);
         }
     }
 }
@@ -1346,9 +1347,22 @@ namespace Microsoft.VisualStudio
                 context.AddSource($"EditorInProcess1{SourceSuffix}", EditorInProcessSource);
                 context.AddSource($"SolutionExplorerInProcess1{SourceSuffix}", SolutionExplorerInProcessSource);
                 context.AddSource($"ShellInProcess1{SourceSuffix}", ShellInProcessSource);
-                context.AddSource($"ShellInProcess.VariantHelper{SourceSuffix}", ShellInProcessVariantHelperSource);
                 context.AddSource($"WorkspaceInProcess1{SourceSuffix}", WorkspaceInProcessSource);
                 context.AddSource($"TestServiceAttribute{SourceSuffix}", TestServiceAttributeSource);
+            });
+
+            var memorySafetyRulesV2 = context.AnalyzerConfigOptionsProvider.Select(
+                static (options, cancellationToken) =>
+                    options.GlobalOptions.TryGetValue("build_property.MemorySafetyRulesVersion", out var version) && version == "2");
+            context.RegisterSourceOutput(memorySafetyRulesV2, static (context, useV2) =>
+            {
+                var source = ShellInProcessVariantHelperSource
+                    .Replace("/*safe*/", useV2 ? "safe " : "")
+                    .Replace("/*unsafe*/", useV2 ? "unsafe " : "")
+                    .Replace("/*clear-variant*/", useV2
+                        ? "unsafe\n                        {\n                            VariantClear(unmanagedCopy);\n                        }"
+                        : "VariantClear(unmanagedCopy);");
+                context.AddSource($"ShellInProcess.VariantHelper{SourceSuffix}", source);
             });
 
             var services = context.SyntaxProvider.CreateSyntaxProvider(

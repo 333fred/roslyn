@@ -65,10 +65,10 @@ namespace Microsoft.CodeAnalysis.Interactive
         }
 
         [DllImport("kernel32", PreserveSig = true)]
-        internal static extern ErrorMode SetErrorMode(ErrorMode mode);
+        internal static extern safe ErrorMode SetErrorMode(ErrorMode mode);
 
         [DllImport("kernel32", PreserveSig = true)]
-        internal static extern ErrorMode GetErrorMode();
+        internal static extern safe ErrorMode GetErrorMode();
 
         [Flags]
         internal enum ErrorMode : int

@@ -53,7 +53,7 @@ internal static class FileLockCheck
     private const string RestartManagerDll = "rstrtmgr.dll";
 
     [DllImport(RestartManagerDll, CharSet = CharSet.Unicode)]
-    private static extern int RmRegisterResources(uint pSessionHandle,
+    private static extern unsafe int RmRegisterResources(uint pSessionHandle,
         uint nFiles,
         string[] rgsFilenames,
         uint nApplications,
@@ -113,10 +113,10 @@ internal static class FileLockCheck
     /// The function can return one of the system error codes that are defined in Winerror.h.
     /// </returns>
     [DllImport(RestartManagerDll)]
-    private static extern int RmEndSession(uint pSessionHandle);
+    private static extern unsafe int RmEndSession(uint pSessionHandle);
 
     [DllImport(RestartManagerDll, CharSet = CharSet.Unicode)]
-    private static extern int RmGetList(uint dwSessionHandle,
+    private static extern unsafe int RmGetList(uint dwSessionHandle,
         out uint pnProcInfoNeeded,
         ref uint pnProcInfo,
         [In, Out] RM_PROCESS_INFO[]? rgAffectedApps,
@@ -141,87 +141,90 @@ internal static class FileLockCheck
 
     private static ImmutableArray<(int processId, string applicationName)> GetLockingProcessInfosImpl(string[] paths)
     {
-        const int MaxRetries = 6;
-        const int ERROR_MORE_DATA = 234;
-        const uint RM_REBOOT_REASON_NONE = 0;
-
-        uint handle;
-        int res;
-
         unsafe
         {
-            char* key = stackalloc char[sizeof(Guid) * 2 + 1];
-            res = RmStartSession(out handle, 0, key);
-        }
+            const int MaxRetries = 6;
+            const int ERROR_MORE_DATA = 234;
+            const uint RM_REBOOT_REASON_NONE = 0;
 
-        if (res != 0)
-        {
-            return [];
-        }
+            uint handle;
+            int res;
 
-        try
-        {
-            res = RmRegisterResources(handle, (uint)paths.Length, paths, 0, null, 0, null);
+            unsafe
+            {
+                char* key = stackalloc char[sizeof(Guid) * 2 + 1];
+                res = RmStartSession(out handle, 0, key);
+            }
+
             if (res != 0)
             {
                 return [];
             }
 
-            //
-            // Obtain the list of affected applications/services.
-            //
-            // NOTE: Restart Manager returns the results into the buffer allocated by the caller. The first call to
-            // RmGetList() will return the size of the buffer (i.e. nProcInfoNeeded) the caller needs to allocate.
-            // The caller then needs to allocate the buffer (i.e. rgAffectedApps) and make another RmGetList()
-            // call to ask Restart Manager to write the results into the buffer. However, since Restart Manager
-            // refreshes the list every time RmGetList()is called, it is possible that the size returned by the first
-            // RmGetList()call is not sufficient to hold the results discovered by the second RmGetList() call. Therefore,
-            // it is recommended that the caller follows the following practice to handle this race condition:
-            //
-            //    Use a loop to call RmGetList() in case the buffer allocated according to the size returned in previous
-            //    call is not enough.
-            //
-            uint pnProcInfo = 0;
-            RM_PROCESS_INFO[]? rgAffectedApps = null;
-            int retry = 0;
-            do
+            try
             {
-                uint lpdwRebootReasons = RM_REBOOT_REASON_NONE;
-                res = RmGetList(handle, out uint pnProcInfoNeeded, ref pnProcInfo, rgAffectedApps, ref lpdwRebootReasons);
-                if (res == 0)
-                {
-                    // If pnProcInfo == 0, then there is simply no locking process (found), in this case rgAffectedApps is "null".
-                    if (pnProcInfo == 0)
-                    {
-                        return [];
-                    }
-
-                    Debug.Assert(rgAffectedApps != null);
-
-                    var lockInfos = ArrayBuilder<(int, string)>.GetInstance((int)pnProcInfo);
-                    for (int i = 0; i < pnProcInfo; i++)
-                    {
-                        lockInfos.Add(((int)rgAffectedApps[i].Process.dwProcessId, rgAffectedApps[i].strAppName));
-                    }
-
-                    return lockInfos.ToImmutableAndFree();
-                }
-
-                if (res != ERROR_MORE_DATA)
+                res = RmRegisterResources(handle, (uint)paths.Length, paths, 0, null, 0, null);
+                if (res != 0)
                 {
                     return [];
                 }
 
-                pnProcInfo = pnProcInfoNeeded;
-                rgAffectedApps = new RM_PROCESS_INFO[pnProcInfo];
-            }
-            while (res == ERROR_MORE_DATA && retry++ < MaxRetries);
-        }
-        finally
-        {
-            _ = RmEndSession(handle);
-        }
+                //
+                // Obtain the list of affected applications/services.
+                //
+                // NOTE: Restart Manager returns the results into the buffer allocated by the caller. The first call to
+                // RmGetList() will return the size of the buffer (i.e. nProcInfoNeeded) the caller needs to allocate.
+                // The caller then needs to allocate the buffer (i.e. rgAffectedApps) and make another RmGetList()
+                // call to ask Restart Manager to write the results into the buffer. However, since Restart Manager
+                // refreshes the list every time RmGetList()is called, it is possible that the size returned by the first
+                // RmGetList()call is not sufficient to hold the results discovered by the second RmGetList() call. Therefore,
+                // it is recommended that the caller follows the following practice to handle this race condition:
+                //
+                //    Use a loop to call RmGetList() in case the buffer allocated according to the size returned in previous
+                //    call is not enough.
+                //
+                uint pnProcInfo = 0;
+                RM_PROCESS_INFO[]? rgAffectedApps = null;
+                int retry = 0;
+                do
+                {
+                    uint lpdwRebootReasons = RM_REBOOT_REASON_NONE;
+                    res = RmGetList(handle, out uint pnProcInfoNeeded, ref pnProcInfo, rgAffectedApps, ref lpdwRebootReasons);
+                    if (res == 0)
+                    {
+                        // If pnProcInfo == 0, then there is simply no locking process (found), in this case rgAffectedApps is "null".
+                        if (pnProcInfo == 0)
+                        {
+                            return [];
+                        }
 
-        return [];
+                        Debug.Assert(rgAffectedApps != null);
+
+                        var lockInfos = ArrayBuilder<(int, string)>.GetInstance((int)pnProcInfo);
+                        for (int i = 0; i < pnProcInfo; i++)
+                        {
+                            lockInfos.Add(((int)rgAffectedApps[i].Process.dwProcessId, rgAffectedApps[i].strAppName));
+                        }
+
+                        return lockInfos.ToImmutableAndFree();
+                    }
+
+                    if (res != ERROR_MORE_DATA)
+                    {
+                        return [];
+                    }
+
+                    pnProcInfo = pnProcInfoNeeded;
+                    rgAffectedApps = new RM_PROCESS_INFO[pnProcInfo];
+                }
+                while (res == ERROR_MORE_DATA && retry++ < MaxRetries);
+            }
+            finally
+            {
+                _ = RmEndSession(handle);
+            }
+
+            return [];
+        }
     }
 }

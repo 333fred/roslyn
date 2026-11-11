@@ -2229,21 +2229,70 @@ class C { }", options: TestOptions.Script.WithLanguageVersion(LanguageVersion.CS
         }
 
         [Fact]
-        public unsafe void LinkedNetmoduleMetadataMustProvideFullPEImage()
+        public void LinkedNetmoduleMetadataMustProvideFullPEImage()
         {
-            var netModule = TestResources.MetadataTests.NetModule01.ModuleCS00;
-            PEHeaders h = new PEHeaders(new MemoryStream(netModule));
-
-            fixed (byte* ptr = &netModule[h.MetadataStartOffset])
+            unsafe
             {
-                using (var mdModule = ModuleMetadata.CreateFromMetadata((IntPtr)ptr, h.MetadataSize))
+                var netModule = TestResources.MetadataTests.NetModule01.ModuleCS00;
+                PEHeaders h = new PEHeaders(new MemoryStream(netModule));
+
+                fixed (byte* ptr = &netModule[h.MetadataStartOffset])
                 {
-                    var c = CSharpCompilation.Create("Goo", references: new[] { MscorlibRef, mdModule.GetReference(display: "ModuleCS00") }, options: TestOptions.ReleaseDll);
-                    c.VerifyDiagnostics(
-                        // error CS7098: Linked netmodule metadata must provide a full PE image: 'ModuleCS00'.
-                        Diagnostic(ErrorCode.ERR_LinkedNetmoduleMetadataMustProvideFullPEImage).WithArguments("ModuleCS00").WithLocation(1, 1));
+                    using (var mdModule = ModuleMetadata.CreateFromMetadata((IntPtr)ptr, h.MetadataSize))
+                    {
+                        var c = CSharpCompilation.Create("Goo", references: new[] { MscorlibRef, mdModule.GetReference(display: "ModuleCS00") }, options: TestOptions.ReleaseDll);
+                        c.VerifyDiagnostics(
+                            // error CS7098: Linked netmodule metadata must provide a full PE image: 'ModuleCS00'.
+                            Diagnostic(ErrorCode.ERR_LinkedNetmoduleMetadataMustProvideFullPEImage).WithArguments("ModuleCS00").WithLocation(1, 1));
+                    }
                 }
             }
+        }
+
+        [Theory]
+        [InlineData("CreateFromImage", "0, 1")]
+        [InlineData("CreateFromMetadata", "0, 1")]
+        [InlineData("CreateFromMetadata", "0, 1, () => { }")]
+        public void BorrowedModuleMetadataRequiresUnsafeContext(string factory, string arguments)
+        {
+            var call = $"ModuleMetadata.{factory}({arguments})";
+            var reference = MetadataReference.CreateFromFile(typeof(ModuleMetadata).Assembly.Location);
+            var targetFramework = RuntimeUtilities.IsCoreClrRuntime ? TargetFramework.Net100 : TargetFramework.NetStandard20;
+            var options = TestOptions.UnsafeReleaseDll.WithUpdatedMemorySafetyRules();
+
+            var safeSource = $$"""
+                using Microsoft.CodeAnalysis;
+                class C
+                {
+                    void M() { _ = {{call}}; }
+                }
+                """;
+            var safeCompilation = CreateCompilation(safeSource, references: [reference], targetFramework: targetFramework, options: options);
+            Assert.Equal((int)ErrorCode.ERR_UnsafeMemberOperation, Assert.Single(safeCompilation.GetDiagnostics()).Code);
+
+            var unsafeSource = $$"""
+                using Microsoft.CodeAnalysis;
+                class C
+                {
+                    void M() { unsafe { _ = {{call}}; } }
+                }
+                """;
+            CreateCompilation(unsafeSource, references: [reference], targetFramework: targetFramework, options: options).VerifyEmitDiagnostics();
+        }
+
+        [Fact]
+        public void ManagedModuleMetadataDoesNotRequireUnsafeContext()
+        {
+            var source = """
+                using Microsoft.CodeAnalysis;
+                class C
+                {
+                    void M() { _ = ModuleMetadata.CreateFromImage(new byte[1]); }
+                }
+                """;
+            var reference = MetadataReference.CreateFromFile(typeof(ModuleMetadata).Assembly.Location);
+            var targetFramework = RuntimeUtilities.IsCoreClrRuntime ? TargetFramework.Net100 : TargetFramework.NetStandard20;
+            CreateCompilation(source, references: [reference], targetFramework: targetFramework, options: TestOptions.ReleaseDll.WithUpdatedMemorySafetyRules()).VerifyEmitDiagnostics();
         }
 
         [Fact]

@@ -15,13 +15,18 @@ namespace Microsoft.CodeAnalysis.Test.Utilities;
 /// </summary>
 public static class BlindAggregatorFactory
 {
+    // The returned COM reference must be released after all uses of the wrapper have finished.
     public static unsafe IntPtr CreateWrapper()
-        => (IntPtr)BlindAggregator.CreateInstance();
+        => unsafe ((IntPtr)BlindAggregator.CreateInstance());
 
+    // The wrapper, inner COM reference, and GC handle must be valid; the wrapper takes ownership of the GC handle.
     public static unsafe void SetInnerObject(IntPtr wrapperUnknown, IntPtr innerUnknown, IntPtr managedObjectGCHandlePtr)
     {
-        var pWrapper = (BlindAggregator*)wrapperUnknown;
-        pWrapper->SetInnerObject(innerUnknown, managedObjectGCHandlePtr);
+        unsafe
+        {
+            var pWrapper = (BlindAggregator*)wrapperUnknown;
+            pWrapper->SetInnerObject(innerUnknown, managedObjectGCHandlePtr);
+        }
     }
 
     /// <summary>
@@ -37,13 +42,16 @@ public static class BlindAggregatorFactory
 
         public static unsafe BlindAggregator* CreateInstance()
         {
-            var pResult = (BlindAggregator*)Marshal.AllocCoTaskMem(sizeof(BlindAggregator));
-            if (pResult != null)
+            unsafe
             {
-                pResult->Construct();
-            }
+                var pResult = (BlindAggregator*)Marshal.AllocCoTaskMem(sizeof(BlindAggregator));
+                if (pResult != null)
+                {
+                    pResult->Construct();
+                }
 
-            return pResult;
+                return pResult;
+            }
         }
 
         private void Construct()
@@ -72,19 +80,19 @@ public static class BlindAggregatorFactory
             }
         }
 
-        private unsafe delegate int QueryInterfaceDelegateType(BlindAggregator* pThis, [In] ref Guid riid, out IntPtr pvObject);
-        private unsafe delegate uint AddRefDelegateType(BlindAggregator* pThis);
-        private unsafe delegate uint ReleaseDelegateType(BlindAggregator* pThis);
-        private unsafe delegate int GetGCHandlePtrDelegateType(BlindAggregator* pThis, out IntPtr pResult);
+        private delegate int QueryInterfaceDelegateType(BlindAggregator* pThis, [In] ref Guid riid, out IntPtr pvObject);
+        private delegate uint AddRefDelegateType(BlindAggregator* pThis);
+        private delegate uint ReleaseDelegateType(BlindAggregator* pThis);
+        private delegate int GetGCHandlePtrDelegateType(BlindAggregator* pThis, out IntPtr pResult);
 
         [StructLayout(LayoutKind.Sequential)]
         private struct VTable
         {
             // Need these to keep the delegates alive
-            private static readonly unsafe QueryInterfaceDelegateType s_queryInterface = BlindAggregator.QueryInterface;
-            private static readonly unsafe AddRefDelegateType s_addRef = BlindAggregator.AddRef;
-            private static readonly unsafe ReleaseDelegateType s_release = BlindAggregator.Release;
-            private static readonly unsafe GetGCHandlePtrDelegateType s_get_GCHandlePtr = BlindAggregator.GetGCHandlePtr;
+            private static readonly QueryInterfaceDelegateType s_queryInterface = unsafe (new QueryInterfaceDelegateType(BlindAggregator.QueryInterface));
+            private static readonly AddRefDelegateType s_addRef = unsafe (new AddRefDelegateType(BlindAggregator.AddRef));
+            private static readonly ReleaseDelegateType s_release = unsafe (new ReleaseDelegateType(BlindAggregator.Release));
+            private static readonly GetGCHandlePtrDelegateType s_get_GCHandlePtr = unsafe (new GetGCHandlePtrDelegateType(BlindAggregator.GetGCHandlePtr));
 
             private IntPtr _queryInterfacePtr;
             private IntPtr _addRefPtr;
@@ -106,11 +114,14 @@ public static class BlindAggregatorFactory
             {
                 public readonly IntPtr VTablePtr;
 
-                public unsafe CoTaskMemPtr()
+                public CoTaskMemPtr()
                 {
-                    var ptr = Marshal.AllocCoTaskMem(sizeof(VTable));
-                    this.VTablePtr = ptr;
-                    ((VTable*)ptr)->Construct();
+                    unsafe
+                    {
+                        var ptr = Marshal.AllocCoTaskMem(sizeof(VTable));
+                        this.VTablePtr = ptr;
+                        ((VTable*)ptr)->Construct();
+                    }
                 }
 
                 ~CoTaskMemPtr()
@@ -138,43 +149,52 @@ public static class BlindAggregatorFactory
 
         private static unsafe int QueryInterface(BlindAggregator* pThis, [In] ref Guid riid, out IntPtr pvObject)
         {
-            if (riid == s_IUnknownInterfaceGuid || riid == s_IComWrapperGuid)
+            unsafe
             {
-                AddRef(pThis);
-                pvObject = (IntPtr)pThis;
-                return S_OK;
-            }
-            else if (riid == s_IMarshalInterfaceGuid)
-            {
-                pvObject = IntPtr.Zero;
-                return E_NOINTERFACE;
-            }
-            else
-            {
-                // We don't know what the interface is, so aggregate blindly from here
-                return Marshal.QueryInterface(pThis->_innerUnknown, ref riid, out pvObject);
+                if (riid == s_IUnknownInterfaceGuid || riid == s_IComWrapperGuid)
+                {
+                    AddRef(pThis);
+                    pvObject = (IntPtr)pThis;
+                    return S_OK;
+                }
+                else if (riid == s_IMarshalInterfaceGuid)
+                {
+                    pvObject = IntPtr.Zero;
+                    return E_NOINTERFACE;
+                }
+                else
+                {
+                    // We don't know what the interface is, so aggregate blindly from here
+                    return Marshal.QueryInterface(pThis->_innerUnknown, ref riid, out pvObject);
+                }
             }
         }
 
         private static unsafe uint AddRef(BlindAggregator* pThis)
-            => unchecked((uint)Interlocked.Increment(ref pThis->_refCount));
+            => unsafe (unchecked((uint)Interlocked.Increment(ref pThis->_refCount)));
 
         private static unsafe uint Release(BlindAggregator* pThis)
         {
-            var result = unchecked((uint)Interlocked.Decrement(ref pThis->_refCount));
-            if (result == 0u)
+            unsafe
             {
-                pThis->FinalRelease();
-                Marshal.FreeCoTaskMem((IntPtr)pThis);
-            }
+                var result = unchecked((uint)Interlocked.Decrement(ref pThis->_refCount));
+                if (result == 0u)
+                {
+                    pThis->FinalRelease();
+                    Marshal.FreeCoTaskMem((IntPtr)pThis);
+                }
 
-            return result;
+                return result;
+            }
         }
 
         private static unsafe int GetGCHandlePtr(BlindAggregator* pThis, out IntPtr pResult)
         {
-            pResult = pThis->_gcHandle;
-            return S_OK;
+            unsafe
+            {
+                pResult = pThis->_gcHandle;
+                return S_OK;
+            }
         }
     }
 }

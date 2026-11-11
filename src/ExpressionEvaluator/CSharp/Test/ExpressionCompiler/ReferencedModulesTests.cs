@@ -833,8 +833,10 @@ IL_0005:  ret
         [Fact]
         public void DuplicateTypesAndMethodsDifferentAssemblies()
         {
-            var sourceA =
-@"using N;
+            unsafe
+            {
+                var sourceA =
+    @"using N;
 namespace N
 {
     class C1 { }
@@ -852,8 +854,8 @@ public class A
         var y = x.F();
     }
 }";
-            var sourceB =
-@"using N;
+                var sourceB =
+    @"using N;
 namespace N
 {
     class C1 { }
@@ -870,76 +872,76 @@ public class B
         var x = new A();
     }
 }";
-            var compilationA = CreateCompilationWithMscorlib40AndSystemCore(sourceA, options: TestOptions.DebugDll, assemblyName: "A");
-            var identityA = compilationA.Assembly.Identity;
-            var moduleA = compilationA.ToModuleInstance();
+                var compilationA = CreateCompilationWithMscorlib40AndSystemCore(sourceA, options: TestOptions.DebugDll, assemblyName: "A");
+                var identityA = compilationA.Assembly.Identity;
+                var moduleA = compilationA.ToModuleInstance();
 
-            var compilationB = CreateCompilationWithMscorlib40AndSystemCore(sourceB, options: TestOptions.DebugDll, assemblyName: "B", references: new[] { moduleA.GetReference() });
-            var moduleB = compilationB.ToModuleInstance();
+                var compilationB = CreateCompilationWithMscorlib40AndSystemCore(sourceB, options: TestOptions.DebugDll, assemblyName: "B", references: new[] { moduleA.GetReference() });
+                var moduleB = compilationB.ToModuleInstance();
 
-            var runtime = CreateRuntimeInstance(new[] { MscorlibRef.ToModuleInstance(), SystemCoreRef.ToModuleInstance(), moduleA, moduleB });
-            ImmutableArray<MetadataBlock> blocks;
-            ModuleId moduleId;
-            ISymUnmanagedReader symReader;
-            int typeToken;
-            int methodToken;
-            int localSignatureToken;
-            GetContextState(runtime, "B", out blocks, out moduleId, out symReader, out typeToken, out localSignatureToken);
-            string errorMessage;
-            CompilationTestData testData;
-            var contextFactory = CreateTypeContextFactory(moduleId, typeToken);
+                var runtime = CreateRuntimeInstance(new[] { MscorlibRef.ToModuleInstance(), SystemCoreRef.ToModuleInstance(), moduleA, moduleB });
+                ImmutableArray<MetadataBlock> blocks;
+                ModuleId moduleId;
+                ISymUnmanagedReader symReader;
+                int typeToken;
+                int methodToken;
+                int localSignatureToken;
+                GetContextState(runtime, "B", out blocks, out moduleId, out symReader, out typeToken, out localSignatureToken);
+                string errorMessage;
+                CompilationTestData testData;
+                var contextFactory = CreateTypeContextFactory(moduleId, typeToken);
 
-            // Duplicate type in namespace, at type scope.
-            ExpressionCompilerTestHelpers.CompileExpressionWithRetry(blocks, "new N.C1()", ImmutableArray<Alias>.Empty, contextFactory, getMetaDataBytesPtr: null, errorMessage: out errorMessage, testData: out testData);
+                // Duplicate type in namespace, at type scope.
+                ExpressionCompilerTestHelpers.CompileExpressionWithRetry(blocks, "new N.C1()", ImmutableArray<Alias>.Empty, contextFactory, getMetaDataBytesPtr: null, errorMessage: out errorMessage, testData: out testData);
 
-            IEnumerable<string> CS0433Messages(string type)
-            {
-                yield return "error CS0433: " + string.Format(CSharpResources.ERR_SameFullNameAggAgg, compilationA.Assembly.Identity, type, compilationB.Assembly.Identity);
-                yield return "error CS0433: " + string.Format(CSharpResources.ERR_SameFullNameAggAgg, compilationB.Assembly.Identity, type, compilationA.Assembly.Identity);
-            }
-            Assert.Contains(errorMessage, CS0433Messages("C1"));
+                IEnumerable<string> CS0433Messages(string type)
+                {
+                    yield return "error CS0433: " + string.Format(CSharpResources.ERR_SameFullNameAggAgg, compilationA.Assembly.Identity, type, compilationB.Assembly.Identity);
+                    yield return "error CS0433: " + string.Format(CSharpResources.ERR_SameFullNameAggAgg, compilationB.Assembly.Identity, type, compilationA.Assembly.Identity);
+                }
+                Assert.Contains(errorMessage, CS0433Messages("C1"));
 
-            GetContextState(runtime, "B.M", out blocks, out moduleId, out symReader, out methodToken, out localSignatureToken);
-            contextFactory = CreateMethodContextFactory(moduleId, symReader, methodToken, localSignatureToken);
+                GetContextState(runtime, "B.M", out blocks, out moduleId, out symReader, out methodToken, out localSignatureToken);
+                contextFactory = CreateMethodContextFactory(moduleId, symReader, methodToken, localSignatureToken);
 
-            // Duplicate type in namespace, at method scope.
-            ExpressionCompilerTestHelpers.CompileExpressionWithRetry(blocks, "new C1()", ImmutableArray<Alias>.Empty, contextFactory, getMetaDataBytesPtr: null, errorMessage: out errorMessage, testData: out testData);
-            Assert.Contains(errorMessage, CS0433Messages("C1"));
+                // Duplicate type in namespace, at method scope.
+                ExpressionCompilerTestHelpers.CompileExpressionWithRetry(blocks, "new C1()", ImmutableArray<Alias>.Empty, contextFactory, getMetaDataBytesPtr: null, errorMessage: out errorMessage, testData: out testData);
+                Assert.Contains(errorMessage, CS0433Messages("C1"));
 
-            // Duplicate type in global namespace, at method scope.
-            ExpressionCompilerTestHelpers.CompileExpressionWithRetry(blocks, "new C2()", ImmutableArray<Alias>.Empty, contextFactory, getMetaDataBytesPtr: null, errorMessage: out errorMessage, testData: out testData);
-            Assert.Contains(errorMessage, CS0433Messages("C2"));
+                // Duplicate type in global namespace, at method scope.
+                ExpressionCompilerTestHelpers.CompileExpressionWithRetry(blocks, "new C2()", ImmutableArray<Alias>.Empty, contextFactory, getMetaDataBytesPtr: null, errorMessage: out errorMessage, testData: out testData);
+                Assert.Contains(errorMessage, CS0433Messages("C2"));
 
-            // Duplicate extension method, at method scope.
-            ExpressionCompilerTestHelpers.CompileExpressionWithRetry(blocks, "x.F()", ImmutableArray<Alias>.Empty, contextFactory, getMetaDataBytesPtr: null, errorMessage: out errorMessage, testData: out testData);
-            AssertEx.Equal($"error CS0121: {string.Format(CSharpResources.ERR_AmbigCall, "N.E.F(A) [A, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null]", "N.E.F(A) [B, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null]")}", errorMessage);
+                // Duplicate extension method, at method scope.
+                ExpressionCompilerTestHelpers.CompileExpressionWithRetry(blocks, "x.F()", ImmutableArray<Alias>.Empty, contextFactory, getMetaDataBytesPtr: null, errorMessage: out errorMessage, testData: out testData);
+                AssertEx.Equal($"error CS0121: {string.Format(CSharpResources.ERR_AmbigCall, "N.E.F(A) [A, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null]", "N.E.F(A) [B, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null]")}", errorMessage);
 
-            // Same tests as above but in library that does not directly reference duplicates.
-            GetContextState(runtime, "A", out blocks, out moduleId, out symReader, out typeToken, out localSignatureToken);
-            contextFactory = CreateTypeContextFactory(moduleId, typeToken);
+                // Same tests as above but in library that does not directly reference duplicates.
+                GetContextState(runtime, "A", out blocks, out moduleId, out symReader, out typeToken, out localSignatureToken);
+                contextFactory = CreateTypeContextFactory(moduleId, typeToken);
 
-            // Duplicate type in namespace, at type scope.
-            ExpressionCompilerTestHelpers.CompileExpressionWithRetry(blocks, "new N.C1()", ImmutableArray<Alias>.Empty, contextFactory, getMetaDataBytesPtr: null, errorMessage: out errorMessage, testData: out testData);
-            Assert.Null(errorMessage);
-            var methodData = testData.GetMethodData("<>x.<>m0");
-            methodData.VerifyIL(
-@"{
+                // Duplicate type in namespace, at type scope.
+                ExpressionCompilerTestHelpers.CompileExpressionWithRetry(blocks, "new N.C1()", ImmutableArray<Alias>.Empty, contextFactory, getMetaDataBytesPtr: null, errorMessage: out errorMessage, testData: out testData);
+                Assert.Null(errorMessage);
+                var methodData = testData.GetMethodData("<>x.<>m0");
+                methodData.VerifyIL(
+    @"{
 // Code size        6 (0x6)
 .maxstack  1
 IL_0000:  newobj     ""N.C1..ctor()""
 IL_0005:  ret
 }");
-            Assert.Equal(((MethodSymbol)methodData.Method).ReturnType.ContainingAssembly.ToDisplayString(), identityA.GetDisplayName());
+                Assert.Equal(((MethodSymbol)methodData.Method).ReturnType.ContainingAssembly.ToDisplayString(), identityA.GetDisplayName());
 
-            GetContextState(runtime, "A.M", out blocks, out moduleId, out symReader, out methodToken, out localSignatureToken);
-            contextFactory = CreateMethodContextFactory(moduleId, symReader, methodToken, localSignatureToken);
+                GetContextState(runtime, "A.M", out blocks, out moduleId, out symReader, out methodToken, out localSignatureToken);
+                contextFactory = CreateMethodContextFactory(moduleId, symReader, methodToken, localSignatureToken);
 
-            // Duplicate type in global namespace, at method scope.
-            ExpressionCompilerTestHelpers.CompileExpressionWithRetry(blocks, "new C2()", ImmutableArray<Alias>.Empty, contextFactory, getMetaDataBytesPtr: null, errorMessage: out errorMessage, testData: out testData);
-            Assert.Null(errorMessage);
-            methodData = testData.GetMethodData("<>x.<>m0");
-            methodData.VerifyIL(
-@"{
+                // Duplicate type in global namespace, at method scope.
+                ExpressionCompilerTestHelpers.CompileExpressionWithRetry(blocks, "new C2()", ImmutableArray<Alias>.Empty, contextFactory, getMetaDataBytesPtr: null, errorMessage: out errorMessage, testData: out testData);
+                Assert.Null(errorMessage);
+                methodData = testData.GetMethodData("<>x.<>m0");
+                methodData.VerifyIL(
+    @"{
 // Code size        6 (0x6)
 .maxstack  1
 .locals init (A V_0, //x
@@ -947,14 +949,14 @@ IL_0005:  ret
 IL_0000:  newobj     ""C2..ctor()""
 IL_0005:  ret
 }");
-            Assert.Equal(((MethodSymbol)methodData.Method).ReturnType.ContainingAssembly.ToDisplayString(), identityA.GetDisplayName());
+                Assert.Equal(((MethodSymbol)methodData.Method).ReturnType.ContainingAssembly.ToDisplayString(), identityA.GetDisplayName());
 
-            // Duplicate extension method, at method scope.
-            ExpressionCompilerTestHelpers.CompileExpressionWithRetry(blocks, "x.F()", ImmutableArray<Alias>.Empty, contextFactory, getMetaDataBytesPtr: null, errorMessage: out errorMessage, testData: out testData);
-            Assert.Null(errorMessage);
-            methodData = testData.GetMethodData("<>x.<>m0");
-            methodData.VerifyIL(
-@"{
+                // Duplicate extension method, at method scope.
+                ExpressionCompilerTestHelpers.CompileExpressionWithRetry(blocks, "x.F()", ImmutableArray<Alias>.Empty, contextFactory, getMetaDataBytesPtr: null, errorMessage: out errorMessage, testData: out testData);
+                Assert.Null(errorMessage);
+                methodData = testData.GetMethodData("<>x.<>m0");
+                methodData.VerifyIL(
+    @"{
 // Code size        7 (0x7)
 .maxstack  1
 .locals init (A V_0, //x
@@ -963,7 +965,8 @@ IL_0000:  ldloc.0
 IL_0001:  call       ""A N.E.F(A)""
 IL_0006:  ret
 }");
-            Assert.Equal(((MethodSymbol)methodData.Method).ReturnType.ContainingAssembly.ToDisplayString(), identityA.GetDisplayName());
+                Assert.Equal(((MethodSymbol)methodData.Method).ReturnType.ContainingAssembly.ToDisplayString(), identityA.GetDisplayName());
+            }
         }
 
         /// <summary>
@@ -973,8 +976,10 @@ IL_0006:  ret
         [Fact, WorkItem("http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1150981")]
         public void MissingMscorlib()
         {
-            var sourceA =
-@"public class A
+            unsafe
+            {
+                var sourceA =
+    @"public class A
 {
 }
 class B
@@ -983,28 +988,28 @@ class B
 class C
 {
 }";
-            var sourceB =
-@"public class B : A
+                var sourceB =
+    @"public class B : A
 {
 }";
-            var moduleA = CreateEmptyCompilation(
-                sourceA,
-                references: new[] { SystemRuntimePP7Ref },
-                options: TestOptions.DebugDll).ToModuleInstance();
+                var moduleA = CreateEmptyCompilation(
+                    sourceA,
+                    references: new[] { SystemRuntimePP7Ref },
+                    options: TestOptions.DebugDll).ToModuleInstance();
 
-            var moduleB = CreateEmptyCompilation(
-                sourceB,
-                references: new[] { SystemRuntimePP7Ref, moduleA.GetReference() },
-                options: TestOptions.DebugDll).ToModuleInstance();
+                var moduleB = CreateEmptyCompilation(
+                    sourceB,
+                    references: new[] { SystemRuntimePP7Ref, moduleA.GetReference() },
+                    options: TestOptions.DebugDll).ToModuleInstance();
 
-            // Include an empty assembly to verify that not all assemblies
-            // with no references are treated as mscorlib.
-            var referenceC = AssemblyMetadata.CreateFromImage(TestResources.ExpressionCompiler.Empty).GetReference();
+                // Include an empty assembly to verify that not all assemblies
+                // with no references are treated as mscorlib.
+                var referenceC = AssemblyMetadata.CreateFromImage(TestResources.ExpressionCompiler.Empty).GetReference();
 
-            // At runtime System.Runtime.dll contract assembly is replaced
-            // by mscorlib.dll and System.Runtime.dll facade assemblies.
-            var runtime = CreateRuntimeInstance(new[]
-            {
+                // At runtime System.Runtime.dll contract assembly is replaced
+                // by mscorlib.dll and System.Runtime.dll facade assemblies.
+                var runtime = CreateRuntimeInstance(new[]
+                {
                 MscorlibFacadeRef.ToModuleInstance(),
                 SystemRuntimeFacadeRef.ToModuleInstance(),
                 moduleA,
@@ -1012,37 +1017,38 @@ class C
                 referenceC.ToModuleInstance()
             });
 
-            ImmutableArray<MetadataBlock> blocks;
-            ModuleId moduleId;
-            ISymUnmanagedReader symReader;
-            int typeToken;
-            int localSignatureToken;
-            GetContextState(runtime, "C", out blocks, out moduleId, out symReader, out typeToken, out localSignatureToken);
-            string errorMessage;
-            CompilationTestData testData;
-            int attempts = 0;
-            EvaluationContextBase contextFactory(ImmutableArray<MetadataBlock> b, bool u)
-            {
-                attempts++;
-                return EvaluationContext.CreateTypeContext(
-                    ToCompilation(b, u, moduleId),
-                    moduleId,
-                    typeToken);
-            }
+                ImmutableArray<MetadataBlock> blocks;
+                ModuleId moduleId;
+                ISymUnmanagedReader symReader;
+                int typeToken;
+                int localSignatureToken;
+                GetContextState(runtime, "C", out blocks, out moduleId, out symReader, out typeToken, out localSignatureToken);
+                string errorMessage;
+                CompilationTestData testData;
+                int attempts = 0;
+                EvaluationContextBase contextFactory(ImmutableArray<MetadataBlock> b, bool u)
+                {
+                    attempts++;
+                    return EvaluationContext.CreateTypeContext(
+                        ToCompilation(b, u, moduleId),
+                        moduleId,
+                        typeToken);
+                }
 
-            // Compile: [DebuggerDisplay("{new B()}")]
-            const string expr = "new B()";
-            ExpressionCompilerTestHelpers.CompileExpressionWithRetry(blocks, expr, ImmutableArray<Alias>.Empty, contextFactory, getMetaDataBytesPtr: null, errorMessage: out errorMessage, testData: out testData);
-            Assert.Null(errorMessage);
-            Assert.Equal(2, attempts);
-            var methodData = testData.GetMethodData("<>x.<>m0");
-            methodData.VerifyIL(
-@"{
+                // Compile: [DebuggerDisplay("{new B()}")]
+                const string expr = "new B()";
+                ExpressionCompilerTestHelpers.CompileExpressionWithRetry(blocks, expr, ImmutableArray<Alias>.Empty, contextFactory, getMetaDataBytesPtr: null, errorMessage: out errorMessage, testData: out testData);
+                Assert.Null(errorMessage);
+                Assert.Equal(2, attempts);
+                var methodData = testData.GetMethodData("<>x.<>m0");
+                methodData.VerifyIL(
+    @"{
 // Code size        6 (0x6)
 .maxstack  1
 IL_0000:  newobj     ""B..ctor()""
 IL_0005:  ret
 }");
+            }
         }
 
         [Fact, WorkItem("http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1170032")]
@@ -1152,24 +1158,26 @@ IL_0005:  ret
         [ConditionalFact(typeof(IsRelease), Reason = "https://github.com/dotnet/roslyn/issues/25702")]
         public void IntrinsicMethods()
         {
-            var sourceA =
-@"public class A { }";
-            var sourceB =
-@"public class A { }
+            unsafe
+            {
+                var sourceA =
+    @"public class A { }";
+                var sourceB =
+    @"public class A { }
 public class B
 {
     static void M(A a)
     {
     }
 }";
-            var compilationA = CreateCompilationWithMscorlib40AndSystemCore(sourceA, options: TestOptions.DebugDll);
-            var moduleA = compilationA.ToModuleInstance();
+                var compilationA = CreateCompilationWithMscorlib40AndSystemCore(sourceA, options: TestOptions.DebugDll);
+                var moduleA = compilationA.ToModuleInstance();
 
-            var compilationB = CreateCompilationWithMscorlib40AndSystemCore(sourceB, options: TestOptions.DebugDll, references: new[] { moduleA.GetReference() });
-            var moduleB = compilationB.ToModuleInstance();
+                var compilationB = CreateCompilationWithMscorlib40AndSystemCore(sourceB, options: TestOptions.DebugDll, references: new[] { moduleA.GetReference() });
+                var moduleB = compilationB.ToModuleInstance();
 
-            var runtime = CreateRuntimeInstance(new[]
-            {
+                var runtime = CreateRuntimeInstance(new[]
+                {
                 MscorlibRef.ToModuleInstance(),
                 SystemCoreRef.ToModuleInstance(),
                 moduleA,
@@ -1177,48 +1185,48 @@ public class B
                 ExpressionCompilerTestHelpers.IntrinsicAssemblyReference.ToModuleInstance()
             });
 
-            ImmutableArray<MetadataBlock> blocks;
-            ModuleId moduleId;
-            ISymUnmanagedReader symReader;
-            int methodToken;
-            int localSignatureToken;
-            GetContextState(runtime, "B.M", out blocks, out moduleId, out symReader, out methodToken, out localSignatureToken);
+                ImmutableArray<MetadataBlock> blocks;
+                ModuleId moduleId;
+                ISymUnmanagedReader symReader;
+                int methodToken;
+                int localSignatureToken;
+                GetContextState(runtime, "B.M", out blocks, out moduleId, out symReader, out methodToken, out localSignatureToken);
 
-            var aliases = ImmutableArray.Create(
-                ExceptionAlias(typeof(ArgumentException)),
-                ReturnValueAlias(2, typeof(string)),
-                ObjectIdAlias(1, typeof(object)));
+                var aliases = ImmutableArray.Create(
+                    ExceptionAlias(typeof(ArgumentException)),
+                    ReturnValueAlias(2, typeof(string)),
+                    ObjectIdAlias(1, typeof(object)));
 
-            int attempts = 0;
-            EvaluationContextBase contextFactory(ImmutableArray<MetadataBlock> b, bool u)
-            {
-                attempts++;
-                return EvaluationContext.CreateMethodContext(
-                    ToCompilation(b, u, moduleId),
-                    symReader,
-                    moduleId,
-                    methodToken,
-                    methodVersion: 1,
-                    ilOffset: 0,
-                    localSignatureToken: localSignatureToken);
-            }
+                int attempts = 0;
+                EvaluationContextBase contextFactory(ImmutableArray<MetadataBlock> b, bool u)
+                {
+                    attempts++;
+                    return EvaluationContext.CreateMethodContext(
+                        ToCompilation(b, u, moduleId),
+                        symReader,
+                        moduleId,
+                        methodToken,
+                        methodVersion: 1,
+                        ilOffset: 0,
+                        localSignatureToken: localSignatureToken);
+                }
 
-            string errorMessage;
-            CompilationTestData testData;
-            ExpressionCompilerTestHelpers.CompileExpressionWithRetry(
-                blocks,
-                "(object)new A() ?? $exception ?? $1 ?? $ReturnValue2",
-                aliases,
-                contextFactory,
-                getMetaDataBytesPtr: null,
-                errorMessage: out errorMessage,
-                testData: out testData);
+                string errorMessage;
+                CompilationTestData testData;
+                ExpressionCompilerTestHelpers.CompileExpressionWithRetry(
+                    blocks,
+                    "(object)new A() ?? $exception ?? $1 ?? $ReturnValue2",
+                    aliases,
+                    contextFactory,
+                    getMetaDataBytesPtr: null,
+                    errorMessage: out errorMessage,
+                    testData: out testData);
 
-            Assert.Null(errorMessage);
-            Assert.Equal(2, attempts);
-            var methodData = testData.GetMethodData("<>x.<>m0");
-            methodData.VerifyIL(
-@"{
+                Assert.Null(errorMessage);
+                Assert.Equal(2, attempts);
+                var methodData = testData.GetMethodData("<>x.<>m0");
+                methodData.VerifyIL(
+    @"{
 // Code size       49 (0x31)
 .maxstack  2
 IL_0000:  newobj     ""A..ctor()""
@@ -1240,6 +1248,7 @@ IL_0026:  call       ""object Microsoft.VisualStudio.Debugger.Clr.IntrinsicMetho
 IL_002b:  castclass  ""string""
 IL_0030:  ret
 }");
+            }
         }
 
         private const string CorLibAssemblyName = "System.Private.CoreLib";

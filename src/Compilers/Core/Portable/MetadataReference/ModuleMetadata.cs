@@ -32,11 +32,12 @@ namespace Microsoft.CodeAnalysis
         private ModuleMetadata(PEReader peReader, Action? onDispose)
             : base(isImageOwner: true, id: MetadataId.CreateNewId())
         {
-            _module = new PEModule(this, peReader: peReader, metadataOpt: IntPtr.Zero, metadataSizeOpt: 0, includeEmbeddedInteropTypes: false, ignoreAssemblyRefs: false);
+            _module = unsafe (new PEModule(this, peReader: peReader, metadataOpt: IntPtr.Zero, metadataSizeOpt: 0, includeEmbeddedInteropTypes: false, ignoreAssemblyRefs: false));
             _onDispose = onDispose;
         }
 
-        private ModuleMetadata(
+        // The metadata must remain readable, at a fixed address, and unchanged until this module is disposed.
+        private unsafe ModuleMetadata(
             IntPtr metadata,
             int size,
             Action? onDispose,
@@ -44,7 +45,7 @@ namespace Microsoft.CodeAnalysis
             bool ignoreAssemblyRefs)
             : base(isImageOwner: true, id: MetadataId.CreateNewId())
         {
-            _module = new PEModule(this, peReader: null, metadataOpt: metadata, metadataSizeOpt: size, includeEmbeddedInteropTypes: includeEmbeddedInteropTypes, ignoreAssemblyRefs: ignoreAssemblyRefs);
+            _module = unsafe (new PEModule(this, peReader: null, metadataOpt: metadata, metadataSizeOpt: size, includeEmbeddedInteropTypes: includeEmbeddedInteropTypes, ignoreAssemblyRefs: ignoreAssemblyRefs));
             _onDispose = onDispose;
         }
 
@@ -68,8 +69,15 @@ namespace Microsoft.CodeAnalysis
         /// <param name="size">The size of the metadata block.</param>
         /// <exception cref="ArgumentNullException"><paramref name="metadata"/> is null.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="size"/> is not positive.</exception>
-        public static ModuleMetadata CreateFromMetadata(nint metadata, int size)
-            => CreateFromMetadataWorker(metadata, size, onDispose: null);
+        /// <remarks>
+        /// The caller must keep <paramref name="size"/> bytes at <paramref name="metadata"/> readable,
+        /// at a fixed address, and unchanged until the returned module is disposed.
+        /// Copies of the module must not be used after the original module is disposed.
+        /// </remarks>
+        public static unsafe ModuleMetadata CreateFromMetadata(nint metadata, int size)
+        {
+            return unsafe (CreateFromMetadataWorker(metadata, size, onDispose: null));
+        }
 
         /// <summary>
         /// Create metadata module from a raw memory pointer to metadata directory of a PE image or .cormeta section of an object file.
@@ -81,6 +89,11 @@ namespace Microsoft.CodeAnalysis
         /// this actual metadata instance is disposed.  Any instances created from this using <see
         /// cref="Metadata.Copy"/> will not call this when they are disposed.</param>
         /// <exception cref="ArgumentNullException"><paramref name="onDispose"/> is null.</exception>
+        /// <remarks>
+        /// The caller must keep <paramref name="size"/> bytes at <paramref name="metadata"/> readable,
+        /// at a fixed address, and unchanged until <paramref name="onDispose"/> is invoked.
+        /// Copies of the module must not be used after the original module is disposed.
+        /// </remarks>
         public static unsafe ModuleMetadata CreateFromMetadata(
             nint metadata,
             int size,
@@ -89,10 +102,11 @@ namespace Microsoft.CodeAnalysis
             if (onDispose is null)
                 throw new ArgumentNullException(nameof(onDispose));
 
-            return CreateFromMetadataWorker(metadata, size, onDispose);
+            return unsafe (CreateFromMetadataWorker(metadata, size, onDispose));
         }
 
-        private static ModuleMetadata CreateFromMetadataWorker(
+        // The caller must satisfy the lifetime contract of CreateFromMetadata.
+        private static unsafe ModuleMetadata CreateFromMetadataWorker(
             nint metadata,
             int size,
             Action? onDispose)
@@ -107,14 +121,15 @@ namespace Microsoft.CodeAnalysis
                 throw new ArgumentOutOfRangeException(CodeAnalysisResources.SizeHasToBePositive, nameof(size));
             }
 
-            return new ModuleMetadata(metadata, size, onDispose, includeEmbeddedInteropTypes: false, ignoreAssemblyRefs: false);
+            return unsafe (new ModuleMetadata(metadata, size, onDispose, includeEmbeddedInteropTypes: false, ignoreAssemblyRefs: false));
         }
 
-        internal static ModuleMetadata CreateFromMetadata(IntPtr metadata, int size, bool includeEmbeddedInteropTypes, bool ignoreAssemblyRefs = false)
+        // The caller must satisfy the lifetime contract of the public CreateFromMetadata overloads.
+        internal static unsafe ModuleMetadata CreateFromMetadata(IntPtr metadata, int size, bool includeEmbeddedInteropTypes, bool ignoreAssemblyRefs = false)
         {
             Debug.Assert(metadata != IntPtr.Zero);
             Debug.Assert(size > 0);
-            return new ModuleMetadata(metadata, size, onDispose: null, includeEmbeddedInteropTypes, ignoreAssemblyRefs);
+            return unsafe (new ModuleMetadata(metadata, size, onDispose: null, includeEmbeddedInteropTypes, ignoreAssemblyRefs));
         }
 
         /// <summary>
@@ -124,22 +139,35 @@ namespace Microsoft.CodeAnalysis
         /// <param name="size">The size of the image pointed to by <paramref name="peImage"/>.</param>
         /// <exception cref="ArgumentNullException"><paramref name="peImage"/> is null.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="size"/> is not positive.</exception>
+        /// <remarks>
+        /// The caller must keep <paramref name="size"/> bytes at <paramref name="peImage"/> readable,
+        /// at a fixed address, and unchanged until the returned module is disposed.
+        /// Copies of the module must not be used after the original module is disposed.
+        /// </remarks>
         public static unsafe ModuleMetadata CreateFromImage(nint peImage, int size)
-            => CreateFromImage((byte*)peImage, size, onDispose: null);
+        {
+            unsafe
+            {
+                return CreateFromImage((byte*)peImage, size, onDispose: null);
+            }
+        }
 
         private static unsafe ModuleMetadata CreateFromImage(byte* peImage, int size, Action? onDispose)
         {
-            if (peImage == null)
+            unsafe
             {
-                throw new ArgumentNullException(nameof(peImage));
-            }
+                if (peImage == null)
+                {
+                    throw new ArgumentNullException(nameof(peImage));
+                }
 
-            if (size <= 0)
-            {
-                throw new ArgumentOutOfRangeException(CodeAnalysisResources.SizeHasToBePositive, nameof(size));
-            }
+                if (size <= 0)
+                {
+                    throw new ArgumentOutOfRangeException(CodeAnalysisResources.SizeHasToBePositive, nameof(size));
+                }
 
-            return new ModuleMetadata(new PEReader(peImage, size), onDispose);
+                return new ModuleMetadata(new PEReader(peImage, size), onDispose);
+            }
         }
 
         /// <summary>

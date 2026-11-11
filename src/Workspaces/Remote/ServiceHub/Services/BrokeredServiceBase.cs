@@ -202,7 +202,7 @@ internal abstract partial class BrokeredServiceBase : IDisposable
             try
             {
                 [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-                static extern IntPtr AddDllDirectory(string directory);
+                static extern safe IntPtr AddDllDirectory(string directory);
 
                 if (AddDllDirectory(loadDir) == IntPtr.Zero)
                 {

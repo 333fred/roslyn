@@ -45,3 +45,9 @@ const Microsoft.CodeAnalysis.WellKnownGeneratorOutputs.PreCompilationSourceOutpu
 static Microsoft.CodeAnalysis.Operations.OperationExtensions.Descendants(this Microsoft.CodeAnalysis.IOperation? operation, System.Func<Microsoft.CodeAnalysis.IOperation!, bool>? descendIntoChildren) -> System.Collections.Generic.IEnumerable<Microsoft.CodeAnalysis.IOperation!>!
 static Microsoft.CodeAnalysis.Operations.OperationExtensions.DescendantsAndSelf(this Microsoft.CodeAnalysis.IOperation? operation, System.Func<Microsoft.CodeAnalysis.IOperation!, bool>? descendIntoChildren) -> System.Collections.Generic.IEnumerable<Microsoft.CodeAnalysis.IOperation!>!
 Microsoft.CodeAnalysis.SemanticModel.GetIterationType(int position, Microsoft.CodeAnalysis.ITypeSymbol! type, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Microsoft.CodeAnalysis.ITypeSymbol?
+*REMOVED*static Microsoft.CodeAnalysis.ModuleMetadata.CreateFromImage(nint peImage, int size) -> Microsoft.CodeAnalysis.ModuleMetadata!
+*REMOVED*static Microsoft.CodeAnalysis.ModuleMetadata.CreateFromMetadata(nint metadata, int size) -> Microsoft.CodeAnalysis.ModuleMetadata!
+*REMOVED*static Microsoft.CodeAnalysis.ModuleMetadata.CreateFromMetadata(nint metadata, int size, System.Action! onDispose) -> Microsoft.CodeAnalysis.ModuleMetadata!
+static unsafe Microsoft.CodeAnalysis.ModuleMetadata.CreateFromImage(nint peImage, int size) -> Microsoft.CodeAnalysis.ModuleMetadata!
+static unsafe Microsoft.CodeAnalysis.ModuleMetadata.CreateFromMetadata(nint metadata, int size) -> Microsoft.CodeAnalysis.ModuleMetadata!
+static unsafe Microsoft.CodeAnalysis.ModuleMetadata.CreateFromMetadata(nint metadata, int size, System.Action! onDispose) -> Microsoft.CodeAnalysis.ModuleMetadata!

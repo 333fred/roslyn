@@ -188,14 +188,18 @@ namespace Roslyn.Test.Utilities.Desktop
 
             private static void GetErrorResourceString(int code, StringBuilder message)
             {
-                LoadString(s_hMod, (uint)(code & 0x0000FFFF), message, MessageLength - 1);
+                unsafe
+                {
+                    // The native character count excludes the space reserved for the terminator.
+                    LoadString(s_hMod, (uint)(code & 0x0000FFFF), message, MessageLength - 1);
+                }
             }
 
             [DllImport("kernel32.dll", SetLastError = true)]
-            private static extern IntPtr LoadLibraryEx(string lpFileName, IntPtr hFile, uint dwFlags);
+            private static extern safe IntPtr LoadLibraryEx(string lpFileName, IntPtr hFile, uint dwFlags);
 
             [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
-            private static extern int LoadString(IntPtr hInstance, uint uID, StringBuilder lpBuffer, int nBufferMax);
+            private static extern unsafe int LoadString(IntPtr hInstance, uint uID, StringBuilder lpBuffer, int nBufferMax);
 
             private static string ReplaceFormatItems(string input, string oldFormat, string newFormat)
             {
@@ -298,14 +302,14 @@ namespace Roslyn.Test.Utilities.Desktop
         [StructLayout(LayoutKind.Sequential, Pack = 4), TypeIdentifier("5477469e-83b1-11d2-8b49-00a0c9b7c9c4", "mscoree.tag_VerError")]
         public struct tag_VerError
         {
-            public uint Flags;
-            public uint opcode;
-            public uint uOffset;
-            public uint Token;
-            public uint item1_flags;
-            public IntPtr item1_data;
-            public uint item2_flags;
-            public IntPtr item2_data;
+            public safe uint Flags;
+            public safe uint opcode;
+            public safe uint uOffset;
+            public safe uint Token;
+            public safe uint item1_flags;
+            public safe IntPtr item1_data;
+            public safe uint item2_flags;
+            public safe IntPtr item2_data;
         }
 
         public enum ValidatorFlags : uint

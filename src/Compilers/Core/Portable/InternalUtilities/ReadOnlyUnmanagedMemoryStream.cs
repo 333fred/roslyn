@@ -15,21 +15,25 @@ namespace Microsoft.CodeAnalysis
         private readonly int _length;
         private int _position;
 
-        public ReadOnlyUnmanagedMemoryStream(object memoryOwner, IntPtr data, int length)
+        // The caller must keep length bytes at data readable and fixed in memory for the stream's lifetime.
+        public unsafe ReadOnlyUnmanagedMemoryStream(object memoryOwner, IntPtr data, int length)
         {
             _memoryOwner = memoryOwner;
             _data = data;
             _length = length;
         }
 
-        public override unsafe int ReadByte()
+        public override int ReadByte()
         {
-            if (_position == _length)
+            unsafe
             {
-                return -1;
-            }
+                if (_position == _length)
+                {
+                    return -1;
+                }
 
-            return ((byte*)_data)[_position++];
+                return ((byte*)_data)[_position++];
+            }
         }
 
         public override int Read(byte[] buffer, int offset, int count)

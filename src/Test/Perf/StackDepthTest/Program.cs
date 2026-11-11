@@ -16,7 +16,7 @@ namespace OverflowSensitivity
     public static class Program
     {
         [DllImport("kernel32.dll")]
-        private static extern ErrorModes SetErrorMode(ErrorModes uMode);
+        private static extern safe ErrorModes SetErrorMode(ErrorModes uMode);
 
         [Flags]
         private enum ErrorModes : uint

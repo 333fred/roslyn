@@ -88,40 +88,43 @@ namespace Roslyn.Test.Utilities
 #pragma warning disable CA1416 // Validate platform compatibility
         private static bool TryDumpWithMiniDumpWriteDump(Process process, string dumpFilePath, Action<string>? log)
         {
-            try
+            unsafe
             {
-                using var fileStream = new FileStream(dumpFilePath, FileMode.Create, FileAccess.ReadWrite, FileShare.None);
-                // MiniDumpWithFullMemory = 0x00000002
-                var success = NativeMethods.MiniDumpWriteDump(
-                    process.Handle,
-                    (uint)process.Id,
-                    fileStream.SafeFileHandle.DangerousGetHandle(),
-                    NativeMethods.MINIDUMP_TYPE.MiniDumpWithFullMemory,
-                    IntPtr.Zero,
-                    IntPtr.Zero,
-                    IntPtr.Zero);
-
-                if (!success)
+                try
                 {
-                    var errorCode = Marshal.GetLastWin32Error();
-                    log?.Invoke($"MiniDumpWriteDump failed for process {process.Id} with error code {errorCode}");
-                    // Clean up the empty/partial file
-                    try
-                    {
-                        fileStream.Close();
-                        File.Delete(dumpFilePath);
-                    }
-                    catch
-                    {
-                    }
-                }
+                    using var fileStream = new FileStream(dumpFilePath, FileMode.Create, FileAccess.ReadWrite, FileShare.None);
+                    // MiniDumpWithFullMemory = 0x00000002
+                    var success = NativeMethods.MiniDumpWriteDump(
+                        process.Handle,
+                        (uint)process.Id,
+                        fileStream.SafeFileHandle.DangerousGetHandle(),
+                        NativeMethods.MINIDUMP_TYPE.MiniDumpWithFullMemory,
+                        IntPtr.Zero,
+                        IntPtr.Zero,
+                        IntPtr.Zero);
 
-                return success;
-            }
-            catch (Exception ex)
-            {
-                log?.Invoke($"MiniDumpWriteDump failed for process {process.Id}: {ex.Message}");
-                return false;
+                    if (!success)
+                    {
+                        var errorCode = Marshal.GetLastWin32Error();
+                        log?.Invoke($"MiniDumpWriteDump failed for process {process.Id} with error code {errorCode}");
+                        // Clean up the empty/partial file
+                        try
+                        {
+                            fileStream.Close();
+                            File.Delete(dumpFilePath);
+                        }
+                        catch
+                        {
+                        }
+                    }
+
+                    return success;
+                }
+                catch (Exception ex)
+                {
+                    log?.Invoke($"MiniDumpWriteDump failed for process {process.Id}: {ex.Message}");
+                    return false;
+                }
             }
         }
 
@@ -135,7 +138,7 @@ namespace Roslyn.Test.Utilities
 
             [DllImport("dbghelp.dll", SetLastError = true)]
             [return: MarshalAs(UnmanagedType.Bool)]
-            internal static extern bool MiniDumpWriteDump(
+            internal static extern unsafe bool MiniDumpWriteDump(
                 IntPtr hProcess,
                 uint processId,
                 IntPtr hFile,

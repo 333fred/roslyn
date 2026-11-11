@@ -59,10 +59,10 @@ namespace Microsoft.CodeAnalysis.UnitTests
         }
 
         [DllImport("clr", CallingConvention = CallingConvention.StdCall, CharSet = CharSet.Unicode, PreserveSig = false)]
-        private static extern void CreateAssemblyConfigCookie([MarshalAs(UnmanagedType.LPWStr)] string configPath, out IntPtr assemblyConfig);
+        private static extern safe void CreateAssemblyConfigCookie([MarshalAs(UnmanagedType.LPWStr)] string configPath, out IntPtr assemblyConfig);
 
         [DllImport("clr", CallingConvention = CallingConvention.StdCall, CharSet = CharSet.Unicode, PreserveSig = true)]
-        private static extern int DestroyAssemblyConfigCookie(IntPtr assemblyConfig);
+        private static extern safe int DestroyAssemblyConfigCookie(IntPtr assemblyConfig);
 
         public void Dispose()
         {

@@ -1146,24 +1146,27 @@ tryAgain:
         /// <summary>
         /// Used to decode signatures of local constants returned by SymReader.
         /// </summary>
-        internal unsafe TypeSymbol DecodeLocalVariableTypeOrThrow(ImmutableArray<byte> signature)
+        internal TypeSymbol DecodeLocalVariableTypeOrThrow(ImmutableArray<byte> signature)
         {
-            if (signature.IsDefaultOrEmpty)
+            unsafe
             {
-                throw new UnsupportedSignatureContent();
-            }
-
-            fixed (byte* ptr = signature.AsSpan())
-            {
-                var blobReader = new BlobReader(ptr, signature.Length);
-                var info = DecodeLocalVariableOrThrow(ref blobReader);
-
-                if (info.IsByRef || info.IsPinned)
+                if (signature.IsDefaultOrEmpty)
                 {
                     throw new UnsupportedSignatureContent();
                 }
 
-                return info.Type;
+                fixed (byte* ptr = signature.AsSpan())
+                {
+                    var blobReader = new BlobReader(ptr, signature.Length);
+                    var info = DecodeLocalVariableOrThrow(ref blobReader);
+
+                    if (info.IsByRef || info.IsPinned)
+                    {
+                        throw new UnsupportedSignatureContent();
+                    }
+
+                    return info.Type;
+                }
             }
         }
 

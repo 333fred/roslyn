@@ -369,7 +369,7 @@ internal sealed class DebuggingSession : IDisposable
                baselines.Any(static (b, moduleId) => b.ModuleId == moduleId, moduleId);
     }
 
-    private unsafe bool TryCreateInitialBaseline(
+    private bool TryCreateInitialBaseline(
         Compilation compilation,
         CompilationOutputs compilationOutputs,
         ProjectId projectId,
@@ -378,66 +378,69 @@ internal sealed class DebuggingSession : IDisposable
         [NotNullWhen(true)] out DebugInformationReaderProvider? debugInfoReaderProvider,
         [NotNullWhen(true)] out MetadataReaderProvider? metadataReaderProvider)
     {
-        // Read the metadata and symbols from the disk. Close the files as soon as we are done emitting the delta to minimize 
-        // the time when they are being locked. Since we need to use the baseline that is produced by delta emit for the subsequent
-        // delta emit we need to keep the module metadata and symbol info backing the symbols of the baseline alive in memory. 
-        // Alternatively, we could drop the data once we are done with emitting the delta and re-emit the baseline again 
-        // when we need it next time and the module is loaded.
-
-        baseline = null;
-        debugInfoReaderProvider = null;
-        metadataReaderProvider = null;
-
-        var success = false;
-        var fileBeingRead = compilationOutputs.PdbDisplayPath;
-        try
+        unsafe
         {
-            debugInfoReaderProvider = compilationOutputs.OpenPdb();
-            if (debugInfoReaderProvider == null)
+            // Read the metadata and symbols from the disk. Close the files as soon as we are done emitting the delta to minimize
+            // the time when they are being locked. Since we need to use the baseline that is produced by delta emit for the subsequent
+            // delta emit we need to keep the module metadata and symbol info backing the symbols of the baseline alive in memory.
+            // Alternatively, we could drop the data once we are done with emitting the delta and re-emit the baseline again
+            // when we need it next time and the module is loaded.
+
+            baseline = null;
+            debugInfoReaderProvider = null;
+            metadataReaderProvider = null;
+
+            var success = false;
+            var fileBeingRead = compilationOutputs.PdbDisplayPath;
+            try
             {
-                throw new FileNotFoundException();
+                debugInfoReaderProvider = compilationOutputs.OpenPdb();
+                if (debugInfoReaderProvider == null)
+                {
+                    throw new FileNotFoundException();
+                }
+
+                var debugInfoReader = debugInfoReaderProvider.CreateEditAndContinueDebugInfoReader();
+
+                fileBeingRead = compilationOutputs.AssemblyDisplayPath;
+
+                metadataReaderProvider = compilationOutputs.OpenAssemblyMetadata(prefetch: true);
+                if (metadataReaderProvider == null)
+                {
+                    throw new FileNotFoundException();
+                }
+
+                var metadataReader = metadataReaderProvider.GetMetadataReader();
+                var moduleMetadata = ModuleMetadata.CreateFromMetadata((IntPtr)metadataReader.MetadataPointer, metadataReader.MetadataLength);
+
+                baseline = EmitBaseline.CreateInitialBaseline(
+                    compilation,
+                    moduleMetadata,
+                    debugInfoReader.GetDebugInfo,
+                    debugInfoReader.GetLocalSignature,
+                    debugInfoReader.IsPortable);
+
+                success = true;
+                return true;
+            }
+            catch (Exception e)
+            {
+                SessionLog.Write($"Failed to create baseline for '{projectId.DebugName}': {e.Message}", LogMessageSeverity.Error);
+
+                var descriptor = EditAndContinueDiagnosticDescriptors.GetDescriptor(EditAndContinueErrorCode.ErrorReadingFile);
+                diagnostics.Add(Diagnostic.Create(descriptor, Location.None, [fileBeingRead, e.Message]));
+            }
+            finally
+            {
+                if (!success)
+                {
+                    debugInfoReaderProvider?.Dispose();
+                    metadataReaderProvider?.Dispose();
+                }
             }
 
-            var debugInfoReader = debugInfoReaderProvider.CreateEditAndContinueDebugInfoReader();
-
-            fileBeingRead = compilationOutputs.AssemblyDisplayPath;
-
-            metadataReaderProvider = compilationOutputs.OpenAssemblyMetadata(prefetch: true);
-            if (metadataReaderProvider == null)
-            {
-                throw new FileNotFoundException();
-            }
-
-            var metadataReader = metadataReaderProvider.GetMetadataReader();
-            var moduleMetadata = ModuleMetadata.CreateFromMetadata((IntPtr)metadataReader.MetadataPointer, metadataReader.MetadataLength);
-
-            baseline = EmitBaseline.CreateInitialBaseline(
-                compilation,
-                moduleMetadata,
-                debugInfoReader.GetDebugInfo,
-                debugInfoReader.GetLocalSignature,
-                debugInfoReader.IsPortable);
-
-            success = true;
-            return true;
+            return false;
         }
-        catch (Exception e)
-        {
-            SessionLog.Write($"Failed to create baseline for '{projectId.DebugName}': {e.Message}", LogMessageSeverity.Error);
-
-            var descriptor = EditAndContinueDiagnosticDescriptors.GetDescriptor(EditAndContinueErrorCode.ErrorReadingFile);
-            diagnostics.Add(Diagnostic.Create(descriptor, Location.None, [fileBeingRead, e.Message]));
-        }
-        finally
-        {
-            if (!success)
-            {
-                debugInfoReaderProvider?.Dispose();
-                metadataReaderProvider?.Dispose();
-            }
-        }
-
-        return false;
     }
 
     private static ImmutableDictionary<K, ImmutableArray<V>> GroupToImmutableDictionary<K, V>(IEnumerable<IGrouping<K, V>> items)

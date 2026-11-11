@@ -1,6 +1,16 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <!-- Licensed to the .NET Foundation under one or more agreements. The .NET Foundation licenses this file to you under the MIT license. See the LICENSE file in the project root for more information. -->
 <Project>
+  <!-- Preserve pinned language versions used by compatibility projects and samples. -->
+  <PropertyGroup Condition="'$(Language)' == 'C#' and '$(LangVersion)' == 'preview' and '$(MemorySafetyRulesVersion)' == ''">
+    <MemorySafetyRulesVersion>2</MemorySafetyRulesVersion>
+  </PropertyGroup>
+
+  <!-- Remove the legacy feature flag when the build toolset forwards MemorySafetyRulesVersion. -->
+  <PropertyGroup Condition="'$(Language)' == 'C#' and '$(MemorySafetyRulesVersion)' == '2' and '$(BootstrapBuildPath)' == ''">
+    <Features>$(Features);updated-memory-safety-rules</Features>
+  </PropertyGroup>
+
   <!--
     Targets included after project file and before Arcade SDK targets.
     Use to set Arcade SDK properties that depend on properties set in the project file.

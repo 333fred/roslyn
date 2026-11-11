@@ -34,7 +34,10 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator.UnitTests
 
         internal static RuntimeInstance Create(IEnumerable<ModuleInstance> modules)
         {
-            return new RuntimeInstance(ImmutableArray.CreateRange(modules), DebugInformationFormat.Pdb);
+            unsafe
+            {
+                return new RuntimeInstance(ImmutableArray.CreateRange(modules), DebugInformationFormat.Pdb);
+            }
         }
 
         internal static RuntimeInstance Create(
@@ -44,16 +47,19 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator.UnitTests
             bool includeLocalSignatures,
             bool includeIntrinsicAssembly)
         {
-            var module = compilation.ToModuleInstance(debugFormat, includeLocalSignatures);
-
-            references ??= ExpressionCompilerTestHelpers.GetEmittedReferences(compilation, module.GetMetadataReader());
-
-            if (includeIntrinsicAssembly)
+            unsafe
             {
-                references = references.Concat(new[] { ExpressionCompilerTestHelpers.IntrinsicAssemblyReference });
-            }
+                var module = compilation.ToModuleInstance(debugFormat, includeLocalSignatures);
 
-            return Create(module, references, debugFormat);
+                references ??= ExpressionCompilerTestHelpers.GetEmittedReferences(compilation, module.GetMetadataReader());
+
+                if (includeIntrinsicAssembly)
+                {
+                    references = references.Concat(new[] { ExpressionCompilerTestHelpers.IntrinsicAssemblyReference });
+                }
+
+                return Create(module, references, debugFormat);
+            }
         }
 
         internal static RuntimeInstance Create(
@@ -61,13 +67,16 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator.UnitTests
             IEnumerable<MetadataReference> references,
             DebugInformationFormat debugFormat)
         {
-            // Create modules for the references and the program
-            var modules = ImmutableArray.CreateRange(
-                references.Select(r => r.ToModuleInstance()).
-                Concat(new[] { module }));
+            unsafe
+            {
+                // Create modules for the references and the program
+                var modules = ImmutableArray.CreateRange(
+                    references.Select(r => r.ToModuleInstance()).
+                    Concat(new[] { module }));
 
-            VerifyAllModules(modules);
-            return new RuntimeInstance(modules, debugFormat);
+                VerifyAllModules(modules);
+                return new RuntimeInstance(modules, debugFormat);
+            }
         }
 
         /// <summary>
@@ -76,13 +85,16 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator.UnitTests
         /// </summary>
         private static void VerifyAllModules(IEnumerable<ModuleInstance> modules)
         {
-            var blocks = modules.Select(m => m.MetadataBlock).Select(b => ModuleMetadata.CreateFromMetadata(b.Pointer, b.Size));
-            var names = new HashSet<string>(blocks.Select(b => b.Name));
-            foreach (var block in blocks)
+            unsafe
             {
-                foreach (var name in block.GetModuleNames())
+                var blocks = modules.Select(m => m.MetadataBlock).Select(b => ModuleMetadata.CreateFromMetadata(b.Pointer, b.Size));
+                var names = new HashSet<string>(blocks.Select(b => b.Name));
+                foreach (var block in blocks)
                 {
-                    Assert.True(names.Contains(name));
+                    foreach (var name in block.GetModuleNames())
+                    {
+                        Assert.True(names.Contains(name));
+                    }
                 }
             }
         }

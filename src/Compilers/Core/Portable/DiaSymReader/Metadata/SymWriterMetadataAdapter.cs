@@ -14,7 +14,7 @@ namespace Microsoft.DiaSymReader
     /// <summary>
     /// Minimal implementation of IMetadataImport that implements APIs used by SymReader and SymWriter.
     /// </summary>
-    internal sealed unsafe class SymWriterMetadataAdapter : MetadataAdapterBase
+    internal sealed class SymWriterMetadataAdapter : MetadataAdapterBase
     {
         private readonly ISymWriterMetadataProvider _metadataProvider;
 
@@ -24,15 +24,15 @@ namespace Microsoft.DiaSymReader
             _metadataProvider = metadataProvider;
         }
 
-        public override int GetTokenFromSig(byte* voidPointerSig, int byteCountSig)
+        public override unsafe int GetTokenFromSig(byte* voidPointerSig, int byteCountSig)
         {
-            // Only used when building constant signature. 
-            // We trick SymWriter into embedding NIL token into the PDB if 
+            // Only used when building constant signature.
+            // We trick SymWriter into embedding NIL token into the PDB if
             // we don't have a real signature token matching the constant type.
             return 0x11000000;
         }
 
-        public override int GetTypeDefProps(
+        public override unsafe int GetTypeDefProps(
             int typeDef,
             [Out] char* qualifiedName,
             int qualifiedNameBufferLength,
@@ -40,32 +40,35 @@ namespace Microsoft.DiaSymReader
             [Out] TypeAttributes* attributes,
             [Out] int* baseType)
         {
-            Debug.Assert(baseType == null);
-
-            if (!_metadataProvider.TryGetTypeDefinitionInfo(typeDef, out var namespaceName, out var typeName, out var attrib))
+            unsafe
             {
-                return HResult.E_INVALIDARG;
-            }
+                Debug.Assert(baseType == null);
 
-            if (qualifiedNameLength != null || qualifiedName != null)
-            {
-                InteropUtilities.CopyQualifiedTypeName(
-                    qualifiedName,
-                    qualifiedNameBufferLength,
-                    qualifiedNameLength,
-                    namespaceName,
-                    typeName);
-            }
+                if (!_metadataProvider.TryGetTypeDefinitionInfo(typeDef, out var namespaceName, out var typeName, out var attrib))
+                {
+                    return HResult.E_INVALIDARG;
+                }
 
-            if (attributes != null)
-            {
-                *attributes = attrib;
-            }
+                if (qualifiedNameLength != null || qualifiedName != null)
+                {
+                    InteropUtilities.CopyQualifiedTypeName(
+                        qualifiedName,
+                        qualifiedNameBufferLength,
+                        qualifiedNameLength,
+                        namespaceName,
+                        typeName);
+                }
 
-            return HResult.S_OK;
+                if (attributes != null)
+                {
+                    *attributes = attrib;
+                }
+
+                return HResult.S_OK;
+            }
         }
 
-        public override int GetTypeRefProps(
+        public override unsafe int GetTypeRefProps(
             int typeRef,
             [Out] int* resolutionScope, // ModuleRef or AssemblyRef
             [Out] char* qualifiedName,
@@ -81,7 +84,7 @@ namespace Microsoft.DiaSymReader
         // The only purpose of this method is to get type name of the method and declaring type token (opaque for SymWriter), everything else is ignored by the SymWriter.
         // "mb" is the token passed to OpenMethod. The token is remembered until the corresponding CloseMethod, which passes it to GetMethodProps.
         // It's opaque for SymWriter.
-        public override int GetMethodProps(
+        public override unsafe int GetMethodProps(
             int methodDef,
             [Out] int* declaringTypeDef,
             [Out] char* name,
@@ -93,49 +96,52 @@ namespace Microsoft.DiaSymReader
             [Out] int* relativeVirtualAddress,
             [Out] MethodImplAttributes* implAttributes)
         {
-            Debug.Assert(attributes == null);
-            Debug.Assert(signature == null);
-            Debug.Assert(signatureLength == null);
-            Debug.Assert(relativeVirtualAddress == null);
-            Debug.Assert(implAttributes == null);
-
-            if (!_metadataProvider.TryGetMethodInfo(methodDef, out var nameStr, out var declaringTypeToken))
+            unsafe
             {
-                return HResult.E_INVALIDARG;
-            }
+                Debug.Assert(attributes == null);
+                Debug.Assert(signature == null);
+                Debug.Assert(signatureLength == null);
+                Debug.Assert(relativeVirtualAddress == null);
+                Debug.Assert(implAttributes == null);
 
-            if (name != null || nameLength != null)
-            {
-                // if the buffer is too small to fit the name, truncate the name.
-                // -1 to account for a NUL terminator.
-                int adjustedLength = Math.Min(nameStr.Length, nameBufferLength - 1);
-
-                if (nameLength != null)
+                if (!_metadataProvider.TryGetMethodInfo(methodDef, out var nameStr, out var declaringTypeToken))
                 {
-                    // return the length of the possibly truncated name not including NUL
-                    *nameLength = adjustedLength;
+                    return HResult.E_INVALIDARG;
                 }
 
-                if (name != null && nameBufferLength > 0)
+                if (name != null || nameLength != null)
                 {
-                    char* dst = name;
+                    // if the buffer is too small to fit the name, truncate the name.
+                    // -1 to account for a NUL terminator.
+                    int adjustedLength = Math.Min(nameStr.Length, nameBufferLength - 1);
 
-                    for (int i = 0; i < adjustedLength; i++)
+                    if (nameLength != null)
                     {
-                        *dst = nameStr[i];
-                        dst++;
+                        // return the length of the possibly truncated name not including NUL
+                        *nameLength = adjustedLength;
                     }
 
-                    *dst = '\0';
+                    if (name != null && nameBufferLength > 0)
+                    {
+                        char* dst = name;
+
+                        for (int i = 0; i < adjustedLength; i++)
+                        {
+                            *dst = nameStr[i];
+                            dst++;
+                        }
+
+                        *dst = '\0';
+                    }
                 }
-            }
 
-            if (declaringTypeDef != null)
-            {
-                *declaringTypeDef = declaringTypeToken;
-            }
+                if (declaringTypeDef != null)
+                {
+                    *declaringTypeDef = declaringTypeToken;
+                }
 
-            return HResult.S_OK;
+                return HResult.S_OK;
+            }
         }
     }
 }

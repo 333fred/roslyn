@@ -84,16 +84,19 @@ namespace Microsoft.CodeAnalysis.UnitTests
             Assert.Same(s1, s2);
         }
 
-        private static unsafe bool TestTextEqualsASCII(string str, string ascii)
+        private static bool TestTextEqualsASCII(string str, string ascii)
         {
-            fixed (byte* ptr = Encoding.ASCII.GetBytes(ascii))
+            unsafe
             {
-                var ptrResult = StringTable.TextEqualsASCII(str, new ReadOnlySpan<byte>(ptr, ascii.Length));
-                var sbResult = StringTable.TextEquals(str, new StringBuilder(ascii));
-                var substrResult = StringTable.TextEquals(str, "xxx" + ascii + "yyy", 3, ascii.Length);
-                Assert.Equal(substrResult, sbResult);
-                Assert.Equal(ptrResult, sbResult);
-                return ptrResult;
+                fixed (byte* ptr = Encoding.ASCII.GetBytes(ascii))
+                {
+                    var ptrResult = StringTable.TextEqualsASCII(str, new ReadOnlySpan<byte>(ptr, ascii.Length));
+                    var sbResult = StringTable.TextEquals(str, new StringBuilder(ascii));
+                    var substrResult = StringTable.TextEquals(str, "xxx" + ascii + "yyy", 3, ascii.Length);
+                    Assert.Equal(substrResult, sbResult);
+                    Assert.Equal(ptrResult, sbResult);
+                    return ptrResult;
+                }
             }
         }
 

@@ -14,7 +14,8 @@ internal static class NativeMethods
     public static readonly IntPtr HWND_BROADCAST = new(0xFFFF);
     public const int WM_SYSCOLORCHANGE = 0x0015;
 
+    // Pointer-valued message arguments must remain valid until the receiving window processes the message.
     [DllImport("user32.dll", CharSet = CharSet.Auto)]
     [return: MarshalAs(UnmanagedType.Bool)]
-    public static extern bool PostMessage(IntPtr hwnd, int msg, IntPtr wparam, IntPtr lparam);
+    public static extern unsafe bool PostMessage(IntPtr hwnd, int msg, IntPtr wparam, IntPtr lparam);
 }

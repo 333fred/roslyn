@@ -321,26 +321,29 @@ internal sealed partial class ObjectReader : IDisposable
         };
     }
 
-    private unsafe string ReadStringLiteral(TypeCode kind)
+    private string ReadStringLiteral(TypeCode kind)
     {
-        string value;
-        if (kind == TypeCode.StringUtf8)
+        unsafe
         {
-            value = _reader.ReadString();
-        }
-        else
-        {
-            // This is rare, just allocate UTF-16 bytes for simplicity.
-            var characterCount = (int)ReadCompressedUInt();
-            var bytes = _reader.ReadBytes(characterCount * sizeof(char));
-            fixed (byte* bytesPtr = bytes)
+            string value;
+            if (kind == TypeCode.StringUtf8)
             {
-                value = new string((char*)bytesPtr, 0, characterCount);
+                value = _reader.ReadString();
             }
-        }
+            else
+            {
+                // This is rare, just allocate UTF-16 bytes for simplicity.
+                var characterCount = (int)ReadCompressedUInt();
+                var bytes = _reader.ReadBytes(characterCount * sizeof(char));
+                fixed (byte* bytesPtr = bytes)
+                {
+                    value = new string((char*)bytesPtr, 0, characterCount);
+                }
+            }
 
-        _stringReferenceMap.AddValue(value);
-        return value;
+            _stringReferenceMap.AddValue(value);
+            return value;
+        }
     }
 
     private int ReadArrayLength()

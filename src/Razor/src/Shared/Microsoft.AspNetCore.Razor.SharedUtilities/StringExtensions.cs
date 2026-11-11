@@ -652,23 +652,26 @@ internal static class StringExtensions
         ///  Therefore, it is the delegate's responsibility to ensure that every element of the span is assigned.
         ///  Otherwise, the resulting string could contain random characters.
         /// </remarks>
-        public static unsafe string Create<TState>(int length, TState state, SpanAction<char, TState> action)
+        public static string Create<TState>(int length, TState state, SpanAction<char, TState> action)
         {
-            ArgHelper.ThrowIfNegative(length);
-
-            if (length == 0)
+            unsafe
             {
-                return string.Empty;
+                ArgHelper.ThrowIfNegative(length);
+
+                if (length == 0)
+                {
+                    return string.Empty;
+                }
+
+                var result = new string('\0', length);
+
+                fixed (char* ptr = result)
+                {
+                    action(new Span<char>(ptr, length), state);
+                }
+
+                return result;
             }
-
-            var result = new string('\0', length);
-
-            fixed (char* ptr = result)
-            {
-                action(new Span<char>(ptr, length), state);
-            }
-
-            return result;
         }
     }
 #endif

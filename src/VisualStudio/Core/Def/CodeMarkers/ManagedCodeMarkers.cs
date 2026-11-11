@@ -26,47 +26,47 @@ internal sealed class CodeMarkers
 #if Codemarkers_IncludeAppEnum
         ///// Code markers test function imports
         [DllImport(TestDllName, EntryPoint = "InitPerf")]
-        public static extern void TestDllInitPerf(System.Int32 iApp);
+        public static extern safe void TestDllInitPerf(System.Int32 iApp);
 
         [DllImport(TestDllName, EntryPoint = "UnInitPerf")]
-        public static extern void TestDllUnInitPerf(System.Int32 iApp);
+        public static extern safe void TestDllUnInitPerf(System.Int32 iApp);
 #endif // Codemarkers_IncludeAppEnum
 
         [DllImport(TestDllName, EntryPoint = "PerfCodeMarker")]
-        public static extern void TestDllPerfCodeMarker(System.Int32 nTimerID, [MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 2)] byte[] aUserParams, System.Int32 cbParams);
+        public static extern unsafe void TestDllPerfCodeMarker(System.Int32 nTimerID, [MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 2)] byte[] aUserParams, System.Int32 cbParams);
 
         [DllImport(ProductDllName, EntryPoint = "PerfCodeMarker")]
-        public static extern void TestDllPerfCodeMarkerString(System.Int32 nTimerID, [MarshalAs(UnmanagedType.LPStr, SizeParamIndex = 2)] string aUserParams, System.Int32 cbParams);
+        public static extern unsafe void TestDllPerfCodeMarkerString(System.Int32 nTimerID, [MarshalAs(UnmanagedType.LPStr, SizeParamIndex = 2)] string aUserParams, System.Int32 cbParams);
 
 #if Codemarkers_IncludeAppEnum
         ///// Code markers product function imports
         [DllImport(ProductDllName, EntryPoint = "InitPerf")]
-        public static extern void ProductDllInitPerf(System.Int32 iApp);
+        public static extern safe void ProductDllInitPerf(System.Int32 iApp);
 
         [DllImport(ProductDllName, EntryPoint = "UnInitPerf")]
-        public static extern void ProductDllUnInitPerf(System.Int32 iApp);
+        public static extern safe void ProductDllUnInitPerf(System.Int32 iApp);
 #endif // Codemarkers_IncludeAppEnum
 
         [DllImport(ProductDllName, EntryPoint = "PerfCodeMarker")]
-        public static extern void ProductDllPerfCodeMarker(System.Int32 nTimerID, [MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 2)] byte[] aUserParams, System.Int32 cbParams);
+        public static extern unsafe void ProductDllPerfCodeMarker(System.Int32 nTimerID, [MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 2)] byte[] aUserParams, System.Int32 cbParams);
 
         [DllImport(ProductDllName, EntryPoint = "PerfCodeMarker")]
-        public static extern void ProductDllPerfCodeMarkerString(System.Int32 nTimerID, [MarshalAs(UnmanagedType.LPStr, SizeParamIndex = 2)] string aUserParams, System.Int32 cbParams);
+        public static extern unsafe void ProductDllPerfCodeMarkerString(System.Int32 nTimerID, [MarshalAs(UnmanagedType.LPStr, SizeParamIndex = 2)] string aUserParams, System.Int32 cbParams);
 
         ///// global native method imports
         [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
-        public static extern System.UInt16 FindAtom([MarshalAs(UnmanagedType.LPWStr)] string lpString);
+        public static extern safe System.UInt16 FindAtom([MarshalAs(UnmanagedType.LPWStr)] string lpString);
 
 #if Codemarkers_IncludeAppEnum
         [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
-        public static extern System.UInt16 AddAtom([MarshalAs(UnmanagedType.LPWStr)] string lpString);
+        public static extern safe System.UInt16 AddAtom([MarshalAs(UnmanagedType.LPWStr)] string lpString);
 
         [DllImport("kernel32.dll")]
-        public static extern System.UInt16 DeleteAtom(System.UInt16 atom);
+        public static extern safe System.UInt16 DeleteAtom(System.UInt16 atom);
 #endif // Codemarkers_IncludeAppEnum
 
         [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
-        public static extern IntPtr GetModuleHandle([MarshalAs(UnmanagedType.LPWStr)] string lpModuleName);
+        public static extern safe IntPtr GetModuleHandle([MarshalAs(UnmanagedType.LPWStr)] string lpModuleName);
     }
 
     // Atom name. This ATOM will be set by the host application when code markers are enabled
@@ -174,11 +174,17 @@ internal sealed class CodeMarkers
         {
             if (this.ShouldUseTestDll)
             {
-                NativeMethods.TestDllPerfCodeMarker(nTimerID, null, 0);
+                unsafe
+                {
+                    NativeMethods.TestDllPerfCodeMarker(nTimerID, null, 0);
+                }
             }
             else
             {
-                NativeMethods.ProductDllPerfCodeMarker(nTimerID, null, 0);
+                unsafe
+                {
+                    NativeMethods.ProductDllPerfCodeMarker(nTimerID, null, 0);
+                }
             }
         }
         catch (DllNotFoundException)
@@ -215,11 +221,17 @@ internal sealed class CodeMarkers
         {
             if (this.ShouldUseTestDll)
             {
-                NativeMethods.TestDllPerfCodeMarker(nTimerID, aBuff, aBuff.Length);
+                unsafe
+                {
+                    NativeMethods.TestDllPerfCodeMarker(nTimerID, aBuff, aBuff.Length);
+                }
             }
             else
             {
-                NativeMethods.ProductDllPerfCodeMarker(nTimerID, aBuff, aBuff.Length);
+                unsafe
+                {
+                    NativeMethods.ProductDllPerfCodeMarker(nTimerID, aBuff, aBuff.Length);
+                }
             }
         }
         catch (DllNotFoundException)
@@ -281,11 +293,17 @@ internal sealed class CodeMarkers
             int byteCount = stringData == null ? 0 : stringData.Length + 1;
             if (this.ShouldUseTestDll)
             {
-                NativeMethods.TestDllPerfCodeMarkerString(nTimerID, stringData, byteCount);
+                unsafe
+                {
+                    NativeMethods.TestDllPerfCodeMarkerString(nTimerID, stringData, byteCount);
+                }
             }
             else
             {
-                NativeMethods.ProductDllPerfCodeMarkerString(nTimerID, stringData, byteCount);
+                unsafe
+                {
+                    NativeMethods.ProductDllPerfCodeMarkerString(nTimerID, stringData, byteCount);
+                }
             }
         }
         catch (DllNotFoundException)

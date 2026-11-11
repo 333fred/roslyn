@@ -316,31 +316,34 @@ scriptroot=""$( cd -P ""$( dirname ""$source"" )"" && pwd )""
 
     private static void CreateHardLink(string fileName, string existingFileName)
     {
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        unsafe
         {
-            var success = CreateHardLink(fileName, existingFileName, IntPtr.Zero);
-            if (!success)
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                // for debugging: https://docs.microsoft.com/en-us/windows/win32/debug/system-error-codes
-                throw new IOException($"Failed to create hard link from {existingFileName} to {fileName} with exception 0x{Marshal.GetLastWin32Error():X}");
+                var success = CreateHardLink(fileName, existingFileName, IntPtr.Zero);
+                if (!success)
+                {
+                    // for debugging: https://docs.microsoft.com/en-us/windows/win32/debug/system-error-codes
+                    throw new IOException($"Failed to create hard link from {existingFileName} to {fileName} with exception 0x{Marshal.GetLastWin32Error():X}");
+                }
             }
-        }
-        else
-        {
-            var result = link(existingFileName, fileName);
-            if (result != 0)
+            else
             {
-                throw new IOException($"Failed to create hard link from {existingFileName} to {fileName} with error code {Marshal.GetLastWin32Error()}");
+                var result = link(existingFileName, fileName);
+                if (result != 0)
+                {
+                    throw new IOException($"Failed to create hard link from {existingFileName} to {fileName} with error code {Marshal.GetLastWin32Error()}");
+                }
             }
+
+            // https://docs.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-createhardlinkw
+            [DllImport("Kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+            static extern unsafe bool CreateHardLink(string lpFileName, string lpExistingFileName, IntPtr lpSecurityAttributes);
+
+            // https://man7.org/linux/man-pages/man2/link.2.html
+            [DllImport("libc", SetLastError = true)]
+            static extern safe int link(string oldpath, string newpath);
         }
-
-        // https://docs.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-createhardlinkw
-        [DllImport("Kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-        static extern bool CreateHardLink(string lpFileName, string lpExistingFileName, IntPtr lpSecurityAttributes);
-
-        // https://man7.org/linux/man-pages/man2/link.2.html
-        [DllImport("libc", SetLastError = true)]
-        static extern int link(string oldpath, string newpath);
     }
 
     private static bool TryGetMvid(string filePath, out Guid mvid)

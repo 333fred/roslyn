@@ -160,12 +160,12 @@ internal sealed partial class ObjectWriter : IDisposable
     internal struct GuidAccessor
     {
         [FieldOffset(0)]
-        public Guid Guid;
+        public safe Guid Guid;
 
         [FieldOffset(0)]
-        public long Low64;
+        public safe long Low64;
         [FieldOffset(8)]
-        public long High64;
+        public safe long High64;
     }
 
     public void WriteGuid(Guid guid)
@@ -457,58 +457,61 @@ internal sealed partial class ObjectWriter : IDisposable
         }
     }
 
-    private unsafe void WriteStringValue(string? value)
+    private void WriteStringValue(string? value)
     {
-        if (value == null)
+        unsafe
         {
-            WriteByte((byte)TypeCode.Null);
-        }
-        else
-        {
-            if (_stringReferenceMap.TryGetReferenceId(value, out var id))
+            if (value == null)
             {
-                Debug.Assert(id >= 0);
-                if (id <= byte.MaxValue)
-                {
-                    WriteByte((byte)TypeCode.StringRef_1Byte);
-                    WriteByte((byte)id);
-                }
-                else if (id <= ushort.MaxValue)
-                {
-                    WriteByte((byte)TypeCode.StringRef_2Bytes);
-                    WriteUInt16((ushort)id);
-                }
-                else
-                {
-                    WriteByte((byte)TypeCode.StringRef_4Bytes);
-                    WriteInt32(id);
-                }
+                WriteByte((byte)TypeCode.Null);
             }
             else
             {
-                _stringReferenceMap.Add(value);
-
-                if (value.IsValidUnicodeString())
+                if (_stringReferenceMap.TryGetReferenceId(value, out var id))
                 {
-                    // Usual case - the string can be encoded as UTF-8:
-                    // We can use the UTF-8 encoding of the binary writer.
-
-                    WriteByte((byte)TypeCode.StringUtf8);
-                    _writer.Write(value);
+                    Debug.Assert(id >= 0);
+                    if (id <= byte.MaxValue)
+                    {
+                        WriteByte((byte)TypeCode.StringRef_1Byte);
+                        WriteByte((byte)id);
+                    }
+                    else if (id <= ushort.MaxValue)
+                    {
+                        WriteByte((byte)TypeCode.StringRef_2Bytes);
+                        WriteUInt16((ushort)id);
+                    }
+                    else
+                    {
+                        WriteByte((byte)TypeCode.StringRef_4Bytes);
+                        WriteInt32(id);
+                    }
                 }
                 else
                 {
-                    WriteByte((byte)TypeCode.StringUtf16);
+                    _stringReferenceMap.Add(value);
 
-                    // This is rare, just allocate UTF16 bytes for simplicity.
-                    var bytes = new byte[(uint)value.Length * sizeof(char)];
-                    fixed (char* valuePtr = value)
+                    if (value.IsValidUnicodeString())
                     {
-                        Marshal.Copy((IntPtr)valuePtr, bytes, 0, bytes.Length);
-                    }
+                        // Usual case - the string can be encoded as UTF-8:
+                        // We can use the UTF-8 encoding of the binary writer.
 
-                    WriteCompressedUInt((uint)value.Length);
-                    _writer.Write(bytes);
+                        WriteByte((byte)TypeCode.StringUtf8);
+                        _writer.Write(value);
+                    }
+                    else
+                    {
+                        WriteByte((byte)TypeCode.StringUtf16);
+
+                        // This is rare, just allocate UTF16 bytes for simplicity.
+                        var bytes = new byte[(uint)value.Length * sizeof(char)];
+                        fixed (char* valuePtr = value)
+                        {
+                            Marshal.Copy((IntPtr)valuePtr, bytes, 0, bytes.Length);
+                        }
+
+                        WriteCompressedUInt((uint)value.Length);
+                        _writer.Write(bytes);
+                    }
                 }
             }
         }

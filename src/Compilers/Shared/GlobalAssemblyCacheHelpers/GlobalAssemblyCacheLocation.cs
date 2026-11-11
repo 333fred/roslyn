@@ -42,27 +42,30 @@ namespace Microsoft.CodeAnalysis
             }
         }
 
-        private static unsafe string GetLocation(ASM_CACHE gacId)
+        private static string GetLocation(ASM_CACHE gacId)
         {
-            const int ERROR_INSUFFICIENT_BUFFER = unchecked((int)0x8007007A);
-
-            int characterCount = 0;
-            int hr = GetCachePath(gacId, null, ref characterCount);
-            if (hr != ERROR_INSUFFICIENT_BUFFER)
+            unsafe
             {
-                throw Marshal.GetExceptionForHR(hr);
-            }
+                const int ERROR_INSUFFICIENT_BUFFER = unchecked((int)0x8007007A);
 
-            byte[] data = new byte[(characterCount + 1) * 2];
-            fixed (byte* p = data)
-            {
-                hr = GetCachePath(gacId, p, ref characterCount);
-                if (hr != 0)
+                int characterCount = 0;
+                int hr = GetCachePath(gacId, null, ref characterCount);
+                if (hr != ERROR_INSUFFICIENT_BUFFER)
                 {
                     throw Marshal.GetExceptionForHR(hr);
                 }
 
-                return Marshal.PtrToStringUni((IntPtr)p);
+                byte[] data = new byte[(characterCount + 1) * 2];
+                fixed (byte* p = data)
+                {
+                    hr = GetCachePath(gacId, p, ref characterCount);
+                    if (hr != 0)
+                    {
+                        throw Marshal.GetExceptionForHR(hr);
+                    }
+
+                    return Marshal.PtrToStringUni((IntPtr)p);
+                }
             }
         }
     }

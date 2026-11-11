@@ -240,25 +240,28 @@ namespace Microsoft.CodeAnalysis
             }
         }
 
-        private unsafe void Sign(string filePath, ImmutableArray<byte> keyPair)
+        private void Sign(string filePath, ImmutableArray<byte> keyPair)
         {
-            try
+            unsafe
             {
-                IClrStrongName strongName = GetStrongNameInterface();
-
-                fixed (byte* pinned = keyPair.ToArray())
+                try
                 {
-                    strongName.StrongNameSignatureGeneration(filePath, null, (IntPtr)pinned, keyPair.Length, null, pcbSignatureBlob: out _);
+                    IClrStrongName strongName = GetStrongNameInterface();
+
+                    fixed (byte* pinned = keyPair.ToArray())
+                    {
+                        strongName.StrongNameSignatureGeneration(filePath, null, (IntPtr)pinned, keyPair.Length, null, pcbSignatureBlob: out _);
+                    }
                 }
-            }
-            catch (ClrStrongNameMissingException)
-            {
-                // pipe it through so it's catchable directly by type
-                throw;
-            }
-            catch (Exception ex)
-            {
-                throw new IOException(ex.Message, ex);
+                catch (ClrStrongNameMissingException)
+                {
+                    // pipe it through so it's catchable directly by type
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    throw new IOException(ex.Message, ex);
+                }
             }
         }
 

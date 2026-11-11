@@ -59,17 +59,20 @@ Is the file loaded as an assembly (e.g. via Assembly.LoadFile)?
         }
 
         [DllImport("kernel32.dll", PreserveSig = false)]
-        private static extern void SetFileInformationByHandle(SafeFileHandle handle, int fileInformationClass, ref uint fileDispositionInfoDeleteFile, int bufferSize);
+        private static extern unsafe void SetFileInformationByHandle(SafeFileHandle handle, int fileInformationClass, ref uint fileDispositionInfoDeleteFile, int bufferSize);
 
         private const int FileDispositionInfo = 4;
 
         internal static void PrepareDeleteOnCloseStreamForDisposal(FileStream stream)
         {
-            // tomat: Set disposition to "delete" on the stream, so to avoid ForeFront EndPoint
-            // Protection driver scanning the file. Note that after calling this on a file that's open with DeleteOnClose, 
-            // the file can't be opened again, not even by the same process.
-            uint trueValue = 1;
-            SetFileInformationByHandle(stream.SafeFileHandle, FileDispositionInfo, ref trueValue, sizeof(uint));
+            unsafe
+            {
+                // tomat: Set disposition to "delete" on the stream, so to avoid ForeFront EndPoint
+                // Protection driver scanning the file. Note that after calling this on a file that's open with DeleteOnClose,
+                // the file can't be opened again, not even by the same process.
+                uint trueValue = 1;
+                SetFileInformationByHandle(stream.SafeFileHandle, FileDispositionInfo, ref trueValue, sizeof(uint));
+            }
         }
 
         /// <summary>

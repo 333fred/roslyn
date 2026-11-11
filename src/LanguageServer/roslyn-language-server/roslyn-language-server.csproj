@@ -4,6 +4,7 @@
     <TargetFramework>$(NetVSCode)</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AssemblyName>roslyn-language-server</AssemblyName>
     <RootNamespace>Microsoft.CodeAnalysis.LanguageServer.Client</RootNamespace>
 

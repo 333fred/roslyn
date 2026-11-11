@@ -330,44 +330,47 @@ class C
         [ConditionalFact(typeof(OSVersionWin8))]
         public void WinMdAssemblyReferenceRequiresRedirect()
         {
-            var source =
-@"class C : Windows.UI.Xaml.Controls.UserControl
+            unsafe
+            {
+                var source =
+    @"class C : Windows.UI.Xaml.Controls.UserControl
 {
     static void M(C c)
     {
     }
 }";
-            var compilation = CreateEmptyCompilation(source, WinRtRefs, TestOptions.DebugDll);
-            WithRuntimeInstance(compilation, new[] { MscorlibRef }.Concat(ExpressionCompilerTestHelpers.GetRuntimeWinMds("Windows.UI", "Windows.UI.Xaml")), runtime =>
-            {
-                string errorMessage;
-                var testData = new CompilationTestData();
-                ExpressionCompilerTestHelpers.CompileExpressionWithRetry(
-                    runtime.Modules.SelectAsArray(m => m.MetadataBlock),
-                    "c.Dispatcher",
-                    ImmutableArray<Alias>.Empty,
-                    (metadataBlocks, _) =>
-                    {
-                        return CreateMethodContext(runtime, "C.M");
-                    },
-                    (AssemblyIdentity assembly, out uint size) =>
-                    {
-                        // Compilation should succeed without retry if we redirect assembly refs correctly.
-                        // Throwing so that we don't loop forever (as we did before fix)...
-                        throw ExceptionUtilities.Unreachable();
-                    },
-                    out errorMessage,
-                    out testData);
-                Assert.Null(errorMessage);
-                testData.GetMethodData("<>x.<>m0").VerifyIL(
-    @"{
+                var compilation = CreateEmptyCompilation(source, WinRtRefs, TestOptions.DebugDll);
+                WithRuntimeInstance(compilation, new[] { MscorlibRef }.Concat(ExpressionCompilerTestHelpers.GetRuntimeWinMds("Windows.UI", "Windows.UI.Xaml")), runtime =>
+                {
+                    string errorMessage;
+                    var testData = new CompilationTestData();
+                    ExpressionCompilerTestHelpers.CompileExpressionWithRetry(
+                        runtime.Modules.SelectAsArray(m => m.MetadataBlock),
+                        "c.Dispatcher",
+                        ImmutableArray<Alias>.Empty,
+                        (metadataBlocks, _) =>
+                        {
+                            return CreateMethodContext(runtime, "C.M");
+                        },
+                        (AssemblyIdentity assembly, out uint size) =>
+                        {
+                            // Compilation should succeed without retry if we redirect assembly refs correctly.
+                            // Throwing so that we don't loop forever (as we did before fix)...
+                            throw ExceptionUtilities.Unreachable();
+                        },
+                        out errorMessage,
+                        out testData);
+                    Assert.Null(errorMessage);
+                    testData.GetMethodData("<>x.<>m0").VerifyIL(
+        @"{
   // Code size        7 (0x7)
   .maxstack  1
   IL_0000:  ldarg.0
   IL_0001:  callvirt   ""Windows.UI.Core.CoreDispatcher Windows.UI.Xaml.DependencyObject.Dispatcher.get""
   IL_0006:  ret
 }");
-            });
+                });
+            }
         }
 
         private static byte[] ToVersion1_3(byte[] bytes)

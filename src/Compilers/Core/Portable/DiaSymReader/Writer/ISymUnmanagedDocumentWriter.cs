@@ -12,10 +12,11 @@ using System.Security;
 
 namespace Microsoft.DiaSymReader
 {
+    // Input buffers must remain readable and fixed for their declared lengths until the call returns.
     [ComImport, InterfaceType(ComInterfaceType.InterfaceIsIUnknown), Guid("B01FAFEB-C450-3A4D-BEEC-B4CEEC01E006"), SuppressUnmanagedCodeSecurity]
-    internal unsafe interface ISymUnmanagedDocumentWriter
+    internal interface ISymUnmanagedDocumentWriter
     {
-        void SetSource(uint sourceSize, byte* source);
-        void SetCheckSum(Guid algorithmId, uint checkSumSize, byte* checkSum);
+        unsafe void SetSource(uint sourceSize, byte* source);
+        unsafe void SetCheckSum(Guid algorithmId, uint checkSumSize, byte* checkSum);
     }
 }

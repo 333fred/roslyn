@@ -22,16 +22,16 @@ internal static class ClipboardHelpers
 
     #region Native Methods
     [DllImport("ole32.dll", ExactSpelling = true, CharSet = CharSet.Unicode)]
-    private static extern int OleGetClipboard(out IDataObject dataObject);
+    private static extern safe int OleGetClipboard(out IDataObject dataObject);
 
     [DllImport("ole32.dll", ExactSpelling = true, CharSet = CharSet.Auto)]
-    private static extern void ReleaseStgMedium(ref STGMEDIUM medium);
+    private static extern unsafe void ReleaseStgMedium(ref STGMEDIUM medium);
 
     [DllImport("kernel32.dll", ExactSpelling = true, CharSet = CharSet.Auto, SetLastError = true)]
-    private static extern IntPtr GlobalLock(HandleRef handle);
+    private static extern safe IntPtr GlobalLock(HandleRef handle);
 
     [DllImport("kernel32.dll", ExactSpelling = true, CharSet = CharSet.Auto, SetLastError = true)]
-    private static extern bool GlobalUnlock(HandleRef handle);
+    private static extern safe bool GlobalUnlock(HandleRef handle);
     #endregion
 
     /// <summary>
@@ -83,11 +83,14 @@ internal static class ClipboardHelpers
                 return null;
             }
 
-            return ReadStringFromHandle(medium.unionmember, format.cfFormat == CF_UNICODETEXT);
+            return unsafe (ReadStringFromHandle(medium.unionmember, format.cfFormat == CF_UNICODETEXT));
         }
         finally
         {
-            ReleaseStgMedium(ref medium);
+            unsafe
+            {
+                ReleaseStgMedium(ref medium);
+            }
         }
     }
 
@@ -103,28 +106,31 @@ internal static class ClipboardHelpers
 
     private static unsafe string? ReadStringFromHandle(IntPtr handle, bool unicode)
     {
-        string? stringData = null;
-        IntPtr ptr;
-        object handleRefObj = new();
-
-        ptr = Win32GlobalLock(new HandleRef(handleRefObj, handle));
-        try
+        unsafe
         {
-            if (unicode)
-            {
-                stringData = new string((char*)ptr);
-            }
-            else
-            {
-                stringData = new string((sbyte*)ptr);
-            }
-        }
-        finally
-        {
-            Win32GlobalUnlock(new HandleRef(handleRefObj, handle));
-        }
+            string? stringData = null;
+            IntPtr ptr;
+            object handleRefObj = new();
 
-        return stringData;
+            ptr = Win32GlobalLock(new HandleRef(handleRefObj, handle));
+            try
+            {
+                if (unicode)
+                {
+                    stringData = new string((char*)ptr);
+                }
+                else
+                {
+                    stringData = new string((sbyte*)ptr);
+                }
+            }
+            finally
+            {
+                Win32GlobalUnlock(new HandleRef(handleRefObj, handle));
+            }
+
+            return stringData;
+        }
     }
 
     private static IntPtr Win32GlobalLock(HandleRef handle)

@@ -8,6 +8,8 @@ namespace Microsoft.VisualStudio.Extensibility.Testing.SourceGenerator.UnitTests
     using System.IO;
     using System.Threading.Tasks;
     using Microsoft.CodeAnalysis;
+    using Microsoft.CodeAnalysis.CSharp;
+    using Microsoft.CodeAnalysis.Diagnostics;
     using Microsoft.CodeAnalysis.Testing;
     using Xunit;
     using VerifyCS = Microsoft.VisualStudio.Extensibility.Testing.SourceGenerator.UnitTests.Verifiers.CSharpSourceGeneratorVerifier<
@@ -195,6 +197,52 @@ namespace System.Diagnostics.CodeAnalysis
                     },
                 },
             }.AddGeneratedSources().RunAsync();
+        }
+
+        [Theory]
+        [InlineData(null, false)]
+        [InlineData("1", false)]
+        [InlineData("2", true)]
+        public void VariantHelperUsesRequestedMemorySafetyRules(string? version, bool useV2)
+        {
+            var driver = CSharpGeneratorDriver.Create(
+                [new TestServicesSourceGenerator().AsSourceGenerator()],
+                optionsProvider: new MemorySafetyOptionsProvider(version));
+            var result = driver.RunGenerators(CSharpCompilation.Create("Test")).GetRunResult();
+            Assert.Empty(result.Diagnostics);
+            var source = Assert.Single(Assert.Single(result.Results).GeneratedSources,
+                source => source.HintName == "ShellInProcess.VariantHelper.g.cs").SourceText.ToString();
+
+            var safeModifier = useV2 ? "safe " : "";
+            var unsafeModifier = useV2 ? "unsafe " : "";
+            Assert.Contains($"[FieldOffset(0)] private {safeModifier}TypeUnion _typeUnion;", source);
+            Assert.Contains($"[FieldOffset(0)] public {safeModifier}IntPtr _bstr;", source);
+            Assert.Contains($"private static {unsafeModifier}extern void VariantClear(IntPtr variant);", source);
+            Assert.Equal(useV2, source.Contains("unsafe\n                        {\n                            VariantClear(unmanagedCopy);"));
+        }
+
+        private sealed class MemorySafetyOptionsProvider(string? version) : AnalyzerConfigOptionsProvider
+        {
+            public override AnalyzerConfigOptions GlobalOptions { get; } = new MemorySafetyOptions(version);
+
+            public override AnalyzerConfigOptions GetOptions(SyntaxTree tree) => GlobalOptions;
+
+            public override AnalyzerConfigOptions GetOptions(AdditionalText textFile) => GlobalOptions;
+        }
+
+        private sealed class MemorySafetyOptions(string? version) : AnalyzerConfigOptions
+        {
+            public override bool TryGetValue(string key, out string value)
+            {
+                if (key == "build_property.MemorySafetyRulesVersion" && version is not null)
+                {
+                    value = version;
+                    return true;
+                }
+
+                value = "";
+                return false;
+            }
         }
     }
 }

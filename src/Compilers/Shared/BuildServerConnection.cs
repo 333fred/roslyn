@@ -612,7 +612,8 @@ namespace Microsoft.CodeAnalysis.CommandLine
                     // When passing a Unicode environment block, we must set the CREATE_UNICODE_ENVIRONMENT flag
                     dwCreationFlags |= CREATE_UNICODE_ENVIRONMENT;
 
-                    bool success = CreateProcess(
+                    // The environment block remains allocated until CreateProcess returns.
+                    bool success = unsafe (CreateProcess(
                         lpApplicationName: null,
                         lpCommandLine: builder,
                         lpProcessAttributes: NullPtr,
@@ -622,7 +623,7 @@ namespace Microsoft.CodeAnalysis.CommandLine
                         lpEnvironment: environmentBlockPtr,
                         lpCurrentDirectory: clientDirectory,
                         lpStartupInfo: ref startInfo,
-                        lpProcessInformation: out processInfo);
+                        lpProcessInformation: out processInfo));
 
                     if (success)
                     {

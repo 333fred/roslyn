@@ -371,72 +371,78 @@ class C
         }
 
         [Fact]
-        public unsafe void ShouldTryAgain_Success()
+        public void ShouldTryAgain_Success()
         {
-            var comp = CreateCompilation("public class C { }");
-            using (var pinned = new PinnedMetadata(GetMetadataBytes(comp)))
+            unsafe
             {
-                IntPtr gmdbpf(AssemblyIdentity assemblyIdentity, out uint uSize)
+                var comp = CreateCompilation("public class C { }");
+                using (var pinned = new PinnedMetadata(GetMetadataBytes(comp)))
                 {
-                    uSize = (uint)pinned.Size;
-                    return pinned.Pointer;
+                    IntPtr gmdbpf(AssemblyIdentity assemblyIdentity, out uint uSize)
+                    {
+                        uSize = (uint)pinned.Size;
+                        return pinned.Pointer;
+                    }
+
+                    var references = ImmutableArray<MetadataBlock>.Empty;
+                    var missingAssemblyIdentity = new AssemblyIdentity("A");
+                    var missingAssemblyIdentities = ImmutableArray.Create(missingAssemblyIdentity);
+                    Assert.True(ExpressionCompiler.ShouldTryAgainWithMoreMetadataBlocks(gmdbpf, missingAssemblyIdentities, ref references));
+
+                    var newReference = references.Single();
+                    Assert.Equal(pinned.Pointer, newReference.Pointer);
+                    Assert.Equal(pinned.Size, newReference.Size);
                 }
-
-                var references = ImmutableArray<MetadataBlock>.Empty;
-                var missingAssemblyIdentity = new AssemblyIdentity("A");
-                var missingAssemblyIdentities = ImmutableArray.Create(missingAssemblyIdentity);
-                Assert.True(ExpressionCompiler.ShouldTryAgainWithMoreMetadataBlocks(gmdbpf, missingAssemblyIdentities, ref references));
-
-                var newReference = references.Single();
-                Assert.Equal(pinned.Pointer, newReference.Pointer);
-                Assert.Equal(pinned.Size, newReference.Size);
             }
         }
 
         [Fact]
-        public unsafe void ShouldTryAgain_Mixed()
+        public void ShouldTryAgain_Mixed()
         {
-            var comp1 = CreateCompilation("public class C { }", assemblyName: GetUniqueName());
-            var comp2 = CreateCompilation("public class D { }", assemblyName: GetUniqueName());
-            using (PinnedMetadata pinned1 = new PinnedMetadata(GetMetadataBytes(comp1)),
-                pinned2 = new PinnedMetadata(GetMetadataBytes(comp2)))
+            unsafe
             {
-                var assemblyIdentity1 = comp1.Assembly.Identity;
-                var assemblyIdentity2 = comp2.Assembly.Identity;
-                Assert.NotEqual(assemblyIdentity1, assemblyIdentity2);
-
-                IntPtr gmdbpf(AssemblyIdentity assemblyIdentity, out uint uSize)
+                var comp1 = CreateCompilation("public class C { }", assemblyName: GetUniqueName());
+                var comp2 = CreateCompilation("public class D { }", assemblyName: GetUniqueName());
+                using (PinnedMetadata pinned1 = new PinnedMetadata(GetMetadataBytes(comp1)),
+                    pinned2 = new PinnedMetadata(GetMetadataBytes(comp2)))
                 {
-                    if (assemblyIdentity == assemblyIdentity1)
+                    var assemblyIdentity1 = comp1.Assembly.Identity;
+                    var assemblyIdentity2 = comp2.Assembly.Identity;
+                    Assert.NotEqual(assemblyIdentity1, assemblyIdentity2);
+
+                    IntPtr gmdbpf(AssemblyIdentity assemblyIdentity, out uint uSize)
                     {
-                        uSize = (uint)pinned1.Size;
-                        return pinned1.Pointer;
+                        if (assemblyIdentity == assemblyIdentity1)
+                        {
+                            uSize = (uint)pinned1.Size;
+                            return pinned1.Pointer;
+                        }
+                        else if (assemblyIdentity == assemblyIdentity2)
+                        {
+                            uSize = (uint)pinned2.Size;
+                            return pinned2.Pointer;
+                        }
+                        else
+                        {
+                            Marshal.ThrowExceptionForHR(DkmExceptionUtilities.CORDBG_E_MISSING_METADATA);
+                            throw ExceptionUtilities.Unreachable();
+                        }
                     }
-                    else if (assemblyIdentity == assemblyIdentity2)
-                    {
-                        uSize = (uint)pinned2.Size;
-                        return pinned2.Pointer;
-                    }
-                    else
-                    {
-                        Marshal.ThrowExceptionForHR(DkmExceptionUtilities.CORDBG_E_MISSING_METADATA);
-                        throw ExceptionUtilities.Unreachable();
-                    }
+
+                    var references = ImmutableArray.Create(default(MetadataBlock));
+                    var unknownAssemblyIdentity = new AssemblyIdentity(GetUniqueName());
+                    var missingAssemblyIdentities = ImmutableArray.Create(assemblyIdentity1, unknownAssemblyIdentity, assemblyIdentity2);
+                    Assert.True(ExpressionCompiler.ShouldTryAgainWithMoreMetadataBlocks(gmdbpf, missingAssemblyIdentities, ref references));
+                    Assert.Equal(3, references.Length);
+
+                    Assert.Equal(default(MetadataBlock), references[0]);
+
+                    Assert.Equal(pinned1.Pointer, references[1].Pointer);
+                    Assert.Equal(pinned1.Size, references[1].Size);
+
+                    Assert.Equal(pinned2.Pointer, references[2].Pointer);
+                    Assert.Equal(pinned2.Size, references[2].Size);
                 }
-
-                var references = ImmutableArray.Create(default(MetadataBlock));
-                var unknownAssemblyIdentity = new AssemblyIdentity(GetUniqueName());
-                var missingAssemblyIdentities = ImmutableArray.Create(assemblyIdentity1, unknownAssemblyIdentity, assemblyIdentity2);
-                Assert.True(ExpressionCompiler.ShouldTryAgainWithMoreMetadataBlocks(gmdbpf, missingAssemblyIdentities, ref references));
-                Assert.Equal(3, references.Length);
-
-                Assert.Equal(default(MetadataBlock), references[0]);
-
-                Assert.Equal(pinned1.Pointer, references[1].Pointer);
-                Assert.Equal(pinned1.Size, references[1].Size);
-
-                Assert.Equal(pinned2.Pointer, references[2].Pointer);
-                Assert.Equal(pinned2.Size, references[2].Size);
             }
         }
 
@@ -475,36 +481,45 @@ class C
         [Fact]
         public void ShouldTryAgain_RPC_E_DISCONNECTED()
         {
-            static IntPtr gmdbpf(AssemblyIdentity assemblyIdentity, out uint uSize)
+            unsafe
             {
-                Marshal.ThrowExceptionForHR(unchecked((int)0x80010108));
-                throw ExceptionUtilities.Unreachable();
-            }
+                static IntPtr gmdbpf(AssemblyIdentity assemblyIdentity, out uint uSize)
+                {
+                    Marshal.ThrowExceptionForHR(unchecked((int)0x80010108));
+                    throw ExceptionUtilities.Unreachable();
+                }
 
-            var references = ImmutableArray<MetadataBlock>.Empty;
-            var missingAssemblyIdentities = ImmutableArray.Create(new AssemblyIdentity("A"));
-            Assert.Throws<COMException>(() => ExpressionCompiler.ShouldTryAgainWithMoreMetadataBlocks(gmdbpf, missingAssemblyIdentities, ref references));
+                var references = ImmutableArray<MetadataBlock>.Empty;
+                var missingAssemblyIdentities = ImmutableArray.Create(new AssemblyIdentity("A"));
+                Assert.Throws<COMException>(() => ExpressionCompiler.ShouldTryAgainWithMoreMetadataBlocks(gmdbpf, missingAssemblyIdentities, ref references));
+            }
         }
 
         [Fact]
         public void ShouldTryAgain_Exception()
         {
-            static IntPtr gmdbpf(AssemblyIdentity assemblyIdentity, out uint uSize)
+            unsafe
             {
-                throw new Exception();
-            }
+                static IntPtr gmdbpf(AssemblyIdentity assemblyIdentity, out uint uSize)
+                {
+                    throw new Exception();
+                }
 
-            var references = ImmutableArray<MetadataBlock>.Empty;
-            var missingAssemblyIdentities = ImmutableArray.Create(new AssemblyIdentity("A"));
-            Assert.Throws<Exception>(() => ExpressionCompiler.ShouldTryAgainWithMoreMetadataBlocks(gmdbpf, missingAssemblyIdentities, ref references));
+                var references = ImmutableArray<MetadataBlock>.Empty;
+                var missingAssemblyIdentities = ImmutableArray.Create(new AssemblyIdentity("A"));
+                Assert.Throws<Exception>(() => ExpressionCompiler.ShouldTryAgainWithMoreMetadataBlocks(gmdbpf, missingAssemblyIdentities, ref references));
+            }
         }
 
         private static void ShouldTryAgain_False(DkmUtilities.GetMetadataBytesPtrFunction gmdbpf)
         {
-            var references = ImmutableArray<MetadataBlock>.Empty;
-            var missingAssemblyIdentities = ImmutableArray.Create(new AssemblyIdentity("A"));
-            Assert.False(ExpressionCompiler.ShouldTryAgainWithMoreMetadataBlocks(gmdbpf, missingAssemblyIdentities, ref references));
-            Assert.Empty(references);
+            unsafe
+            {
+                var references = ImmutableArray<MetadataBlock>.Empty;
+                var missingAssemblyIdentities = ImmutableArray.Create(new AssemblyIdentity("A"));
+                Assert.False(ExpressionCompiler.ShouldTryAgainWithMoreMetadataBlocks(gmdbpf, missingAssemblyIdentities, ref references));
+                Assert.Empty(references);
+            }
         }
 
         [Fact, WorkItem("http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1124725")]
@@ -630,99 +645,107 @@ class C
         [Fact, WorkItem("http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1154988")]
         public void CompileWithRetrySameErrorReported()
         {
-            var source = @" 
+            unsafe
+            {
+                var source = @" 
 class C 
 { 
     void M() 
     { 
     } 
 }";
-            var comp = CreateCompilation(source);
-            WithRuntimeInstance(comp, runtime =>
-            {
-                var context = CreateMethodContext(runtime, "C.M");
+                var comp = CreateCompilation(source);
+                WithRuntimeInstance(comp, runtime =>
+                {
+                    var context = CreateMethodContext(runtime, "C.M");
 
-                var missingModule = runtime.Modules.First();
-                var missingIdentity = missingModule.GetMetadataReader().ReadAssemblyIdentityOrThrow();
+                    var missingModule = runtime.Modules.First();
+                    var missingIdentity = missingModule.GetMetadataReader().ReadAssemblyIdentityOrThrow();
 
-                var numRetries = 0;
-                string errorMessage;
-                ExpressionCompilerTestHelpers.CompileExpressionWithRetry(
-                    runtime.Modules.SelectAsArray(m => m.MetadataBlock),
-                    context,
-                    (_, diagnostics) =>
-                    {
-                        numRetries++;
-                        Assert.InRange(numRetries, 0, 2); // We don't want to loop forever... 
-                        diagnostics.Add(new CSDiagnostic(new CSDiagnosticInfo(ErrorCode.ERR_NoTypeDef, "MissingType", missingIdentity), Location.None));
-                        return null;
-                    },
-                    (AssemblyIdentity assemblyIdentity, out uint uSize) =>
-                    {
-                        uSize = (uint)missingModule.MetadataLength;
-                        return missingModule.MetadataAddress;
-                    },
-                    out _,
-                    out errorMessage);
+                    var numRetries = 0;
+                    string errorMessage;
+                    ExpressionCompilerTestHelpers.CompileExpressionWithRetry(
+                        runtime.Modules.SelectAsArray(m => m.MetadataBlock),
+                        context,
+                        (_, diagnostics) =>
+                        {
+                            numRetries++;
+                            Assert.InRange(numRetries, 0, 2); // We don't want to loop forever...
+                            diagnostics.Add(new CSDiagnostic(new CSDiagnosticInfo(ErrorCode.ERR_NoTypeDef, "MissingType", missingIdentity), Location.None));
+                            return null;
+                        },
+                        (AssemblyIdentity assemblyIdentity, out uint uSize) =>
+                        {
+                            uSize = (uint)missingModule.MetadataLength;
+                            return missingModule.MetadataAddress;
+                        },
+                        out _,
+                        out errorMessage);
 
-                Assert.Equal(2, numRetries); // Ensure that we actually retried and that we bailed out on the second retry if the same identity was seen in the diagnostics.
-                Assert.Equal($"error CS0012: {string.Format(CSharpResources.ERR_NoTypeDef, "MissingType", missingIdentity)}", errorMessage);
-            });
+                    Assert.Equal(2, numRetries); // Ensure that we actually retried and that we bailed out on the second retry if the same identity was seen in the diagnostics.
+                    Assert.Equal($"error CS0012: {string.Format(CSharpResources.ERR_NoTypeDef, "MissingType", missingIdentity)}", errorMessage);
+                });
+            }
         }
 
         [Fact, WorkItem("http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1151888")]
         public void SucceedOnRetry()
         {
-            var source = @" 
+            unsafe
+            {
+                var source = @" 
 class C 
 { 
     void M() 
     { 
     } 
 }";
-            var comp = CreateCompilation(source);
-            WithRuntimeInstance(comp, runtime =>
-            {
-                var context = CreateMethodContext(runtime, "C.M");
+                var comp = CreateCompilation(source);
+                WithRuntimeInstance(comp, runtime =>
+                {
+                    var context = CreateMethodContext(runtime, "C.M");
 
-                var missingModule = runtime.Modules.First();
-                var missingIdentity = missingModule.GetMetadataReader().ReadAssemblyIdentityOrThrow();
+                    var missingModule = runtime.Modules.First();
+                    var missingIdentity = missingModule.GetMetadataReader().ReadAssemblyIdentityOrThrow();
 
-                var shouldSucceed = false;
-                string errorMessage;
-                ExpressionCompilerTestHelpers.CompileExpressionWithRetry(
-                    runtime.Modules.SelectAsArray(m => m.MetadataBlock),
-                    context,
-                    (_, diagnostics) =>
-                    {
-                        if (shouldSucceed)
+                    var shouldSucceed = false;
+                    string errorMessage;
+                    ExpressionCompilerTestHelpers.CompileExpressionWithRetry(
+                        runtime.Modules.SelectAsArray(m => m.MetadataBlock),
+                        context,
+                        (_, diagnostics) =>
                         {
-                            return TestCompileResult.Instance;
-                        }
-                        else
+                            if (shouldSucceed)
+                            {
+                                return TestCompileResult.Instance;
+                            }
+                            else
+                            {
+                                shouldSucceed = true;
+                                diagnostics.Add(new CSDiagnostic(new CSDiagnosticInfo(ErrorCode.ERR_NoTypeDef, "MissingType", missingIdentity), Location.None));
+                                return null;
+                            }
+                        },
+                        (AssemblyIdentity assemblyIdentity, out uint uSize) =>
                         {
-                            shouldSucceed = true;
-                            diagnostics.Add(new CSDiagnostic(new CSDiagnosticInfo(ErrorCode.ERR_NoTypeDef, "MissingType", missingIdentity), Location.None));
-                            return null;
-                        }
-                    },
-                    (AssemblyIdentity assemblyIdentity, out uint uSize) =>
-                    {
-                        uSize = (uint)missingModule.MetadataLength;
-                        return missingModule.MetadataAddress;
-                    },
-                    out var compileResult,
-                    out errorMessage);
+                            uSize = (uint)missingModule.MetadataLength;
+                            return missingModule.MetadataAddress;
+                        },
+                        out var compileResult,
+                        out errorMessage);
 
-                Assert.Same(TestCompileResult.Instance, compileResult);
-                Assert.Null(errorMessage);
-            });
+                    Assert.Same(TestCompileResult.Instance, compileResult);
+                    Assert.Null(errorMessage);
+                });
+            }
         }
 
         [Fact, WorkItem("https://github.com/dotnet/roslyn/issues/2547")]
         public void TryDifferentLinqLibraryOnRetry()
         {
-            var source = @"
+            unsafe
+            {
+                var source = @"
 using System.Linq;
 class C 
 { 
@@ -735,48 +758,49 @@ class UseLinq
     bool b = Enumerable.Any<int>(null);
 }";
 
-            var compilation = CreateEmptyCompilation(source, new[] { MscorlibRef, SystemCoreRef });
-            WithRuntimeInstance(compilation, new[] { MscorlibRef }, runtime =>
-            {
-                var context = CreateMethodContext(runtime, "C.M");
+                var compilation = CreateEmptyCompilation(source, new[] { MscorlibRef, SystemCoreRef });
+                WithRuntimeInstance(compilation, new[] { MscorlibRef }, runtime =>
+                {
+                    var context = CreateMethodContext(runtime, "C.M");
 
-                var systemCore = SystemCoreRef.ToModuleInstance();
-                var fakeSystemLinq = CreateCompilationWithMscorlib461("", assemblyName: "System.Linq").
-                    EmitToImageReference().ToModuleInstance();
+                    var systemCore = SystemCoreRef.ToModuleInstance();
+                    var fakeSystemLinq = CreateCompilationWithMscorlib461("", assemblyName: "System.Linq").
+                        EmitToImageReference().ToModuleInstance();
 
-                string errorMessage;
-                CompilationTestData testData;
-                int retryCount = 0;
-                var compileResult = ExpressionCompilerTestHelpers.CompileExpressionWithRetry(
-                    runtime.Modules.SelectAsArray(m => m.MetadataBlock),
-                    "args.Where(a => a.Length > 0)",
-                    ImmutableArray<Alias>.Empty,
-                    (_1, _2) => context, // ignore new blocks and just keep using the same failed context...
-                    (AssemblyIdentity assemblyIdentity, out uint uSize) =>
-                    {
-                        retryCount++;
-                        MetadataBlock block;
-                        switch (retryCount)
+                    string errorMessage;
+                    CompilationTestData testData;
+                    int retryCount = 0;
+                    var compileResult = ExpressionCompilerTestHelpers.CompileExpressionWithRetry(
+                        runtime.Modules.SelectAsArray(m => m.MetadataBlock),
+                        "args.Where(a => a.Length > 0)",
+                        ImmutableArray<Alias>.Empty,
+                        (_1, _2) => context, // ignore new blocks and just keep using the same failed context...
+                        (AssemblyIdentity assemblyIdentity, out uint uSize) =>
                         {
-                            case 1:
-                                Assert.Equal(EvaluationContextBase.SystemLinqIdentity, assemblyIdentity);
-                                block = fakeSystemLinq.MetadataBlock;
-                                break;
-                            case 2:
-                                Assert.Equal(EvaluationContextBase.SystemCoreIdentity, assemblyIdentity);
-                                block = systemCore.MetadataBlock;
-                                break;
-                            default:
-                                throw ExceptionUtilities.Unreachable();
-                        }
-                        uSize = (uint)block.Size;
-                        return block.Pointer;
-                    },
-                    errorMessage: out errorMessage,
-                    testData: out testData);
+                            retryCount++;
+                            MetadataBlock block;
+                            switch (retryCount)
+                            {
+                                case 1:
+                                    Assert.Equal(EvaluationContextBase.SystemLinqIdentity, assemblyIdentity);
+                                    block = fakeSystemLinq.MetadataBlock;
+                                    break;
+                                case 2:
+                                    Assert.Equal(EvaluationContextBase.SystemCoreIdentity, assemblyIdentity);
+                                    block = systemCore.MetadataBlock;
+                                    break;
+                                default:
+                                    throw ExceptionUtilities.Unreachable();
+                            }
+                            uSize = (uint)block.Size;
+                            return block.Pointer;
+                        },
+                        errorMessage: out errorMessage,
+                        testData: out testData);
 
-                Assert.Equal(2, retryCount);
-            });
+                    Assert.Equal(2, retryCount);
+                });
+            }
         }
 
         [Fact]
@@ -896,46 +920,49 @@ LanguageVersion.CSharp7_1);
         private static void TupleContextNoSystemRuntime(string source, string methodName, string expression, string expectedIL,
             LanguageVersion languageVersion = LanguageVersion.CSharp7)
         {
-            var comp = CreateEmptyCompilation(source, parseOptions: TestOptions.Regular.WithLanguageVersion(languageVersion),
-                references: [Net461.References.mscorlib, Net461.References.SystemRuntime, ValueTupleLegacyRef], options: TestOptions.DebugDll);
-            using (var systemRuntime = SystemRuntimeFacadeRef.ToModuleInstance())
+            unsafe
             {
-                WithRuntimeInstance(comp, [Net461.References.mscorlib, ValueTupleLegacyRef], runtime =>
+                var comp = CreateEmptyCompilation(source, parseOptions: TestOptions.Regular.WithLanguageVersion(languageVersion),
+                    references: [Net461.References.mscorlib, Net461.References.SystemRuntime, ValueTupleLegacyRef], options: TestOptions.DebugDll);
+                using (var systemRuntime = SystemRuntimeFacadeRef.ToModuleInstance())
                 {
-                    ImmutableArray<MetadataBlock> blocks;
-                    ModuleId moduleId;
-                    ISymUnmanagedReader symReader;
-                    int methodToken;
-                    int localSignatureToken;
-                    GetContextState(runtime, methodName, out blocks, out moduleId, out symReader, out methodToken, out localSignatureToken);
-                    string errorMessage;
-                    CompilationTestData testData;
-                    int retryCount = 0;
-                    var compileResult = ExpressionCompilerTestHelpers.CompileExpressionWithRetry(
-                        runtime.Modules.SelectAsArray(m => m.MetadataBlock),
-                        expression,
-                        ImmutableArray<Alias>.Empty,
-                        (b, u) => EvaluationContext.CreateMethodContext(
-                            b.ToCompilation(moduleId: default, MakeAssemblyReferencesKind.AllAssemblies),
-                            symReader,
-                            moduleId,
-                            methodToken,
-                            methodVersion: 1,
-                            ilOffset: 0,
-                            localSignatureToken: localSignatureToken),
-                        (AssemblyIdentity assemblyIdentity, out uint uSize) =>
-                        {
-                            retryCount++;
-                            Assert.Equal("System.Runtime", assemblyIdentity.Name);
-                            var block = systemRuntime.MetadataBlock;
-                            uSize = (uint)block.Size;
-                            return block.Pointer;
-                        },
-                        errorMessage: out errorMessage,
-                        testData: out testData);
-                    Assert.Equal(1, retryCount);
-                    testData.GetMethodData("<>x.<>m0").VerifyIL(expectedIL);
-                });
+                    WithRuntimeInstance(comp, [Net461.References.mscorlib, ValueTupleLegacyRef], runtime =>
+                    {
+                        ImmutableArray<MetadataBlock> blocks;
+                        ModuleId moduleId;
+                        ISymUnmanagedReader symReader;
+                        int methodToken;
+                        int localSignatureToken;
+                        GetContextState(runtime, methodName, out blocks, out moduleId, out symReader, out methodToken, out localSignatureToken);
+                        string errorMessage;
+                        CompilationTestData testData;
+                        int retryCount = 0;
+                        var compileResult = ExpressionCompilerTestHelpers.CompileExpressionWithRetry(
+                            runtime.Modules.SelectAsArray(m => m.MetadataBlock),
+                            expression,
+                            ImmutableArray<Alias>.Empty,
+                            (b, u) => EvaluationContext.CreateMethodContext(
+                                b.ToCompilation(moduleId: default, MakeAssemblyReferencesKind.AllAssemblies),
+                                symReader,
+                                moduleId,
+                                methodToken,
+                                methodVersion: 1,
+                                ilOffset: 0,
+                                localSignatureToken: localSignatureToken),
+                            (AssemblyIdentity assemblyIdentity, out uint uSize) =>
+                            {
+                                retryCount++;
+                                Assert.Equal("System.Runtime", assemblyIdentity.Name);
+                                var block = systemRuntime.MetadataBlock;
+                                uSize = (uint)block.Size;
+                                return block.Pointer;
+                            },
+                            errorMessage: out errorMessage,
+                            testData: out testData);
+                        Assert.Equal(1, retryCount);
+                        testData.GetMethodData("<>x.<>m0").VerifyIL(expectedIL);
+                    });
+                }
             }
         }
 

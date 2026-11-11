@@ -373,7 +373,7 @@ public sealed class GenerateFilteredReferenceAssembliesTask : Task
             _ => throw ExceptionUtilities.UnexpectedValue(symbol.Kind)
         };
 
-    internal static unsafe void Rewrite(byte[] peImage, ImmutableArray<ApiPattern> patterns)
+    internal static void Rewrite(byte[] peImage, ImmutableArray<ApiPattern> patterns)
     {
         // Include all APIs if no patterns are specified.
         if (patterns.IsEmpty)
@@ -435,7 +435,7 @@ public sealed class GenerateFilteredReferenceAssembliesTask : Task
 
         // update mvid:
         var moduleDef = metadataReader.GetModuleDefinition();
-        var mvidOffset = metadataOffset + metadataReader.GetHeapMetadataOffset(HeapIndex.Guid) + (MetadataTokens.GetHeapOffset(moduleDef.Mvid) - 1) * sizeof(Guid);
+        var mvidOffset = metadataOffset + metadataReader.GetHeapMetadataOffset(HeapIndex.Guid) + (MetadataTokens.GetHeapOffset(moduleDef.Mvid) - 1) * unsafe (sizeof(Guid));
 #if DEBUG
         writableStream.Position = mvidOffset;
         Debug.Assert(metadataReader.GetGuid(moduleDef.Mvid) == ReadGuid(writableStream));
@@ -447,12 +447,12 @@ public sealed class GenerateFilteredReferenceAssembliesTask : Task
         writer.Flush();
     }
 
-    private static unsafe TSymbol? GetSymbolWithToken<TSymbol>(ImmutableArray<TSymbol> symbols, ref int symbolIndex, EntityHandle handle) where TSymbol : class, ISymbol
+    private static TSymbol? GetSymbolWithToken<TSymbol>(ImmutableArray<TSymbol> symbols, ref int symbolIndex, EntityHandle handle) where TSymbol : class, ISymbol
         // If the current definition does not have corresponding symbol,
         // we couldn't decode the symbol from metadata. Treat such definition as excluded.
         => (symbolIndex < symbols.Length && symbols[symbolIndex].MetadataToken == MetadataTokens.GetToken(handle)) ? symbols[symbolIndex++] : null;
 
-    private static unsafe void UpdateTypeDefinitions(BinaryWriter writer, MetadataReader metadataReader, ImmutableArray<ApiPattern> patterns, ImmutableArray<INamedTypeSymbol> symbols, int metadataOffset)
+    private static void UpdateTypeDefinitions(BinaryWriter writer, MetadataReader metadataReader, ImmutableArray<ApiPattern> patterns, ImmutableArray<INamedTypeSymbol> symbols, int metadataOffset)
     {
         var tableOffset = metadataOffset + metadataReader.GetTableMetadataOffset(TableIndex.TypeDef);
         var tableRowSize = metadataReader.GetTableRowSize(TableIndex.TypeDef);
@@ -492,7 +492,7 @@ public sealed class GenerateFilteredReferenceAssembliesTask : Task
         }
     }
 
-    private static unsafe void UpdateMethodDefinitions(BinaryWriter writer, MetadataReader metadataReader, ImmutableArray<ApiPattern> patterns, ImmutableArray<IMethodSymbol> symbols, int metadataOffset)
+    private static void UpdateMethodDefinitions(BinaryWriter writer, MetadataReader metadataReader, ImmutableArray<ApiPattern> patterns, ImmutableArray<IMethodSymbol> symbols, int metadataOffset)
     {
         var tableOffset = metadataOffset + metadataReader.GetTableMetadataOffset(TableIndex.MethodDef);
         var tableRowSize = metadataReader.GetTableRowSize(TableIndex.MethodDef);
@@ -526,7 +526,7 @@ public sealed class GenerateFilteredReferenceAssembliesTask : Task
         }
     }
 
-    private static unsafe void UpdateFieldDefinitions(BinaryWriter writer, MetadataReader metadataReader, ImmutableArray<ApiPattern> patterns, ImmutableArray<IFieldSymbol> symbols, int metadataOffset)
+    private static void UpdateFieldDefinitions(BinaryWriter writer, MetadataReader metadataReader, ImmutableArray<ApiPattern> patterns, ImmutableArray<IFieldSymbol> symbols, int metadataOffset)
     {
         var tableOffset = metadataOffset + metadataReader.GetTableMetadataOffset(TableIndex.Field);
         var tableRowSize = metadataReader.GetTableRowSize(TableIndex.Field);
@@ -566,20 +566,23 @@ public sealed class GenerateFilteredReferenceAssembliesTask : Task
     private static uint ReadUInt16(Stream stream)
         => unchecked((uint)(stream.ReadByte() | stream.ReadByte() << 8));
 
-    private static unsafe Guid ReadGuid(Stream stream)
+    private static Guid ReadGuid(Stream stream)
     {
-        var buffer = new byte[sizeof(Guid)];
-        Debug.Assert(stream.Read(buffer, 0, buffer.Length) == buffer.Length);
-        fixed (byte* ptr = buffer)
+        unsafe
         {
-            var reader = new BlobReader(ptr, buffer.Length);
-            return reader.ReadGuid();
+            var buffer = new byte[sizeof(Guid)];
+            Debug.Assert(stream.Read(buffer, 0, buffer.Length) == buffer.Length);
+            fixed (byte* ptr = buffer)
+            {
+                var reader = new BlobReader(ptr, buffer.Length);
+                return reader.ReadGuid();
+            }
         }
     }
 
-    private static unsafe void WriteGuid(BinaryWriter writer, Guid guid)
+    private static void WriteGuid(BinaryWriter writer, Guid guid)
     {
-        var buffer = new byte[sizeof(Guid)];
+        var buffer = new byte[unsafe (sizeof(Guid))];
         var blob = new BlobWriter(buffer);
         blob.WriteGuid(guid);
         writer.Write(buffer, 0, buffer.Length);

@@ -265,9 +265,10 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
         /// <remarks>
         /// Internal for testing.
         /// </remarks>
-        internal static bool ShouldTryAgainWithMoreMetadataBlocks(DkmUtilities.GetMetadataBytesPtrFunction getMetaDataBytesPtrFunction, ImmutableArray<AssemblyIdentity> missingAssemblyIdentities, ref ImmutableArray<MetadataBlock> references)
+        // Callback buffers must remain readable and unchanged while references are used.
+        internal static unsafe bool ShouldTryAgainWithMoreMetadataBlocks(DkmUtilities.GetMetadataBytesPtrFunction getMetaDataBytesPtrFunction, ImmutableArray<AssemblyIdentity> missingAssemblyIdentities, ref ImmutableArray<MetadataBlock> references)
         {
-            var newReferences = DkmUtilities.GetMetadataBlocks(getMetaDataBytesPtrFunction, missingAssemblyIdentities);
+            var newReferences = unsafe (DkmUtilities.GetMetadataBlocks(getMetaDataBytesPtrFunction, missingAssemblyIdentities));
             if (newReferences.Length > 0)
             {
                 references = references.AddRange(newReferences);
@@ -400,17 +401,19 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
             [NotNullWhen(false)] out string? errorMessage)
         {
             var metadataBlocks = GetMetadataBlocks(appDomain, runtimeInstance);
-            return TryCompileWithRetry(
+            // The debugger keeps these metadata buffers alive for the AppDomain's lifetime.
+            return unsafe (TryCompileWithRetry(
                 metadataBlocks,
                 DiagnosticFormatter,
                 createContext,
                 compile,
                 (AssemblyIdentity assemblyIdentity, out uint size) => appDomain.GetMetaDataBytesPtr(assemblyIdentity.GetDisplayName(), out size),
                 out result,
-                out errorMessage);
+                out errorMessage));
         }
 
-        internal static bool TryCompileWithRetry<TResult>(
+        // Callback buffers must remain readable and unchanged throughout compilation and while results use their metadata.
+        internal static unsafe bool TryCompileWithRetry<TResult>(
             ImmutableArray<MetadataBlock> metadataBlocks,
             DiagnosticFormatter formatter,
             CreateContextDelegate createContext,
@@ -478,7 +481,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
                             // If any identities failed to add (they were already in the list), then don't retry. 
                             if (assembliesLoadedInRetryLoop.AddAll(missingAssemblyIdentities))
                             {
-                                tryAgain = ShouldTryAgainWithMoreMetadataBlocks(getMetaDataBytesPtr, missingAssemblyIdentities, ref metadataBlocks);
+                                tryAgain = unsafe (ShouldTryAgainWithMoreMetadataBlocks(getMetaDataBytesPtr, missingAssemblyIdentities, ref metadataBlocks));
                             }
                         }
                     }

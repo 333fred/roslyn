@@ -506,7 +506,7 @@ internal partial class SerializerService
             throw ExceptionUtilities.UnexpectedValue(stream.GetType());
         }
 
-        unsafe void CopyMemoryStreamToSpan(MemoryStream stream, Span<byte> span)
+        void CopyMemoryStreamToSpan(MemoryStream stream, Span<byte> span)
         {
             Debug.Assert(stream.Length == span.Length);
 
@@ -538,9 +538,12 @@ internal partial class SerializerService
         WriteTo(metadata.GetMetadataReader(), writer);
     }
 
-    private static unsafe void WriteTo(MetadataReader reader, ObjectWriter writer)
+    private static void WriteTo(MetadataReader reader, ObjectWriter writer)
     {
-        writer.WriteSpan(new ReadOnlySpan<byte>(reader.MetadataPointer, reader.MetadataLength));
+        unsafe
+        {
+            writer.WriteSpan(new ReadOnlySpan<byte>(reader.MetadataPointer, reader.MetadataLength));
+        }
     }
 
     private static Metadata? TryGetMetadata(PortableExecutableReference reference)

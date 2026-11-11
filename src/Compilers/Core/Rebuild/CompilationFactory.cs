@@ -95,98 +95,101 @@ namespace Microsoft.CodeAnalysis.Rebuild
                 cancellationToken);
         }
 
-        public unsafe EmitResult Emit(
+        public EmitResult Emit(
             Stream rebuildPeStream,
             Stream? rebuildPdbStream,
             Compilation rebuildCompilation,
             ImmutableArray<EmbeddedText> embeddedTexts,
             CancellationToken cancellationToken)
         {
-            var peHeader = OptionsReader.PeReader.PEHeaders.PEHeader!;
-            var win32Resources = OptionsReader.PeReader.GetSectionData(peHeader.ResourceTableDirectory.RelativeVirtualAddress);
-            using var win32ResourceStream = win32Resources.Pointer != null
-                ? new UnmanagedMemoryStream(win32Resources.Pointer, win32Resources.Length)
-                : null;
-
-            var sourceLink = OptionsReader.GetSourceLinkUtf8();
-
-            var debugEntryPoint = getDebugEntryPoint();
-            string? pdbFilePath;
-            DebugInformationFormat debugInformationFormat;
-            if (OptionsReader.HasEmbeddedPdb)
+            unsafe
             {
-                if (rebuildPdbStream is object)
+                var peHeader = OptionsReader.PeReader.PEHeaders.PEHeader!;
+                var win32Resources = OptionsReader.PeReader.GetSectionData(peHeader.ResourceTableDirectory.RelativeVirtualAddress);
+                using var win32ResourceStream = win32Resources.Pointer != null
+                    ? new UnmanagedMemoryStream(win32Resources.Pointer, win32Resources.Length)
+                    : null;
+
+                var sourceLink = OptionsReader.GetSourceLinkUtf8();
+
+                var debugEntryPoint = getDebugEntryPoint();
+                string? pdbFilePath;
+                DebugInformationFormat debugInformationFormat;
+                if (OptionsReader.HasEmbeddedPdb)
                 {
-                    throw new ArgumentException(RebuildResources.PDB_stream_must_be_null_because_the_compilation_has_an_embedded_PDB, nameof(rebuildPdbStream));
-                }
-
-                debugInformationFormat = DebugInformationFormat.Embedded;
-                pdbFilePath = null;
-            }
-            else
-            {
-                if (rebuildPdbStream is null)
-                {
-                    throw new ArgumentException(RebuildResources.A_non_null_PDB_stream_must_be_provided_because_the_compilation_does_not_have_an_embedded_PDB, nameof(rebuildPdbStream));
-                }
-
-                debugInformationFormat = DebugInformationFormat.PortablePdb;
-                var codeViewEntry = OptionsReader.PeReader.ReadDebugDirectory().Single(entry => entry.Type == DebugDirectoryEntryType.CodeView);
-                var codeView = OptionsReader.PeReader.ReadCodeViewDebugDirectoryData(codeViewEntry);
-                pdbFilePath = codeView.Path ?? throw new InvalidOperationException(RebuildResources.Could_not_get_PDB_file_path);
-            }
-
-            var rebuildData = new RebuildData(
-                OptionsReader.GetMetadataCompilationOptionsBlobReader(),
-                getNonSourceFileDocumentNames(OptionsReader.PdbReader, OptionsReader.GetSourceFileCount()));
-            var emitResult = rebuildCompilation.Emit(
-                peStream: rebuildPeStream,
-                pdbStream: rebuildPdbStream,
-                xmlDocumentationStream: null,
-                win32Resources: win32ResourceStream,
-                manifestResources: OptionsReader.GetManifestResources(),
-                options: new EmitOptions(
-                    debugInformationFormat: debugInformationFormat,
-                    pdbFilePath: pdbFilePath,
-                    highEntropyVirtualAddressSpace: (peHeader.DllCharacteristics & DllCharacteristics.HighEntropyVirtualAddressSpace) != 0,
-                    subsystemVersion: SubsystemVersion.Create(peHeader.MajorSubsystemVersion, peHeader.MinorSubsystemVersion)),
-                debugEntryPoint: debugEntryPoint,
-                metadataPEStream: null,
-                rebuildData: rebuildData,
-                sourceLinkStream: sourceLink != null ? new MemoryStream(sourceLink) : null,
-                embeddedTexts: embeddedTexts,
-                cancellationToken: cancellationToken);
-
-            return emitResult;
-
-            static ImmutableArray<string> getNonSourceFileDocumentNames(MetadataReader pdbReader, int sourceFileCount)
-            {
-                var count = pdbReader.Documents.Count - sourceFileCount;
-                var builder = ArrayBuilder<string>.GetInstance(count);
-                foreach (var documentHandle in pdbReader.Documents.Skip(sourceFileCount))
-                {
-                    var document = pdbReader.GetDocument(documentHandle);
-                    var name = pdbReader.GetString(document.Name);
-                    builder.Add(name);
-                }
-                return builder.ToImmutableAndFree();
-            }
-
-            IMethodSymbol? getDebugEntryPoint()
-            {
-                if (OptionsReader.GetMainMethodInfo() is (string mainTypeName, string mainMethodName))
-                {
-                    var typeSymbol = rebuildCompilation.GetTypeByMetadataName(mainTypeName);
-                    if (typeSymbol is object)
+                    if (rebuildPdbStream is object)
                     {
-                        var methodSymbols = typeSymbol
-                            .GetMembers(mainMethodName)
-                            .OfType<IMethodSymbol>();
-                        return methodSymbols.FirstOrDefault();
+                        throw new ArgumentException(RebuildResources.PDB_stream_must_be_null_because_the_compilation_has_an_embedded_PDB, nameof(rebuildPdbStream));
                     }
+
+                    debugInformationFormat = DebugInformationFormat.Embedded;
+                    pdbFilePath = null;
+                }
+                else
+                {
+                    if (rebuildPdbStream is null)
+                    {
+                        throw new ArgumentException(RebuildResources.A_non_null_PDB_stream_must_be_provided_because_the_compilation_does_not_have_an_embedded_PDB, nameof(rebuildPdbStream));
+                    }
+
+                    debugInformationFormat = DebugInformationFormat.PortablePdb;
+                    var codeViewEntry = OptionsReader.PeReader.ReadDebugDirectory().Single(entry => entry.Type == DebugDirectoryEntryType.CodeView);
+                    var codeView = OptionsReader.PeReader.ReadCodeViewDebugDirectoryData(codeViewEntry);
+                    pdbFilePath = codeView.Path ?? throw new InvalidOperationException(RebuildResources.Could_not_get_PDB_file_path);
                 }
 
-                return null;
+                var rebuildData = new RebuildData(
+                    OptionsReader.GetMetadataCompilationOptionsBlobReader(),
+                    getNonSourceFileDocumentNames(OptionsReader.PdbReader, OptionsReader.GetSourceFileCount()));
+                var emitResult = rebuildCompilation.Emit(
+                    peStream: rebuildPeStream,
+                    pdbStream: rebuildPdbStream,
+                    xmlDocumentationStream: null,
+                    win32Resources: win32ResourceStream,
+                    manifestResources: OptionsReader.GetManifestResources(),
+                    options: new EmitOptions(
+                        debugInformationFormat: debugInformationFormat,
+                        pdbFilePath: pdbFilePath,
+                        highEntropyVirtualAddressSpace: (peHeader.DllCharacteristics & DllCharacteristics.HighEntropyVirtualAddressSpace) != 0,
+                        subsystemVersion: SubsystemVersion.Create(peHeader.MajorSubsystemVersion, peHeader.MinorSubsystemVersion)),
+                    debugEntryPoint: debugEntryPoint,
+                    metadataPEStream: null,
+                    rebuildData: rebuildData,
+                    sourceLinkStream: sourceLink != null ? new MemoryStream(sourceLink) : null,
+                    embeddedTexts: embeddedTexts,
+                    cancellationToken: cancellationToken);
+
+                return emitResult;
+
+                static ImmutableArray<string> getNonSourceFileDocumentNames(MetadataReader pdbReader, int sourceFileCount)
+                {
+                    var count = pdbReader.Documents.Count - sourceFileCount;
+                    var builder = ArrayBuilder<string>.GetInstance(count);
+                    foreach (var documentHandle in pdbReader.Documents.Skip(sourceFileCount))
+                    {
+                        var document = pdbReader.GetDocument(documentHandle);
+                        var name = pdbReader.GetString(document.Name);
+                        builder.Add(name);
+                    }
+                    return builder.ToImmutableAndFree();
+                }
+
+                IMethodSymbol? getDebugEntryPoint()
+                {
+                    if (OptionsReader.GetMainMethodInfo() is (string mainTypeName, string mainMethodName))
+                    {
+                        var typeSymbol = rebuildCompilation.GetTypeByMetadataName(mainTypeName);
+                        if (typeSymbol is object)
+                        {
+                            var methodSymbols = typeSymbol
+                                .GetMembers(mainMethodName)
+                                .OfType<IMethodSymbol>();
+                            return methodSymbols.FirstOrDefault();
+                        }
+                    }
+
+                    return null;
+                }
             }
         }
 

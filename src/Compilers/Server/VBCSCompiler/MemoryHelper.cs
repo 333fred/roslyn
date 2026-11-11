@@ -34,31 +34,34 @@ namespace Microsoft.CodeAnalysis.CompilerServer
 
         public static bool IsMemoryAvailable(ICompilerServerLogger logger)
         {
-            if (!PlatformInformation.IsWindows)
+            unsafe
             {
-                // assume we have enough memory on non-Windows machines
-                return true;
+                if (!PlatformInformation.IsWindows)
+                {
+                    // assume we have enough memory on non-Windows machines
+                    return true;
+                }
+
+                MemoryHelper status = new MemoryHelper();
+                GlobalMemoryStatusEx(status);
+                ulong max = status.MaxVirtual;
+                ulong free = status.AvailableVirtual;
+
+                int shift = 20;
+                string unit = "MB";
+                if (free >> shift == 0)
+                {
+                    shift = 10;
+                    unit = "KB";
+                }
+
+                logger.Log("Free memory: {1}{0} of {2}{0}.", unit, free >> shift, max >> shift);
+
+                return free >= 800 << 20; // Value (500MB) is arbitrary; feel free to improve.
             }
-
-            MemoryHelper status = new MemoryHelper();
-            GlobalMemoryStatusEx(status);
-            ulong max = status.MaxVirtual;
-            ulong free = status.AvailableVirtual;
-
-            int shift = 20;
-            string unit = "MB";
-            if (free >> shift == 0)
-            {
-                shift = 10;
-                unit = "KB";
-            }
-
-            logger.Log("Free memory: {1}{0} of {2}{0}.", unit, free >> shift, max >> shift);
-
-            return free >= 800 << 20; // Value (500MB) is arbitrary; feel free to improve.
         }
 
         [DllImport("kernel32.dll", SetLastError = true)]
-        private static extern bool GlobalMemoryStatusEx([In, Out] MemoryHelper buffer);
+        private static extern unsafe bool GlobalMemoryStatusEx([In, Out] MemoryHelper buffer);
     }
 }

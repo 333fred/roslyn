@@ -11,7 +11,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.CodeModel.Inter
 internal static class CodeModelInterop
 {
     [DllImport("oleaut32.dll")]
-    private static extern int VariantChangeType(
+    private static extern safe int VariantChangeType(
         [MarshalAs(UnmanagedType.Struct)] out object pvargDest,
         [In, MarshalAs(UnmanagedType.Struct)] ref object pvargSrc,
         ushort wFlags,

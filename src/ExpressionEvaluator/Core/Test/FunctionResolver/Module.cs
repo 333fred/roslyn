@@ -24,30 +24,36 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator.UnitTests
 
         internal unsafe bool TryGetMetadata(out byte* pointer, out int length)
         {
-            MetadataAccessCount++;
-
-            if (_reader == null)
+            unsafe
             {
-                pointer = null;
-                length = 0;
-                return false;
-            }
+                MetadataAccessCount++;
 
-            var block = _reader.GetMetadata();
-            pointer = block.Pointer;
-            length = block.Length;
-            return true;
+                if (_reader == null)
+                {
+                    pointer = null;
+                    length = 0;
+                    return false;
+                }
+
+                var block = _reader.GetMetadata();
+                pointer = block.Pointer;
+                length = block.Length;
+                return true;
+            }
         }
 
-        internal unsafe MetadataReader? GetMetadataReader()
+        internal MetadataReader? GetMetadataReader()
         {
-            if (_reader == null)
+            unsafe
             {
-                return null;
-            }
+                if (_reader == null)
+                {
+                    return null;
+                }
 
-            var block = _reader.GetMetadata();
-            return new MetadataReader(block.Pointer, block.Length);
+                var block = _reader.GetMetadata();
+                return new MetadataReader(block.Pointer, block.Length);
+            }
         }
 
         void IDisposable.Dispose()

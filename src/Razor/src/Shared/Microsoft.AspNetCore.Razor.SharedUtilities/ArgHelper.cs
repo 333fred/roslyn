@@ -25,10 +25,13 @@ internal static class ArgHelper
 #endif
     }
 
-    public static unsafe void ThrowIfNull([NotNull] void* argument, [CallerArgumentExpression(nameof(argument))] string? paramName = null)
+    public static void ThrowIfNull([NotNull] void* argument, [CallerArgumentExpression(nameof(argument))] string? paramName = null)
     {
 #if NET8_0_OR_GREATER
-        ArgumentNullException.ThrowIfNull(argument, paramName);
+        unsafe
+        {
+            ArgumentNullException.ThrowIfNull(argument, paramName);
+        }
 #else
         if (argument is null)
         {

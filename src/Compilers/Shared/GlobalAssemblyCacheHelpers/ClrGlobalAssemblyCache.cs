@@ -57,20 +57,20 @@ namespace Microsoft.CodeAnalysis
         }
 
         [StructLayout(LayoutKind.Sequential)]
-        private unsafe struct ASSEMBLY_INFO
+        private struct ASSEMBLY_INFO
         {
             public uint cbAssemblyInfo;
             public readonly uint dwAssemblyFlags;
             public readonly ulong uliAssemblySizeInKB;
-            public char* pszCurrentAssemblyPathBuf;
+            public unsafe char* pszCurrentAssemblyPathBuf;
             public uint cchBuf;
         }
 
         [DllImport("clr", PreserveSig = true)]
-        private static extern int CreateAssemblyEnum(out IAssemblyEnum ppEnum, FusionAssemblyIdentity.IApplicationContext pAppCtx, FusionAssemblyIdentity.IAssemblyName pName, ASM_CACHE dwFlags, IntPtr pvReserved);
+        private static extern unsafe int CreateAssemblyEnum(out IAssemblyEnum ppEnum, FusionAssemblyIdentity.IApplicationContext pAppCtx, FusionAssemblyIdentity.IAssemblyName pName, ASM_CACHE dwFlags, IntPtr pvReserved);
 
         [DllImport("clr", PreserveSig = false)]
-        private static extern void CreateAssemblyCache(out IAssemblyCache ppAsmCache, uint dwReserved);
+        private static extern safe void CreateAssemblyCache(out IAssemblyCache ppAsmCache, uint dwReserved);
 
         #endregion
 
@@ -141,7 +141,11 @@ namespace Microsoft.CodeAnalysis
             IAssemblyEnum enumerator;
             FusionAssemblyIdentity.IApplicationContext applicationContext = null;
 
-            int hr = CreateAssemblyEnum(out enumerator, applicationContext, partialNameFilter, ASM_CACHE.GAC, IntPtr.Zero);
+            int hr;
+            unsafe
+            {
+                hr = CreateAssemblyEnum(out enumerator, applicationContext, partialNameFilter, ASM_CACHE.GAC, IntPtr.Zero);
+            }
             if (hr == S_FALSE)
             {
                 // no assembly found
@@ -229,29 +233,32 @@ namespace Microsoft.CodeAnalysis
             return FusionAssemblyIdentity.ToAssemblyIdentity(bestMatch);
         }
 
-        internal static unsafe string GetAssemblyLocation(FusionAssemblyIdentity.IAssemblyName nameObject)
+        internal static string GetAssemblyLocation(FusionAssemblyIdentity.IAssemblyName nameObject)
         {
-            // NAME | VERSION | CULTURE | PUBLIC_KEY_TOKEN | RETARGET | PROCESSORARCHITECTURE
-            string fullName = FusionAssemblyIdentity.GetDisplayName(nameObject, FusionAssemblyIdentity.ASM_DISPLAYF.FULL);
-
-            fixed (char* p = new char[MAX_PATH])
+            unsafe
             {
-                ASSEMBLY_INFO info = new ASSEMBLY_INFO
+                // NAME | VERSION | CULTURE | PUBLIC_KEY_TOKEN | RETARGET | PROCESSORARCHITECTURE
+                string fullName = FusionAssemblyIdentity.GetDisplayName(nameObject, FusionAssemblyIdentity.ASM_DISPLAYF.FULL);
+
+                fixed (char* p = new char[MAX_PATH])
                 {
-                    cbAssemblyInfo = (uint)Marshal.SizeOf<ASSEMBLY_INFO>(),
-                    pszCurrentAssemblyPathBuf = p,
-                    cchBuf = MAX_PATH
-                };
+                    ASSEMBLY_INFO info = new ASSEMBLY_INFO
+                    {
+                        cbAssemblyInfo = (uint)Marshal.SizeOf<ASSEMBLY_INFO>(),
+                        pszCurrentAssemblyPathBuf = p,
+                        cchBuf = MAX_PATH
+                    };
 
-                IAssemblyCache assemblyCacheObject;
-                CreateAssemblyCache(out assemblyCacheObject, 0);
-                assemblyCacheObject.QueryAssemblyInfo(0, fullName, ref info);
-                Debug.Assert(info.pszCurrentAssemblyPathBuf != null);
-                Debug.Assert(info.pszCurrentAssemblyPathBuf[info.cchBuf - 1] == '\0');
+                    IAssemblyCache assemblyCacheObject;
+                    CreateAssemblyCache(out assemblyCacheObject, 0);
+                    assemblyCacheObject.QueryAssemblyInfo(0, fullName, ref info);
+                    Debug.Assert(info.pszCurrentAssemblyPathBuf != null);
+                    Debug.Assert(info.pszCurrentAssemblyPathBuf[info.cchBuf - 1] == '\0');
 
-                var result = Marshal.PtrToStringUni((IntPtr)info.pszCurrentAssemblyPathBuf, (int)info.cchBuf - 1);
-                Debug.Assert(result.IndexOf('\0') == -1);
-                return result;
+                    var result = Marshal.PtrToStringUni((IntPtr)info.pszCurrentAssemblyPathBuf, (int)info.cchBuf - 1);
+                    Debug.Assert(result.IndexOf('\0') == -1);
+                    return result;
+                }
             }
         }
     }

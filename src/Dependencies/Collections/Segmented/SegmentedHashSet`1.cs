@@ -1167,7 +1167,7 @@ namespace Microsoft.CodeAnalysis.Collections
         ///
         /// This attempts to allocate on the stack, if below StackAllocThreshold.
         /// </summary>
-        private unsafe void IntersectWithEnumerable(IEnumerable<T> other)
+        private void IntersectWithEnumerable(IEnumerable<T> other)
         {
             Debug.Assert(_buckets.Length > 0, "_buckets shouldn't be empty; callers should check first");
 
@@ -1239,7 +1239,7 @@ namespace Microsoft.CodeAnalysis.Collections
         ///
         /// </summary>
         /// <param name="other"></param>
-        private unsafe void SymmetricExceptWithEnumerable(IEnumerable<T> other)
+        private void SymmetricExceptWithEnumerable(IEnumerable<T> other)
         {
             var originalCount = _count;
             int intArrayLength = BitHelper.ToIntArrayLength(originalCount);

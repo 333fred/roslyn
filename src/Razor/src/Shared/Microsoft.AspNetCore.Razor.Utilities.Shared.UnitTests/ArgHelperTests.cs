@@ -17,7 +17,7 @@ public class ArgHelperTests
     }
 
     [Fact]
-    public unsafe void ThrowIfNull_NullPtr_Throws()
+    public void ThrowIfNull_NullPtr_Throws()
     {
         byte* ptr = null;
 
@@ -28,7 +28,7 @@ public class ArgHelperTests
     }
 
     [Fact]
-    public unsafe void ThrowIfNull_Ptr_DoesNotThrow()
+    public void ThrowIfNull_Ptr_DoesNotThrow()
     {
         fixed (byte* ptr = new byte[8])
         {

@@ -46,7 +46,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
             AssemblyIdentity? corLibrary = null;
             foreach (var block in metadataBlocks)
             {
-                var metadata = ModuleMetadata.CreateFromMetadata(block.Pointer, block.Size, includeEmbeddedInteropTypes: true);
+                var metadata = unsafe (ModuleMetadata.CreateFromMetadata(block.Pointer, block.Size, includeEmbeddedInteropTypes: true));
                 try
                 {
                     var reader = metadata.MetadataReader;
@@ -67,7 +67,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
                                 // Compiler layer requires corlib to have no AssemblyRefs.
                                 if (!hasNoAssemblyRefs)
                                 {
-                                    metadata = ModuleMetadata.CreateFromMetadata(block.Pointer, block.Size, includeEmbeddedInteropTypes: true, ignoreAssemblyRefs: true);
+                                    metadata = unsafe (ModuleMetadata.CreateFromMetadata(block.Pointer, block.Size, includeEmbeddedInteropTypes: true, ignoreAssemblyRefs: true));
                                 }
                             }
                         }

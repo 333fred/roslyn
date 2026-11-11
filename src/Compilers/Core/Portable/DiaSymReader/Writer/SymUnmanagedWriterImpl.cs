@@ -360,16 +360,19 @@ namespace Microsoft.DiaSymReader
             }
         }
 
-        private unsafe void DefineLocalConstantImpl(ISymUnmanagedWriter5 symWriter, string name, object value, int constantSignatureToken)
+        private void DefineLocalConstantImpl(ISymUnmanagedWriter5 symWriter, string name, object value, int constantSignatureToken)
         {
+            unsafe
+            {
 #if NET6_0_OR_GREATER
-            Debug.Assert(OperatingSystem.IsWindows());
+                Debug.Assert(OperatingSystem.IsWindows());
 #endif
-            VariantStructure variant = new VariantStructure();
+                VariantStructure variant = new VariantStructure();
 #pragma warning disable CS0618 // Type or member is obsolete
-            Marshal.GetNativeVariantForObject(value, new IntPtr(&variant));
+                Marshal.GetNativeVariantForObject(value, new IntPtr(&variant));
 #pragma warning restore CS0618 // Type or member is obsolete
-            symWriter.DefineConstant2(name, variant, constantSignatureToken);
+                symWriter.DefineConstant2(name, variant, constantSignatureToken);
+            }
         }
 
         private bool DefineLocalStringConstant(ISymUnmanagedWriter5 symWriter, string name, string value, int constantSignatureToken)
@@ -537,40 +540,43 @@ namespace Microsoft.DiaSymReader
             }
         }
 
-        public override unsafe void DefineCustomMetadata(byte[] metadata, IMethodDefinition methodDefinition)
+        public override void DefineCustomMetadata(byte[] metadata, IMethodDefinition methodDefinition)
         {
-            if (metadata == null)
+            unsafe
             {
-                throw new ArgumentNullException(nameof(metadata));
-            }
-
-            if (metadata.Length == 0)
-            {
-                return;
-            }
-
-            if (metadata.Length > CustomMetadataByteLimit)
-            {
-                throw new SymUnmanagedWriterException(string.Format(
-                    CodeAnalysisResources.SymWriterMetadataOverLimit,
-                    methodDefinition,
-                    metadata.Length,
-                    CustomMetadataByteLimit));
-            }
-
-            var symWriter = GetSymWriter();
-
-            try
-            {
-                fixed (byte* pb = metadata)
+                if (metadata == null)
                 {
-                    // parent parameter is not used, it must be zero or the current method token passed to OpenMethod.
-                    symWriter.SetSymAttribute(0, "MD2", metadata.Length, pb);
+                    throw new ArgumentNullException(nameof(metadata));
                 }
-            }
-            catch (Exception ex)
-            {
-                throw PdbWritingException(ex);
+
+                if (metadata.Length == 0)
+                {
+                    return;
+                }
+
+                if (metadata.Length > CustomMetadataByteLimit)
+                {
+                    throw new SymUnmanagedWriterException(string.Format(
+                        CodeAnalysisResources.SymWriterMetadataOverLimit,
+                        methodDefinition,
+                        metadata.Length,
+                        CustomMetadataByteLimit));
+                }
+
+                var symWriter = GetSymWriter();
+
+                try
+                {
+                    fixed (byte* pb = metadata)
+                    {
+                        // parent parameter is not used, it must be zero or the current method token passed to OpenMethod.
+                        symWriter.SetSymAttribute(0, "MD2", metadata.Length, pb);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    throw PdbWritingException(ex);
+                }
             }
         }
 
@@ -602,57 +608,63 @@ namespace Microsoft.DiaSymReader
             }
         }
 
-        public override unsafe void SetSourceServerData(byte[] data)
+        public override void SetSourceServerData(byte[] data)
         {
-            if (data == null)
+            unsafe
             {
-                throw new ArgumentNullException(nameof(data));
-            }
-
-            if (data.Length == 0)
-            {
-                return;
-            }
-
-            var symWriter = GetSymWriter8();
-
-            try
-            {
-                fixed (byte* dataPtr = data)
+                if (data == null)
                 {
-                    symWriter.SetSourceServerData(dataPtr, data.Length);
+                    throw new ArgumentNullException(nameof(data));
                 }
-            }
-            catch (Exception ex)
-            {
-                throw PdbWritingException(ex);
+
+                if (data.Length == 0)
+                {
+                    return;
+                }
+
+                var symWriter = GetSymWriter8();
+
+                try
+                {
+                    fixed (byte* dataPtr = data)
+                    {
+                        symWriter.SetSourceServerData(dataPtr, data.Length);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    throw PdbWritingException(ex);
+                }
             }
         }
 
-        public override unsafe void SetSourceLinkData(byte[] data)
+        public override void SetSourceLinkData(byte[] data)
         {
-            if (data == null)
+            unsafe
             {
-                throw new ArgumentNullException(nameof(data));
-            }
-
-            if (data.Length == 0)
-            {
-                return;
-            }
-
-            var symWriter = GetSymWriter8();
-
-            try
-            {
-                fixed (byte* dataPtr = data)
+                if (data == null)
                 {
-                    symWriter.SetSourceLinkData(dataPtr, data.Length);
+                    throw new ArgumentNullException(nameof(data));
                 }
-            }
-            catch (Exception ex)
-            {
-                throw PdbWritingException(ex);
+
+                if (data.Length == 0)
+                {
+                    return;
+                }
+
+                var symWriter = GetSymWriter8();
+
+                try
+                {
+                    fixed (byte* dataPtr = data)
+                    {
+                        symWriter.SetSourceLinkData(dataPtr, data.Length);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    throw PdbWritingException(ex);
+                }
             }
         }
 
@@ -709,62 +721,65 @@ namespace Microsoft.DiaSymReader
             }
         }
 
-        public override unsafe void GetSignature(out Guid guid, out uint stamp, out int age)
+        public override void GetSignature(out Guid guid, out uint stamp, out int age)
         {
-            var symWriter = GetSymWriter();
-
-            // See symwrite.cpp - the data byte[] doesn't depend on the content of metadata tables or IL.
-            // The writer only sets two values of the ImageDebugDirectory struct.
-            // 
-            //   IMAGE_DEBUG_DIRECTORY *pIDD
-            // 
-            //   if ( pIDD == NULL ) return E_INVALIDARG;
-            //   memset( pIDD, 0, sizeof( *pIDD ) );
-            //   pIDD->Type = IMAGE_DEBUG_TYPE_CODEVIEW;
-            //   pIDD->SizeOfData = cTheData;
-
-            var debugDir = new ImageDebugDirectory();
-            uint dataLength;
-
-            try
+            unsafe
             {
-                symWriter.GetDebugInfo(ref debugDir, 0, out dataLength, null);
-            }
-            catch (Exception ex)
-            {
-                throw PdbWritingException(ex);
-            }
+                var symWriter = GetSymWriter();
 
-            byte[] data = new byte[dataLength];
-            fixed (byte* pb = data)
-            {
+                // See symwrite.cpp - the data byte[] doesn't depend on the content of metadata tables or IL.
+                // The writer only sets two values of the ImageDebugDirectory struct.
+                //
+                //   IMAGE_DEBUG_DIRECTORY *pIDD
+                //
+                //   if ( pIDD == NULL ) return E_INVALIDARG;
+                //   memset( pIDD, 0, sizeof( *pIDD ) );
+                //   pIDD->Type = IMAGE_DEBUG_TYPE_CODEVIEW;
+                //   pIDD->SizeOfData = cTheData;
+
+                var debugDir = new ImageDebugDirectory();
+                uint dataLength;
+
                 try
                 {
-                    symWriter.GetDebugInfo(ref debugDir, dataLength, out dataLength, pb);
+                    symWriter.GetDebugInfo(ref debugDir, 0, out dataLength, null);
                 }
                 catch (Exception ex)
                 {
                     throw PdbWritingException(ex);
                 }
+
+                byte[] data = new byte[dataLength];
+                fixed (byte* pb = data)
+                {
+                    try
+                    {
+                        symWriter.GetDebugInfo(ref debugDir, dataLength, out dataLength, pb);
+                    }
+                    catch (Exception ex)
+                    {
+                        throw PdbWritingException(ex);
+                    }
+                }
+
+                // Data has the following structure:
+                // struct RSDSI
+                // {
+                //     DWORD dwSig;                 // "RSDS"
+                //     GUID guidSig;                // GUID
+                //     DWORD age;                   // age
+                //     char szPDB[0];               // zero-terminated UTF-8 file name passed to the writer
+                // };
+                const int GuidSize = 16;
+                var guidBytes = new byte[GuidSize];
+                Buffer.BlockCopy(data, 4, guidBytes, 0, guidBytes.Length);
+                guid = new Guid(guidBytes);
+
+                // Retrieve the timestamp the PDB writer generates when creating a new PDB stream.
+                // Note that ImageDebugDirectory.TimeDateStamp is not set by GetDebugInfo,
+                // we need to go through IPdbWriter interface to get it.
+                ((IPdbWriter)symWriter).GetSignatureAge(out stamp, out age);
             }
-
-            // Data has the following structure:
-            // struct RSDSI                     
-            // {
-            //     DWORD dwSig;                 // "RSDS"
-            //     GUID guidSig;                // GUID
-            //     DWORD age;                   // age
-            //     char szPDB[0];               // zero-terminated UTF-8 file name passed to the writer
-            // };
-            const int GuidSize = 16;
-            var guidBytes = new byte[GuidSize];
-            Buffer.BlockCopy(data, 4, guidBytes, 0, guidBytes.Length);
-            guid = new Guid(guidBytes);
-
-            // Retrieve the timestamp the PDB writer generates when creating a new PDB stream.
-            // Note that ImageDebugDirectory.TimeDateStamp is not set by GetDebugInfo, 
-            // we need to go through IPdbWriter interface to get it.
-            ((IPdbWriter)symWriter).GetSignatureAge(out stamp, out age);
         }
 
         public override void AddCompilerInfo(ushort major, ushort minor, ushort build, ushort revision, string name)

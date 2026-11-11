@@ -24,9 +24,9 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests.Emit
     public class ResourceTests : CSharpTestBase
     {
         [DllImport("kernel32.dll", SetLastError = true)]
-        private static extern IntPtr LoadLibraryEx(string lpFileName, IntPtr hFile, uint dwFlags);
+        private static extern safe IntPtr LoadLibraryEx(string lpFileName, IntPtr hFile, uint dwFlags);
         [DllImport("kernel32.dll", SetLastError = true)]
-        private static extern bool FreeLibrary([In] IntPtr hFile);
+        private static extern safe bool FreeLibrary([In] IntPtr hFile);
 
         [ConditionalFact(typeof(WindowsOnly), Reason = ConditionalSkipReason.TestExecutionNeedsDesktopTypes)]
         public void DefaultVersionResource()

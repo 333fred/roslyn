@@ -143,7 +143,8 @@ namespace Microsoft.CodeAnalysis
         // 'ignoreAssemblyRefs' is used by the EE only, when debugging
         // .NET Native, where the corlib may have assembly references
         // (see https://github.com/dotnet/roslyn/issues/13275).
-        internal PEModule(ModuleMetadata owner, PEReader peReader, IntPtr metadataOpt, int metadataSizeOpt, bool includeEmbeddedInteropTypes, bool ignoreAssemblyRefs)
+        // Nonzero metadataOpt must point to metadataSizeOpt readable, unchanged bytes for the owner's lifetime.
+        internal unsafe PEModule(ModuleMetadata owner, PEReader peReader, IntPtr metadataOpt, int metadataSizeOpt, bool includeEmbeddedInteropTypes, bool ignoreAssemblyRefs)
         {
             // shall not throw
 
@@ -175,17 +176,20 @@ namespace Microsoft.CodeAnalysis
                 _peReader = peReader;
             }
 
-            internal override unsafe ImmutableArray<byte> ComputeHash(HashAlgorithm algorithm)
+            internal override ImmutableArray<byte> ComputeHash(HashAlgorithm algorithm)
             {
-                PEMemoryBlock block = _peReader.GetEntireImage();
-                byte[] hash;
-
-                using (var stream = new ReadOnlyUnmanagedMemoryStream(_peReader, (IntPtr)block.Pointer, block.Length))
+                unsafe
                 {
-                    hash = algorithm.ComputeHash(stream);
-                }
+                    PEMemoryBlock block = _peReader.GetEntireImage();
+                    byte[] hash;
 
-                return ImmutableArray.Create(hash);
+                    using (var stream = new ReadOnlyUnmanagedMemoryStream(_peReader, (IntPtr)block.Pointer, block.Length))
+                    {
+                        hash = algorithm.ComputeHash(stream);
+                    }
+
+                    return ImmutableArray.Create(hash);
+                }
             }
         }
 
@@ -234,39 +238,42 @@ namespace Microsoft.CodeAnalysis
             }
         }
 
-        private unsafe void InitializeMetadataReader()
+        private void InitializeMetadataReader()
         {
-            MetadataReader newReader;
-
-            // PEModule is either created with metadata memory block or a PE reader.
-            if (_metadataPointerOpt != IntPtr.Zero)
+            unsafe
             {
-                newReader = new MetadataReader((byte*)_metadataPointerOpt, _metadataSizeOpt, MetadataReaderOptions.ApplyWindowsRuntimeProjections, StringTableDecoder.Instance);
+                MetadataReader newReader;
+
+                // PEModule is either created with metadata memory block or a PE reader.
+                if (_metadataPointerOpt != IntPtr.Zero)
+                {
+                    newReader = new MetadataReader((byte*)_metadataPointerOpt, _metadataSizeOpt, MetadataReaderOptions.ApplyWindowsRuntimeProjections, StringTableDecoder.Instance);
+                }
+                else
+                {
+                    Debug.Assert(_peReaderOpt != null);
+
+                    // A workaround for https://github.com/dotnet/corefx/issues/1815
+                    bool hasMetadata;
+                    try
+                    {
+                        hasMetadata = _peReaderOpt.HasMetadata;
+                    }
+                    catch
+                    {
+                        hasMetadata = false;
+                    }
+
+                    if (!hasMetadata)
+                    {
+                        throw new BadImageFormatException(CodeAnalysisResources.PEImageDoesntContainManagedMetadata);
+                    }
+
+                    newReader = _peReaderOpt.GetMetadataReader(MetadataReaderOptions.ApplyWindowsRuntimeProjections, StringTableDecoder.Instance);
+                }
+
+                Interlocked.CompareExchange(ref _lazyMetadataReader, newReader, null);
             }
-            else
-            {
-                Debug.Assert(_peReaderOpt != null);
-
-                // A workaround for https://github.com/dotnet/corefx/issues/1815    
-                bool hasMetadata;
-                try
-                {
-                    hasMetadata = _peReaderOpt.HasMetadata;
-                }
-                catch
-                {
-                    hasMetadata = false;
-                }
-
-                if (!hasMetadata)
-                {
-                    throw new BadImageFormatException(CodeAnalysisResources.PEImageDoesntContainManagedMetadata);
-                }
-
-                newReader = _peReaderOpt.GetMetadataReader(MetadataReaderOptions.ApplyWindowsRuntimeProjections, StringTableDecoder.Instance);
-            }
-
-            Interlocked.CompareExchange(ref _lazyMetadataReader, newReader, null);
         }
 
         private static void ThrowMetadataDisposed()
@@ -4028,7 +4035,10 @@ namespace Microsoft.CodeAnalysis
 
             public override unsafe string GetString(byte* bytes, int byteCount)
             {
-                return StringTable.AddSharedUtf8(new ReadOnlySpan<byte>(bytes, byteCount));
+                unsafe
+                {
+                    return StringTable.AddSharedUtf8(new ReadOnlySpan<byte>(bytes, byteCount));
+                }
             }
         }
 

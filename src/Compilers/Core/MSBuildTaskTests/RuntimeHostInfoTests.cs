@@ -226,7 +226,7 @@ file static class TestNativeMethods
 
     [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
     [return: MarshalAs(UnmanagedType.U1)]
-    private static extern bool CreateSymbolicLink(
+    private static extern safe bool CreateSymbolicLink(
         string lpSymlinkFileName,
         string lpTargetFileName,
         uint dwFlags);

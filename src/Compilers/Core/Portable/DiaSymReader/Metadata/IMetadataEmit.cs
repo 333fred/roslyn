@@ -10,11 +10,12 @@ using System.Security;
 
 namespace Microsoft.DiaSymReader
 {
+    // Signature buffers must remain readable and fixed for the duration of a call.
     [ComImport]
     [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
     [Guid("BA3FEE4C-ECB9-4e41-83B7-183FA41CD859")]
     [SuppressUnmanagedCodeSecurity]
-    internal unsafe interface IMetadataEmit
+    internal interface IMetadataEmit
     {
         // SymWriter doesn't use any methods from this interface except for GetTokenFromSig, which is only called when 
         // DefineLocalVariable(2) and DefineConstant(2) don't specify signature token, or the token is nil.
@@ -42,7 +43,7 @@ namespace Microsoft.DiaSymReader
         void __DefinePermissionSet();
         void __SetRVA();
 
-        int GetTokenFromSig(byte* voidPointerSig, int byteCountSig);
+        unsafe int GetTokenFromSig(byte* voidPointerSig, int byteCountSig);
 
         void __DefineModuleRef();
         void __SetParent();

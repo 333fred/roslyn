@@ -75,11 +75,14 @@ namespace Microsoft.CodeAnalysis
             return ul == 0 ? BoxedUInt64Zero : ul;
         }
 
-        public static unsafe object Box(float f)
+        public static object Box(float f)
         {
-            // There are many representations of zero in floating point.
-            // Use the boxed value only if the bit pattern is all zeros.
-            return *(int*)(&f) == 0 ? BoxedSingleZero : f;
+            unsafe
+            {
+                // There are many representations of zero in floating point.
+                // Use the boxed value only if the bit pattern is all zeros.
+                return *(int*)(&f) == 0 ? BoxedSingleZero : f;
+            }
         }
 
         public static object Box(double d)
@@ -96,12 +99,15 @@ namespace Microsoft.CodeAnalysis
                 : c;
         }
 
-        public static unsafe object Box(decimal d)
+        public static object Box(decimal d)
         {
-            // There are many representation of zero in System.Decimal
-            // Use the boxed value only if the bit pattern is all zeros.
-            ulong* ptr = (ulong*)&d;
-            return ptr[0] == 0 && ptr[1] == 0 ? BoxedDecimalZero : d;
+            unsafe
+            {
+                // There are many representation of zero in System.Decimal
+                // Use the boxed value only if the bit pattern is all zeros.
+                ulong* ptr = (ulong*)&d;
+                return ptr[0] == 0 && ptr[1] == 0 ? BoxedDecimalZero : d;
+            }
         }
     }
 }

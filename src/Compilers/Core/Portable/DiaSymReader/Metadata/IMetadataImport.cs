@@ -11,29 +11,31 @@ using System.Runtime.InteropServices;
 namespace Microsoft.DiaSymReader
 {
     [ComVisible(false)]
+    // Buffer pointers must address the declared number of elements and remain fixed during a call.
+    // Returned metadata pointers are borrowed from the importer's backing image and share its lifetime.
     [ComImport]
     [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
     [Guid("7DAC8207-D3AE-4c75-9B67-92801A497D44")]
-    internal unsafe interface IMetadataImport
+    internal interface IMetadataImport
     {
         [PreserveSig]
-        void CloseEnum(void* enumHandle);
+        unsafe void CloseEnum(void* enumHandle);
 
         [PreserveSig]
-        int CountEnum(void* enumHandle, out int count);
+        unsafe int CountEnum(void* enumHandle, out int count);
 
         [PreserveSig]
-        int ResetEnum(void* enumHandle, int position);
+        unsafe int ResetEnum(void* enumHandle, int position);
 
         [PreserveSig]
-        int EnumTypeDefs(
+        unsafe int EnumTypeDefs(
             ref void* enumHandle,
             [Out] int* typeDefs,
             int bufferLength,
             [Out] int* count);
 
         [PreserveSig]
-        int EnumInterfaceImpls(
+        unsafe int EnumInterfaceImpls(
             ref void* enumHandle,
             int typeDef,
             [Out] int* interfaceImpls,
@@ -41,7 +43,7 @@ namespace Microsoft.DiaSymReader
             [Out] int* count);
 
         [PreserveSig]
-        int EnumTypeRefs(
+        unsafe int EnumTypeRefs(
             ref void* enumHandle,
             [Out] int* typeRefs,
             int bufferLength,
@@ -54,7 +56,7 @@ namespace Microsoft.DiaSymReader
             out int typeDef); // must be specified
 
         [PreserveSig]
-        int GetScopeProps(
+        unsafe int GetScopeProps(
             [Out] char* name,
             int bufferLength,
             [Out] int* nameLength,
@@ -65,7 +67,7 @@ namespace Microsoft.DiaSymReader
             out int moduleDef); // must be specified
 
         [PreserveSig]
-        int GetTypeDefProps(
+        unsafe int GetTypeDefProps(
             int typeDef,
             [Out] char* qualifiedName,
             int qualifiedNameBufferLength,
@@ -74,13 +76,13 @@ namespace Microsoft.DiaSymReader
             [Out] int* baseType);
 
         [PreserveSig]
-        int GetInterfaceImplProps(
+        unsafe int GetInterfaceImplProps(
             int interfaceImpl,
             [Out] int* typeDef,
             [Out] int* interfaceDefRefSpec);
 
         [PreserveSig]
-        int GetTypeRefProps(
+        unsafe int GetTypeRefProps(
             int typeRef,
             [Out] int* resolutionScope, // ModuleRef or AssemblyRef
             [Out] char* qualifiedName,
@@ -116,7 +118,7 @@ namespace Microsoft.DiaSymReader
             out int typeDef); // must be specified
 
         [PreserveSig]
-        int EnumMembers(
+        unsafe int EnumMembers(
             ref void* enumHandle,
             int typeDef,
             [Out] int* memberDefs,
@@ -124,7 +126,7 @@ namespace Microsoft.DiaSymReader
             [Out] int* count);
 
         [PreserveSig]
-        int EnumMembersWithName(
+        unsafe int EnumMembersWithName(
             ref void* enumHandle,
             int typeDef,
             string name,
@@ -133,7 +135,7 @@ namespace Microsoft.DiaSymReader
             [Out] int* count);
 
         [PreserveSig]
-        int EnumMethods(
+        unsafe int EnumMethods(
             ref void* enumHandle,
             int typeDef,
             [Out] int* methodDefs,
@@ -141,7 +143,7 @@ namespace Microsoft.DiaSymReader
             [Out] int* count);
 
         [PreserveSig]
-        int EnumMethodsWithName(
+        unsafe int EnumMethodsWithName(
             ref void* enumHandle,
             int typeDef,
             string name,
@@ -150,7 +152,7 @@ namespace Microsoft.DiaSymReader
             [Out] int* count);
 
         [PreserveSig]
-        int EnumFields(
+        unsafe int EnumFields(
             ref void* enumHandle,
             int typeDef,
             [Out] int* fieldDefs,
@@ -158,7 +160,7 @@ namespace Microsoft.DiaSymReader
             [Out] int* count);
 
         [PreserveSig]
-        int EnumFieldsWithName(
+        unsafe int EnumFieldsWithName(
             ref void* enumHandle,
             int typeDef,
             string name,
@@ -167,7 +169,7 @@ namespace Microsoft.DiaSymReader
             [Out] int* count);
 
         [PreserveSig]
-        int EnumParams(
+        unsafe int EnumParams(
             ref void* enumHandle,
             int methodDef,
             [Out] int* paramDefs,
@@ -175,7 +177,7 @@ namespace Microsoft.DiaSymReader
             [Out] int* count);
 
         [PreserveSig]
-        int EnumMemberRefs(
+        unsafe int EnumMemberRefs(
             ref void* enumHandle,
             int parentToken,
             [Out] int* memberRefs,
@@ -183,7 +185,7 @@ namespace Microsoft.DiaSymReader
             [Out] int* count);
 
         [PreserveSig]
-        int EnumMethodImpls(
+        unsafe int EnumMethodImpls(
             ref void* enumHandle,
             int typeDef,
             [Out] int* implementationTokens,
@@ -192,7 +194,7 @@ namespace Microsoft.DiaSymReader
             [Out] int* count);
 
         [PreserveSig]
-        int EnumPermissionSets(
+        unsafe int EnumPermissionSets(
             ref void* enumHandle,
             int token, // TypeDef, MethodDef or Assembly
             uint action, // DeclarativeSecurityAction
@@ -201,7 +203,7 @@ namespace Microsoft.DiaSymReader
             [Out] int* count);
 
         [PreserveSig]
-        int FindMember(
+        unsafe int FindMember(
             int typeDef,
             string name,
             [In] byte* signature,
@@ -209,7 +211,7 @@ namespace Microsoft.DiaSymReader
             out int memberDef);
 
         [PreserveSig]
-        int FindMethod(
+        unsafe int FindMethod(
             int typeDef,
             string name,
             [In] byte* signature,
@@ -217,7 +219,7 @@ namespace Microsoft.DiaSymReader
             out int methodDef);
 
         [PreserveSig]
-        int FindField(
+        unsafe int FindField(
             int typeDef,
             string name,
             [In] byte* signature,
@@ -225,7 +227,7 @@ namespace Microsoft.DiaSymReader
             out int fieldDef);
 
         [PreserveSig]
-        int FindMemberRef(
+        unsafe int FindMemberRef(
             int typeDef,
             string name,
             [In] byte* signature,
@@ -233,7 +235,7 @@ namespace Microsoft.DiaSymReader
             out int memberRef);
 
         [PreserveSig]
-        int GetMethodProps(
+        unsafe int GetMethodProps(
            int methodDef,
            [Out] int* declaringTypeDef,
            [Out] char* name,
@@ -246,7 +248,7 @@ namespace Microsoft.DiaSymReader
            [Out] MethodImplAttributes* implAttributes);
 
         [PreserveSig]
-        int GetMemberRefProps(
+        unsafe int GetMemberRefProps(
             int memberRef,
             [Out] int* declaringType, // TypeDef or TypeRef
             [Out] char* name,
@@ -256,7 +258,7 @@ namespace Microsoft.DiaSymReader
             [Out] int* signatureLength);
 
         [PreserveSig]
-        int EnumProperties(
+        unsafe int EnumProperties(
            ref void* enumHandle,
            int typeDef,
            [Out] int* properties,
@@ -264,7 +266,7 @@ namespace Microsoft.DiaSymReader
            [Out] int* count);
 
         [PreserveSig]
-        uint EnumEvents(
+        unsafe uint EnumEvents(
            ref void* enumHandle,
            int typeDef,
            [Out] int* events,
@@ -272,7 +274,7 @@ namespace Microsoft.DiaSymReader
            [Out] int* count);
 
         [PreserveSig]
-        int GetEventProps(
+        unsafe int GetEventProps(
             int @event,
             [Out] int* declaringTypeDef,
             [Out] char* name,
@@ -288,7 +290,7 @@ namespace Microsoft.DiaSymReader
             [Out] int* methodMethodDefsLength);
 
         [PreserveSig]
-        int EnumMethodSemantics(
+        unsafe int EnumMethodSemantics(
             ref void* enumHandle,
             int methodDef,
             [Out] int* eventsAndProperties,
@@ -296,13 +298,13 @@ namespace Microsoft.DiaSymReader
             [Out] int* count);
 
         [PreserveSig]
-        int GetMethodSemantics(
+        unsafe int GetMethodSemantics(
             int methodDef,
             int eventOrProperty,
             [Out] int* semantics);
 
         [PreserveSig]
-        int GetClassLayout(
+        unsafe int GetClassLayout(
             int typeDef,
             [Out] int* packSize,  // 1, 2, 4, 8, or 16
             [Out] MetadataImportFieldOffset* fieldOffsets,
@@ -311,71 +313,71 @@ namespace Microsoft.DiaSymReader
             [Out] int* typeSize);
 
         [PreserveSig]
-        int GetFieldMarshal(
+        unsafe int GetFieldMarshal(
             int fieldDef,
             [Out] byte** nativeTypeSignature, // returns pointer to signature blob
             [Out] int* nativeTypeSignatureLengvth);
 
         [PreserveSig]
-        int GetRVA(
+        unsafe int GetRVA(
             int methodDef,
             [Out] int* relativeVirtualAddress,
             [Out] int* implAttributes);
 
         [PreserveSig]
-        int GetPermissionSetProps(
+        unsafe int GetPermissionSetProps(
             int declSecurity,
             [Out] uint* action,
             [Out] byte** permissionBlob, // returns pointer to permission blob
             [Out] int* permissionBlobLength);
 
         [PreserveSig]
-        int GetSigFromToken(
+        unsafe int GetSigFromToken(
             int standaloneSignature,
             [Out] byte** signature, // returns pointer to signature blob
             [Out] int* signatureLength);
 
         [PreserveSig]
-        int GetModuleRefProps(
+        unsafe int GetModuleRefProps(
             int moduleRef,
             [Out] char* name,
             int nameBufferLength,
             [Out] int* nameLength);
 
         [PreserveSig]
-        int EnumModuleRefs(
+        unsafe int EnumModuleRefs(
             ref void* enumHandle,
             [Out] int* moduleRefs,
             int bufferLength,
             [Out] int* count);
 
         [PreserveSig]
-        int GetTypeSpecFromToken(
+        unsafe int GetTypeSpecFromToken(
             int typeSpec,
             [Out] byte** signature, // returns pointer to signature blob
             [Out] int* signatureLength);
 
         [PreserveSig]
-        int GetNameFromToken(
+        unsafe int GetNameFromToken(
             int token,
             [Out] byte* nameUtf8); // name on the #String heap
 
         [PreserveSig]
-        int EnumUnresolvedMethods(
+        unsafe int EnumUnresolvedMethods(
             ref void* enumHandle,
             [Out] int* methodDefs,
             int bufferLength,
             [Out] int* count);
 
         [PreserveSig]
-        int GetUserString(
+        unsafe int GetUserString(
             int userStringToken,
             [Out] char* buffer,
             int bufferLength,
             [Out] int* length);
 
         [PreserveSig]
-        int GetPinvokeMap(
+        unsafe int GetPinvokeMap(
             int memberDef,  // FieldDef, MethodDef
             [Out] int* attributes,
             [Out] char* importName,
@@ -384,21 +386,21 @@ namespace Microsoft.DiaSymReader
             [Out] int* moduleRef);
 
         [PreserveSig]
-        int EnumSignatures(
+        unsafe int EnumSignatures(
             ref void* enumHandle,
             [Out] int* signatureTokens,
             int bufferLength,
             [Out] int* count);
 
         [PreserveSig]
-        int EnumTypeSpecs(
+        unsafe int EnumTypeSpecs(
             ref void* enumHandle,
             [Out] int* typeSpecs,
             int bufferLength,
             [Out] int* count);
 
         [PreserveSig]
-        int EnumUserStrings(
+        unsafe int EnumUserStrings(
             ref void* enumHandle,
             [Out] int* userStrings,
             int bufferLength,
@@ -411,7 +413,7 @@ namespace Microsoft.DiaSymReader
             out int parameterToken); // must be specified
 
         [PreserveSig]
-        int EnumCustomAttributes(
+        unsafe int EnumCustomAttributes(
             ref void* enumHandle,
             int parent,
             int attributeType,
@@ -420,7 +422,7 @@ namespace Microsoft.DiaSymReader
             [Out] int* count);
 
         [PreserveSig]
-        int GetCustomAttributeProps(
+        unsafe int GetCustomAttributeProps(
             int customAttribute,
             [Out] int* parent,
             [Out] int* constructor,  // MethodDef, MethodRef
@@ -434,7 +436,7 @@ namespace Microsoft.DiaSymReader
             out int typeRef); // must be specified
 
         [PreserveSig]
-        int GetMemberProps(
+        unsafe int GetMemberProps(
             int member, // Field or Property
             [Out] int* declaringTypeDef,
             [Out] char* name,
@@ -450,7 +452,7 @@ namespace Microsoft.DiaSymReader
             [Out] int* constantValueLength);
 
         [PreserveSig]
-        int GetFieldProps(
+        unsafe int GetFieldProps(
             int fieldDef,
             [Out] int* declaringTypeDef,
             [Out] char* name,
@@ -464,7 +466,7 @@ namespace Microsoft.DiaSymReader
             [Out] int* constantValueLength);
 
         [PreserveSig]
-        int GetPropertyProps(
+        unsafe int GetPropertyProps(
             int propertyDef,
             [Out] int* declaringTypeDef,
             [Out] char* name,
@@ -483,7 +485,7 @@ namespace Microsoft.DiaSymReader
             [Out] int* otherMethodDefCount);
 
         [PreserveSig]
-        int GetParamProps(
+        unsafe int GetParamProps(
             int parameter,
             [Out] int* declaringMethodDef,
             [Out] int* sequenceNumber,
@@ -496,7 +498,7 @@ namespace Microsoft.DiaSymReader
             [Out] int* constantValueLength);
 
         [PreserveSig]
-        int GetCustomAttributeByName(
+        unsafe int GetCustomAttributeByName(
             int parent,
             string name,
             [Out] byte** value, // returns pointer to a value blob
@@ -511,7 +513,7 @@ namespace Microsoft.DiaSymReader
             out int enclosingClass);
 
         [PreserveSig]
-        int GetNativeCallConvFromSig(
+        unsafe int GetNativeCallConvFromSig(
             [In] byte* signature,
             int signatureLength,
             [Out] int* callingConvention);

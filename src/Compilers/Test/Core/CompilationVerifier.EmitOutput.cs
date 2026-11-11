@@ -40,12 +40,15 @@ namespace Microsoft.CodeAnalysis.Test.Utilities
                 Assembly = assembly;
                 Pdb = pdb;
 
-                unsafe ImmutableArray<byte> readMetadata(MetadataReader mdReader)
+                ImmutableArray<byte> readMetadata(MetadataReader mdReader)
                 {
-                    var length = mdReader.MetadataLength;
-                    var bytes = new byte[length];
-                    Marshal.Copy((IntPtr)mdReader.MetadataPointer, bytes, 0, length);
-                    return ImmutableArray.Create(bytes);
+                    unsafe
+                    {
+                        var length = mdReader.MetadataLength;
+                        var bytes = new byte[length];
+                        Marshal.Copy((IntPtr)mdReader.MetadataPointer, bytes, 0, length);
+                        return ImmutableArray.Create(bytes);
+                    }
                 }
             }
         }

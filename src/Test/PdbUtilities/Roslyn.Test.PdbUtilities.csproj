@@ -6,6 +6,8 @@
     <RootNamespace>Roslyn.Test.PdbUtilities</RootNamespace>
     <TargetFrameworks>$(NetRoslynAll);net472</TargetFrameworks>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- The COM source generator emits type-level unsafe modifiers, which memory-safety V2 rejects. -->
+    <MemorySafetyRulesVersion>1</MemorySafetyRulesVersion>
     <IsShipping>false</IsShipping>
     <IsTestUtilityProject>true</IsTestUtilityProject>
   </PropertyGroup>

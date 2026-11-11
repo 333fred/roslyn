@@ -57,7 +57,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
         internal const int E_NOTIMPL = unchecked((int)0x80004001);
         private static readonly IntPtr s_ignoreIErrorInfo = new IntPtr(-1);
 
-        public static unsafe MethodDebugInfo<TTypeSymbol, TLocalSymbol> ReadMethodDebugInfo(
+        public static MethodDebugInfo<TTypeSymbol, TLocalSymbol> ReadMethodDebugInfo(
             ISymUnmanagedReader3? symReader,
             EESymbolProvider<TTypeSymbol, TLocalSymbol>? symbolProvider, // TODO: only null in DTEE case where we looking for default namespace
             int methodToken,
@@ -65,136 +65,139 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
             int ilOffset,
             bool isVisualBasicMethod)
         {
-            // no symbols
-            if (symReader == null)
+            unsafe
             {
-                return None;
-            }
-
-            if (symReader is ISymUnmanagedReader5 symReader5)
-            {
-                int hr = symReader5.GetPortableDebugMetadataByVersion(methodVersion, out byte* metadata, out int size);
-                ThrowExceptionForHR(hr);
-
-                if (hr == S_OK)
+                // no symbols
+                if (symReader == null)
                 {
-                    var mdReader = new MetadataReader(metadata, size);
-                    try
-                    {
-                        return ReadFromPortable(mdReader, methodToken, ilOffset, symbolProvider, isVisualBasicMethod);
-                    }
-                    catch (BadImageFormatException)
-                    {
-                        // bad CDI, ignore
-                        return None;
-                    }
-                }
-            }
-
-            var allScopes = ArrayBuilder<ISymUnmanagedScope>.GetInstance();
-            var containingScopes = ArrayBuilder<ISymUnmanagedScope>.GetInstance();
-
-            try
-            {
-                var symMethod = symReader.GetMethodByVersion(methodToken, methodVersion);
-                symMethod?.GetAllScopes(allScopes, containingScopes, ilOffset, isScopeEndInclusive: isVisualBasicMethod);
-
-                ImmutableArray<ImmutableArray<ImportRecord>> importRecordGroups;
-                ImmutableArray<ExternAliasRecord> externAliasRecords;
-                string defaultNamespaceName;
-
-                if (isVisualBasicMethod)
-                {
-                    ReadVisualBasicImportsDebugInfo(
-                        symReader,
-                        methodToken,
-                        methodVersion,
-                        out importRecordGroups,
-                        out defaultNamespaceName);
-
-                    externAliasRecords = ImmutableArray<ExternAliasRecord>.Empty;
-                }
-                else
-                {
-                    RoslynDebug.AssertNotNull(symbolProvider);
-
-                    ReadCSharpNativeImportsInfo(
-                        symReader,
-                        symbolProvider,
-                        methodToken,
-                        methodVersion,
-                        out importRecordGroups,
-                        out externAliasRecords);
-
-                    defaultNamespaceName = "";
+                    return None;
                 }
 
-                // VB should read hoisted scope information from local variables:
-                var hoistedLocalScopeRecords = isVisualBasicMethod ? default : ImmutableArray<HoistedLocalScopeRecord>.Empty;
-
-                ImmutableDictionary<int, ImmutableArray<bool>>? dynamicLocalMap = null;
-                ImmutableDictionary<string, ImmutableArray<bool>>? dynamicLocalConstantMap = null;
-                ImmutableDictionary<int, ImmutableArray<string?>>? tupleLocalMap = null;
-                ImmutableDictionary<LocalNameAndScope, ImmutableArray<string?>>? tupleLocalConstantMap = null;
-
-                byte[]? customDebugInfo = GetCustomDebugInfoBytes(symReader, methodToken, methodVersion);
-                if (customDebugInfo != null)
+                if (symReader is ISymUnmanagedReader5 symReader5)
                 {
-                    if (!isVisualBasicMethod)
+                    int hr = symReader5.GetPortableDebugMetadataByVersion(methodVersion, out byte* metadata, out int size);
+                    ThrowExceptionForHR(hr);
+
+                    if (hr == S_OK)
                     {
-                        var customDebugInfoRecord = CustomDebugInfoReader.TryGetCustomDebugInfoRecord(customDebugInfo, CustomDebugInfoKind.StateMachineHoistedLocalScopes);
-                        if (!customDebugInfoRecord.IsDefault)
+                        var mdReader = new MetadataReader(metadata, size);
+                        try
                         {
-                            hoistedLocalScopeRecords = CustomDebugInfoReader.DecodeStateMachineHoistedLocalScopesRecord(customDebugInfoRecord)
-                                .SelectAsArray(s => new HoistedLocalScopeRecord(s.StartOffset, s.Length));
+                            return ReadFromPortable(mdReader, methodToken, ilOffset, symbolProvider, isVisualBasicMethod);
+                        }
+                        catch (BadImageFormatException)
+                        {
+                            // bad CDI, ignore
+                            return None;
+                        }
+                    }
+                }
+
+                var allScopes = ArrayBuilder<ISymUnmanagedScope>.GetInstance();
+                var containingScopes = ArrayBuilder<ISymUnmanagedScope>.GetInstance();
+
+                try
+                {
+                    var symMethod = symReader.GetMethodByVersion(methodToken, methodVersion);
+                    symMethod?.GetAllScopes(allScopes, containingScopes, ilOffset, isScopeEndInclusive: isVisualBasicMethod);
+
+                    ImmutableArray<ImmutableArray<ImportRecord>> importRecordGroups;
+                    ImmutableArray<ExternAliasRecord> externAliasRecords;
+                    string defaultNamespaceName;
+
+                    if (isVisualBasicMethod)
+                    {
+                        ReadVisualBasicImportsDebugInfo(
+                            symReader,
+                            methodToken,
+                            methodVersion,
+                            out importRecordGroups,
+                            out defaultNamespaceName);
+
+                        externAliasRecords = ImmutableArray<ExternAliasRecord>.Empty;
+                    }
+                    else
+                    {
+                        RoslynDebug.AssertNotNull(symbolProvider);
+
+                        ReadCSharpNativeImportsInfo(
+                            symReader,
+                            symbolProvider,
+                            methodToken,
+                            methodVersion,
+                            out importRecordGroups,
+                            out externAliasRecords);
+
+                        defaultNamespaceName = "";
+                    }
+
+                    // VB should read hoisted scope information from local variables:
+                    var hoistedLocalScopeRecords = isVisualBasicMethod ? default : ImmutableArray<HoistedLocalScopeRecord>.Empty;
+
+                    ImmutableDictionary<int, ImmutableArray<bool>>? dynamicLocalMap = null;
+                    ImmutableDictionary<string, ImmutableArray<bool>>? dynamicLocalConstantMap = null;
+                    ImmutableDictionary<int, ImmutableArray<string?>>? tupleLocalMap = null;
+                    ImmutableDictionary<LocalNameAndScope, ImmutableArray<string?>>? tupleLocalConstantMap = null;
+
+                    byte[]? customDebugInfo = GetCustomDebugInfoBytes(symReader, methodToken, methodVersion);
+                    if (customDebugInfo != null)
+                    {
+                        if (!isVisualBasicMethod)
+                        {
+                            var customDebugInfoRecord = CustomDebugInfoReader.TryGetCustomDebugInfoRecord(customDebugInfo, CustomDebugInfoKind.StateMachineHoistedLocalScopes);
+                            if (!customDebugInfoRecord.IsDefault)
+                            {
+                                hoistedLocalScopeRecords = CustomDebugInfoReader.DecodeStateMachineHoistedLocalScopesRecord(customDebugInfoRecord)
+                                    .SelectAsArray(s => new HoistedLocalScopeRecord(s.StartOffset, s.Length));
+                            }
+
+                            GetCSharpDynamicLocalInfo(
+                                customDebugInfo,
+                                allScopes,
+                                out dynamicLocalMap,
+                                out dynamicLocalConstantMap);
                         }
 
-                        GetCSharpDynamicLocalInfo(
+                        GetTupleElementNamesLocalInfo(
                             customDebugInfo,
-                            allScopes,
-                            out dynamicLocalMap,
-                            out dynamicLocalConstantMap);
+                            out tupleLocalMap,
+                            out tupleLocalConstantMap);
                     }
 
-                    GetTupleElementNamesLocalInfo(
-                        customDebugInfo,
-                        out tupleLocalMap,
-                        out tupleLocalConstantMap);
-                }
+                    var constantsBuilder = ArrayBuilder<TLocalSymbol>.GetInstance();
+                    if (symbolProvider != null) // TODO
+                    {
+                        GetConstants(constantsBuilder, symbolProvider, containingScopes, dynamicLocalConstantMap, tupleLocalConstantMap);
+                    }
 
-                var constantsBuilder = ArrayBuilder<TLocalSymbol>.GetInstance();
-                if (symbolProvider != null) // TODO
+                    var reuseSpan = GetReuseSpan(allScopes, ilOffset, isVisualBasicMethod);
+
+                    // containingDocumentName is not set since ISymUnmanagedMethod.GetDocumentsForMethod()
+                    // may fail (see https://github.com/dotnet/roslyn/issues/66260). The result is that
+                    // symbols from file-local types will not bind successfully in the EE.
+                    return new MethodDebugInfo<TTypeSymbol, TLocalSymbol>(
+                        hoistedLocalScopeRecords,
+                        importRecordGroups,
+                        externAliasRecords,
+                        dynamicLocalMap,
+                        tupleLocalMap,
+                        defaultNamespaceName,
+                        containingScopes.GetLocalNames(),
+                        constantsBuilder.ToImmutableAndFree(),
+                        reuseSpan,
+                        containingDocumentName: null,
+                        isPrimaryConstructor: false);
+                }
+                catch (InvalidOperationException)
                 {
-                    GetConstants(constantsBuilder, symbolProvider, containingScopes, dynamicLocalConstantMap, tupleLocalConstantMap);
+                    // bad CDI, ignore
+                    return None;
                 }
-
-                var reuseSpan = GetReuseSpan(allScopes, ilOffset, isVisualBasicMethod);
-
-                // containingDocumentName is not set since ISymUnmanagedMethod.GetDocumentsForMethod()
-                // may fail (see https://github.com/dotnet/roslyn/issues/66260). The result is that
-                // symbols from file-local types will not bind successfully in the EE.
-                return new MethodDebugInfo<TTypeSymbol, TLocalSymbol>(
-                    hoistedLocalScopeRecords,
-                    importRecordGroups,
-                    externAliasRecords,
-                    dynamicLocalMap,
-                    tupleLocalMap,
-                    defaultNamespaceName,
-                    containingScopes.GetLocalNames(),
-                    constantsBuilder.ToImmutableAndFree(),
-                    reuseSpan,
-                    containingDocumentName: null,
-                    isPrimaryConstructor: false);
-            }
-            catch (InvalidOperationException)
-            {
-                // bad CDI, ignore
-                return None;
-            }
-            finally
-            {
-                allScopes.Free();
-                containingScopes.Free();
+                finally
+                {
+                    allScopes.Free();
+                    containingScopes.Free();
+                }
             }
         }
 

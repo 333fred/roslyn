@@ -75,18 +75,18 @@ namespace Microsoft.CodeAnalysis
         }
 
         [ComImport, InterfaceType(ComInterfaceType.InterfaceIsIUnknown), Guid("CD193BC0-B4BC-11d2-9833-00C04FC31D2E")]
-        internal unsafe interface IAssemblyName
+        internal interface IAssemblyName
         {
-            void SetProperty(PropertyId id, void* data, uint size);
+            unsafe void SetProperty(PropertyId id, void* data, uint size);
 
             [PreserveSig]
-            int GetProperty(PropertyId id, void* data, ref uint size);
+            unsafe int GetProperty(PropertyId id, void* data, ref uint size);
 
             [PreserveSig]
             int Finalize();
 
             [PreserveSig]
-            int GetDisplayName(byte* buffer, ref uint characterCount, ASM_DISPLAYF dwDisplayFlags);
+            unsafe int GetDisplayName(byte* buffer, ref uint characterCount, ASM_DISPLAYF dwDisplayFlags);
 
             [PreserveSig]
             int __BindToObject(/*...*/);
@@ -114,109 +114,127 @@ namespace Microsoft.CodeAnalysis
         private static readonly object s_assemblyIdentityGate = new object();
         private static int CreateAssemblyNameObject(out IAssemblyName ppEnum, string szAssemblyName, uint dwFlags, IntPtr pvReserved)
         {
-            lock (s_assemblyIdentityGate)
+            unsafe
             {
-                return RealCreateAssemblyNameObject(out ppEnum, szAssemblyName, dwFlags, pvReserved);
+                lock (s_assemblyIdentityGate)
+                {
+                    return RealCreateAssemblyNameObject(out ppEnum, szAssemblyName, dwFlags, pvReserved);
+                }
             }
         }
 
         [DllImport("clr", EntryPoint = "CreateAssemblyNameObject", CharSet = CharSet.Unicode, PreserveSig = true)]
-        private static extern int RealCreateAssemblyNameObject(out IAssemblyName ppEnum, [MarshalAs(UnmanagedType.LPWStr)] string szAssemblyName, uint dwFlags, IntPtr pvReserved);
+        private static extern unsafe int RealCreateAssemblyNameObject(out IAssemblyName ppEnum, [MarshalAs(UnmanagedType.LPWStr)] string szAssemblyName, uint dwFlags, IntPtr pvReserved);
 
         private const int ERROR_INSUFFICIENT_BUFFER = unchecked((int)0x8007007A);
         private const int FUSION_E_INVALID_NAME = unchecked((int)0x80131047);
 
-        internal static unsafe string GetDisplayName(IAssemblyName nameObject, ASM_DISPLAYF displayFlags)
+        internal static string GetDisplayName(IAssemblyName nameObject, ASM_DISPLAYF displayFlags)
         {
-            int hr;
-            uint characterCountIncludingTerminator = 0;
-
-            hr = nameObject.GetDisplayName(null, ref characterCountIncludingTerminator, displayFlags);
-            if (hr == 0)
+            unsafe
             {
-                return String.Empty;
-            }
+                int hr;
+                uint characterCountIncludingTerminator = 0;
 
-            if (hr != ERROR_INSUFFICIENT_BUFFER)
-            {
-                throw Marshal.GetExceptionForHR(hr);
-            }
+                hr = nameObject.GetDisplayName(null, ref characterCountIncludingTerminator, displayFlags);
+                if (hr == 0)
+                {
+                    return String.Empty;
+                }
 
-            byte[] data = new byte[(int)characterCountIncludingTerminator * 2];
-            fixed (byte* p = data)
-            {
-                hr = nameObject.GetDisplayName(p, ref characterCountIncludingTerminator, displayFlags);
-                if (hr != 0)
+                if (hr != ERROR_INSUFFICIENT_BUFFER)
                 {
                     throw Marshal.GetExceptionForHR(hr);
                 }
 
-                return Marshal.PtrToStringUni((IntPtr)p, (int)characterCountIncludingTerminator - 1);
+                byte[] data = new byte[(int)characterCountIncludingTerminator * 2];
+                fixed (byte* p = data)
+                {
+                    hr = nameObject.GetDisplayName(p, ref characterCountIncludingTerminator, displayFlags);
+                    if (hr != 0)
+                    {
+                        throw Marshal.GetExceptionForHR(hr);
+                    }
+
+                    return Marshal.PtrToStringUni((IntPtr)p, (int)characterCountIncludingTerminator - 1);
+                }
             }
         }
 
-        internal static unsafe byte[] GetPropertyBytes(IAssemblyName nameObject, PropertyId propertyId)
+        internal static byte[] GetPropertyBytes(IAssemblyName nameObject, PropertyId propertyId)
         {
-            int hr;
-            uint size = 0;
-
-            hr = nameObject.GetProperty(propertyId, null, ref size);
-            if (hr == 0)
+            unsafe
             {
-                return null;
-            }
+                int hr;
+                uint size = 0;
 
-            if (hr != ERROR_INSUFFICIENT_BUFFER)
-            {
-                throw Marshal.GetExceptionForHR(hr);
-            }
+                hr = nameObject.GetProperty(propertyId, null, ref size);
+                if (hr == 0)
+                {
+                    return null;
+                }
 
-            byte[] data = new byte[(int)size];
-            fixed (byte* p = data)
-            {
-                hr = nameObject.GetProperty(propertyId, p, ref size);
-                if (hr != 0)
+                if (hr != ERROR_INSUFFICIENT_BUFFER)
                 {
                     throw Marshal.GetExceptionForHR(hr);
                 }
-            }
 
-            return data;
-        }
+                byte[] data = new byte[(int)size];
+                fixed (byte* p = data)
+                {
+                    hr = nameObject.GetProperty(propertyId, p, ref size);
+                    if (hr != 0)
+                    {
+                        throw Marshal.GetExceptionForHR(hr);
+                    }
+                }
 
-        internal static unsafe string GetPropertyString(IAssemblyName nameObject, PropertyId propertyId)
-        {
-            byte[] data = GetPropertyBytes(nameObject, propertyId);
-            if (data == null)
-            {
-                return null;
-            }
-
-            fixed (byte* p = data)
-            {
-                return Marshal.PtrToStringUni((IntPtr)p, (data.Length / 2) - 1);
+                return data;
             }
         }
 
-        internal static unsafe bool IsKeyOrTokenEmpty(IAssemblyName nameObject, PropertyId propertyId)
+        internal static string GetPropertyString(IAssemblyName nameObject, PropertyId propertyId)
         {
-            Debug.Assert(propertyId == PropertyId.NULL_PUBLIC_KEY_TOKEN || propertyId == PropertyId.NULL_PUBLIC_KEY);
-            uint size = 0;
-            int hr = nameObject.GetProperty(propertyId, null, ref size);
-            return hr == 0;
+            unsafe
+            {
+                byte[] data = GetPropertyBytes(nameObject, propertyId);
+                if (data == null)
+                {
+                    return null;
+                }
+
+                fixed (byte* p = data)
+                {
+                    return Marshal.PtrToStringUni((IntPtr)p, (data.Length / 2) - 1);
+                }
+            }
         }
 
-        internal static unsafe Version GetVersion(IAssemblyName nameObject)
+        internal static bool IsKeyOrTokenEmpty(IAssemblyName nameObject, PropertyId propertyId)
         {
-            uint hi, lo;
-            int hr = nameObject.GetVersion(out hi, out lo);
-            if (hr != 0)
+            unsafe
             {
-                Debug.Assert(hr == FUSION_E_INVALID_NAME);
-                return null;
+                Debug.Assert(propertyId == PropertyId.NULL_PUBLIC_KEY_TOKEN || propertyId == PropertyId.NULL_PUBLIC_KEY);
+                uint size = 0;
+                int hr = nameObject.GetProperty(propertyId, null, ref size);
+                return hr == 0;
             }
+        }
 
-            return new Version((int)(hi >> 16), (int)(hi & 0xffff), (int)(lo >> 16), (int)(lo & 0xffff));
+        internal static Version GetVersion(IAssemblyName nameObject)
+        {
+            unsafe
+            {
+                uint hi, lo;
+                int hr = nameObject.GetVersion(out hi, out lo);
+                if (hr != 0)
+                {
+                    Debug.Assert(hr == FUSION_E_INVALID_NAME);
+                    return null;
+                }
+
+                return new Version((int)(hi >> 16), (int)(hi & 0xffff), (int)(lo >> 16), (int)(lo & 0xffff));
+            }
         }
 
         internal static Version GetVersion(IAssemblyName name, out AssemblyIdentityParts parts)
@@ -283,22 +301,25 @@ namespace Microsoft.CodeAnalysis
             return null;
         }
 
-        internal static unsafe uint? GetPropertyWord(IAssemblyName nameObject, PropertyId propertyId)
+        internal static uint? GetPropertyWord(IAssemblyName nameObject, PropertyId propertyId)
         {
-            uint result;
-            uint size = sizeof(uint);
-            int hr = nameObject.GetProperty(propertyId, &result, ref size);
-            if (hr != 0)
+            unsafe
             {
-                throw Marshal.GetExceptionForHR(hr);
-            }
+                uint result;
+                uint size = sizeof(uint);
+                int hr = nameObject.GetProperty(propertyId, &result, ref size);
+                if (hr != 0)
+                {
+                    throw Marshal.GetExceptionForHR(hr);
+                }
 
-            if (size == 0)
-            {
-                return null;
-            }
+                if (size == 0)
+                {
+                    return null;
+                }
 
-            return result;
+                return result;
+            }
         }
 
         internal static string GetName(IAssemblyName nameObject)
@@ -321,74 +342,92 @@ namespace Microsoft.CodeAnalysis
             return (ProcessorArchitecture)(GetPropertyWord(nameObject, PropertyId.ARCHITECTURE) ?? 0);
         }
 
-        internal static unsafe AssemblyNameFlags GetFlags(IAssemblyName nameObject)
+        internal static AssemblyNameFlags GetFlags(IAssemblyName nameObject)
         {
-            AssemblyNameFlags result = 0;
-
-            uint retarget = GetPropertyWord(nameObject, PropertyId.RETARGET) ?? 0;
-            if (retarget != 0)
+            unsafe
             {
-                result |= AssemblyNameFlags.Retargetable;
-            }
+                AssemblyNameFlags result = 0;
 
-            return result;
+                uint retarget = GetPropertyWord(nameObject, PropertyId.RETARGET) ?? 0;
+                if (retarget != 0)
+                {
+                    result |= AssemblyNameFlags.Retargetable;
+                }
+
+                return result;
+            }
         }
 
-        private static unsafe void SetProperty(IAssemblyName nameObject, PropertyId propertyId, string data)
+        private static void SetProperty(IAssemblyName nameObject, PropertyId propertyId, string data)
         {
-            if (data == null)
+            unsafe
             {
-                nameObject.SetProperty(propertyId, null, 0);
-            }
-            else
-            {
-                Debug.Assert(data.IndexOf('\0') == -1);
-
-                fixed (char* p = data)
+                if (data == null)
                 {
-                    Debug.Assert(p[data.Length] == '\0');
+                    nameObject.SetProperty(propertyId, null, 0);
+                }
+                else
+                {
+                    Debug.Assert(data.IndexOf('\0') == -1);
 
-                    // size is in bytes, include trailing \0 character:
-                    nameObject.SetProperty(propertyId, p, (uint)(data.Length + 1) * 2);
+                    fixed (char* p = data)
+                    {
+                        Debug.Assert(p[data.Length] == '\0');
+
+                        // size is in bytes, include trailing \0 character:
+                        nameObject.SetProperty(propertyId, p, (uint)(data.Length + 1) * 2);
+                    }
                 }
             }
         }
 
-        private static unsafe void SetProperty(IAssemblyName nameObject, PropertyId propertyId, byte[] data)
+        private static void SetProperty(IAssemblyName nameObject, PropertyId propertyId, byte[] data)
         {
-            if (data == null)
+            unsafe
             {
-                nameObject.SetProperty(propertyId, null, 0);
-            }
-            else
-            {
-                fixed (byte* p = data)
+                if (data == null)
                 {
-                    nameObject.SetProperty(propertyId, p, (uint)data.Length);
+                    nameObject.SetProperty(propertyId, null, 0);
+                }
+                else
+                {
+                    fixed (byte* p = data)
+                    {
+                        nameObject.SetProperty(propertyId, p, (uint)data.Length);
+                    }
                 }
             }
         }
 
-        private static unsafe void SetProperty(IAssemblyName nameObject, PropertyId propertyId, ushort data)
+        private static void SetProperty(IAssemblyName nameObject, PropertyId propertyId, ushort data)
         {
-            nameObject.SetProperty(propertyId, &data, sizeof(ushort));
-        }
-
-        private static unsafe void SetProperty(IAssemblyName nameObject, PropertyId propertyId, uint data)
-        {
-            nameObject.SetProperty(propertyId, &data, sizeof(uint));
-        }
-
-        private static unsafe void SetPublicKeyToken(IAssemblyName nameObject, byte[] value)
-        {
-            // An empty public key token is set via NULL_PUBLIC_KEY_TOKEN property.
-            if (value != null && value.Length == 0)
+            unsafe
             {
-                nameObject.SetProperty(PropertyId.NULL_PUBLIC_KEY_TOKEN, null, 0);
+                nameObject.SetProperty(propertyId, &data, sizeof(ushort));
             }
-            else
+        }
+
+        private static void SetProperty(IAssemblyName nameObject, PropertyId propertyId, uint data)
+        {
+            unsafe
             {
-                SetProperty(nameObject, PropertyId.PUBLIC_KEY_TOKEN, value);
+                nameObject.SetProperty(propertyId, &data, sizeof(uint));
+            }
+        }
+
+        private static void SetPublicKeyToken(IAssemblyName nameObject, byte[] value)
+        {
+            unsafe
+            {
+                // An empty public key token is set via NULL_PUBLIC_KEY_TOKEN property.
+                if (value != null && value.Length == 0)
+                {
+                    nameObject.SetProperty(PropertyId.NULL_PUBLIC_KEY_TOKEN, null, 0);
+                }
+                else
+                {
+                    SetProperty(nameObject, PropertyId.PUBLIC_KEY_TOKEN, value);
+                }
             }
         }
 

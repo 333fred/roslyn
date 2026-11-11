@@ -15,7 +15,7 @@ namespace System;
 internal static class SpanExtensions
 {
 #if !NET8_0_OR_GREATER
-    public static unsafe void Replace(this ReadOnlySpan<char> source, Span<char> destination, char oldValue, char newValue)
+    public static void Replace(this ReadOnlySpan<char> source, Span<char> destination, char oldValue, char newValue)
     {
         var length = source.Length;
         if (length == 0)
@@ -38,7 +38,7 @@ internal static class SpanExtensions
         }
     }
 
-    public static unsafe void Replace(this Span<char> span, char oldValue, char newValue)
+    public static void Replace(this Span<char> span, char oldValue, char newValue)
     {
         var length = span.Length;
         if (length == 0)

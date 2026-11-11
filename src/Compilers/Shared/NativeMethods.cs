@@ -72,14 +72,14 @@ namespace Microsoft.CodeAnalysis.CommandLine
         //------------------------------------------------------------------------------
         [DllImport("kernel32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
-        internal static extern bool CloseHandle(IntPtr hObject);
+        internal static extern safe bool CloseHandle(IntPtr hObject);
 
         //------------------------------------------------------------------------------
         // CreateProcess
         //------------------------------------------------------------------------------
         [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
-        internal static extern bool CreateProcess
+        internal static extern unsafe bool CreateProcess
         (
             string? lpApplicationName,
             [In, Out] StringBuilder lpCommandLine,
@@ -95,7 +95,7 @@ namespace Microsoft.CodeAnalysis.CommandLine
         );
 
         [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-        internal static extern IntPtr GetCommandLine();
+        internal static extern safe IntPtr GetCommandLine();
 
 #if !NET
         //------------------------------------------------------------------------------
@@ -116,32 +116,35 @@ namespace Microsoft.CodeAnalysis.CommandLine
         /// </remarks>
         public static FileSystemInfo? ResolveLinkTargetWin32(string path, bool returnFinalTarget)
         {
-            if (!returnFinalTarget) throw new NotSupportedException();
-
-            using var handle = CreateFileW(
-                lpFileName: path,
-                dwDesiredAccess: FILE_READ_ATTRIBUTES,
-                dwShareMode: FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-                lpSecurityAttributes: IntPtr.Zero,
-                dwCreationDisposition: OPEN_EXISTING,
-                dwFlagsAndAttributes: FILE_FLAG_BACKUP_SEMANTICS, // needed for directories
-                hTemplateFile: IntPtr.Zero);
-
-            if (handle.IsInvalid)
+            unsafe
             {
-                return null;
-            }
+                if (!returnFinalTarget) throw new NotSupportedException();
 
-            uint flags = FILE_NAME_NORMALIZED | VOLUME_NAME_DOS;
-            uint needed = GetFinalPathNameByHandleW(hFile: handle, lpszFilePath: null, cchFilePath: 0, dwFlags: flags);
-            if (needed == 0) return null;
+                using var handle = CreateFileW(
+                    lpFileName: path,
+                    dwDesiredAccess: FILE_READ_ATTRIBUTES,
+                    dwShareMode: FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                    lpSecurityAttributes: IntPtr.Zero,
+                    dwCreationDisposition: OPEN_EXISTING,
+                    dwFlagsAndAttributes: FILE_FLAG_BACKUP_SEMANTICS, // needed for directories
+                    hTemplateFile: IntPtr.Zero);
 
-            var sb = new StringBuilder((int)needed + 1);
-            uint len = GetFinalPathNameByHandleW(hFile: handle, lpszFilePath: sb, cchFilePath: (uint)sb.Capacity, dwFlags: flags);
-            if (len == 0) return null;
+                if (handle.IsInvalid)
+                {
+                    return null;
+                }
+
+                uint flags = FILE_NAME_NORMALIZED | VOLUME_NAME_DOS;
+                uint needed = GetFinalPathNameByHandleW(hFile: handle, lpszFilePath: null, cchFilePath: 0, dwFlags: flags);
+                if (needed == 0) return null;
+
+                var sb = new StringBuilder((int)needed + 1);
+                uint len = GetFinalPathNameByHandleW(hFile: handle, lpszFilePath: sb, cchFilePath: (uint)sb.Capacity, dwFlags: flags);
+                if (len == 0) return null;
 
 #pragma warning disable RS0030 // GetFinalPathNameByHandleW guarantees full path
-            return new FileInfo(TrimWin32ExtendedPrefix(sb.ToString()));
+                return new FileInfo(TrimWin32ExtendedPrefix(sb.ToString()));
+            }
 #pragma warning restore RS0030
         }
 
@@ -170,7 +173,7 @@ namespace Microsoft.CodeAnalysis.CommandLine
 
         // https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilew
         [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-        private static extern SafeFileHandle CreateFileW(
+        private static extern unsafe SafeFileHandle CreateFileW(
             string lpFileName,
             uint dwDesiredAccess,
             uint dwShareMode,
@@ -181,7 +184,7 @@ namespace Microsoft.CodeAnalysis.CommandLine
 
         // https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getfinalpathnamebyhandlew
         [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-        private static extern uint GetFinalPathNameByHandleW(
+        private static extern unsafe uint GetFinalPathNameByHandleW(
             SafeFileHandle hFile,
             StringBuilder? lpszFilePath,
             uint cchFilePath,

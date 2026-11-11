@@ -31,15 +31,18 @@ internal readonly struct HACK_VariantStructure
     private readonly short _booleanValue;
     private readonly IntPtr _padding4; // this will be aligned to the IntPtr-sized address
 
-    public unsafe object ConvertToObject()
+    public object ConvertToObject()
     {
-        if (_type == (short)VarEnum.VT_BOOL && _booleanValue == 4)
+        unsafe
         {
-            return null;
-        }
+            if (_type == (short)VarEnum.VT_BOOL && _booleanValue == 4)
+            {
+                return null;
+            }
 
-        // Can't take an address of this since it might move, so....
-        var localCopy = this;
-        return Marshal.GetObjectForNativeVariant((IntPtr)(&localCopy));
+            // Can't take an address of this since it might move, so....
+            var localCopy = this;
+            return Marshal.GetObjectForNativeVariant((IntPtr)(&localCopy));
+        }
     }
 }

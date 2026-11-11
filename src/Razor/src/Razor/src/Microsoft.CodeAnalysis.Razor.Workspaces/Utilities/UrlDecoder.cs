@@ -65,20 +65,23 @@ internal static class UrlDecoder
             _bytes[_bytesWritten++] = b;
         }
 
-        public unsafe int Flush(Span<char> chars)
+        public int Flush(Span<char> chars)
         {
-            if (_bytesWritten == 0)
+            unsafe
             {
-                return 0;
-            }
+                if (_bytesWritten == 0)
+                {
+                    return 0;
+                }
 
-            fixed (byte* bytesPtr = _bytes)
-            fixed (char* charsPtr = chars)
-            {
-                var charsWritten = Encoding.UTF8.GetChars(bytesPtr, _bytesWritten, charsPtr, chars.Length);
-                _bytesWritten = 0;
+                fixed (byte* bytesPtr = _bytes)
+                fixed (char* charsPtr = chars)
+                {
+                    var charsWritten = Encoding.UTF8.GetChars(bytesPtr, _bytesWritten, charsPtr, chars.Length);
+                    _bytesWritten = 0;
 
-                return charsWritten;
+                    return charsWritten;
+                }
             }
         }
     }

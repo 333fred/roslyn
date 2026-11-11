@@ -201,6 +201,9 @@
 
     <!-- C# specific settings -->
     <When Condition="'$(Language)' == 'C#'">
+      <ItemGroup>
+        <CompilerVisibleProperty Include="MemorySafetyRulesVersion" />
+      </ItemGroup>
       <PropertyGroup>
         <LangVersion>preview</LangVersion>
         <WarningLevel>9999</WarningLevel>

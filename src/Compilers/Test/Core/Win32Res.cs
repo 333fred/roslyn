@@ -18,30 +18,33 @@ namespace Microsoft.CodeAnalysis.Test.Utilities
     public class Win32Res
     {
         [DllImport("kernel32.dll", SetLastError = true)]
-        private static extern IntPtr FindResource(IntPtr hModule, string lpName, string lpType);
+        private static extern unsafe IntPtr FindResource(IntPtr hModule, string lpName, string lpType);
         [DllImport("kernel32.dll", SetLastError = true)]
-        private static extern IntPtr LoadResource(IntPtr hModule, IntPtr hResInfo);
+        private static extern unsafe IntPtr LoadResource(IntPtr hModule, IntPtr hResInfo);
         [DllImport("kernel32.dll")]
-        private static extern IntPtr LockResource(IntPtr hResData);
+        private static extern unsafe IntPtr LockResource(IntPtr hResData);
         [DllImport("kernel32.dll", SetLastError = true)]
-        private static extern uint SizeofResource(IntPtr hModule, IntPtr hResInfo);
+        private static extern unsafe uint SizeofResource(IntPtr hModule, IntPtr hResInfo);
 
         public static IntPtr GetResource(IntPtr lib, string resourceId, string resourceType, out uint size)
         {
-            IntPtr hrsrc = FindResource(lib, resourceId, resourceType);
-            if (hrsrc == IntPtr.Zero)
-                throw new Win32Exception(Marshal.GetLastWin32Error());
+            unsafe
+            {
+                IntPtr hrsrc = FindResource(lib, resourceId, resourceType);
+                if (hrsrc == IntPtr.Zero)
+                    throw new Win32Exception(Marshal.GetLastWin32Error());
 
-            size = SizeofResource(lib, hrsrc);
-            IntPtr resource = LoadResource(lib, hrsrc);
-            if (resource == IntPtr.Zero)
-                throw new Win32Exception(Marshal.GetLastWin32Error());
+                size = SizeofResource(lib, hrsrc);
+                IntPtr resource = LoadResource(lib, hrsrc);
+                if (resource == IntPtr.Zero)
+                    throw new Win32Exception(Marshal.GetLastWin32Error());
 
-            IntPtr manifest = LockResource(resource);
-            if (resource == IntPtr.Zero)
-                throw new Win32Exception(Marshal.GetLastWin32Error());
+                IntPtr manifest = LockResource(resource);
+                if (resource == IntPtr.Zero)
+                    throw new Win32Exception(Marshal.GetLastWin32Error());
 
-            return manifest;
+                return manifest;
+            }
         }
 
         private static string GetManifestString(IntPtr ptr, int offset, int length, Encoding encoding)

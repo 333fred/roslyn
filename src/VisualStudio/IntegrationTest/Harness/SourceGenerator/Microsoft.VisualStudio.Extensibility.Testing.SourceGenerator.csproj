@@ -26,6 +26,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Microsoft.VisualStudio.Extensibility.Testing.SourceGenerator.UnitTests" />
+    <None Include="buildTransitive\*.props" Pack="true" PackagePath="buildTransitive\" />
   </ItemGroup>
 
   <Target Name="PackBuildOutputs" DependsOnTargets="ResolveProjectReferences;SatelliteDllsProjectOutputGroup;SatelliteDllsProjectOutputGroupDependencies">

@@ -43,36 +43,36 @@ namespace Microsoft.DiaSymReader
 
         [DefaultDllImportSearchPaths(DllImportSearchPath.AssemblyDirectory | DllImportSearchPath.SafeDirectories)]
         [DllImport(DiaSymReaderModuleName32, EntryPoint = CreateSymReaderFactoryName)]
-        private static extern void CreateSymReader32(ref Guid id, [MarshalAs(UnmanagedType.IUnknown)] out object symReader);
+        private static extern unsafe void CreateSymReader32(ref Guid id, [MarshalAs(UnmanagedType.IUnknown)] out object symReader);
 
         [DefaultDllImportSearchPaths(DllImportSearchPath.AssemblyDirectory | DllImportSearchPath.SafeDirectories)]
         [DllImport(DiaSymReaderModuleNameAmd64, EntryPoint = CreateSymReaderFactoryName)]
-        private static extern void CreateSymReaderAmd64(ref Guid id, [MarshalAs(UnmanagedType.IUnknown)] out object symReader);
+        private static extern unsafe void CreateSymReaderAmd64(ref Guid id, [MarshalAs(UnmanagedType.IUnknown)] out object symReader);
 
         [DefaultDllImportSearchPaths(DllImportSearchPath.AssemblyDirectory | DllImportSearchPath.SafeDirectories)]
         [DllImport(DiaSymReaderModuleNameArm64, EntryPoint = CreateSymReaderFactoryName)]
-        private static extern void CreateSymReaderArm64(ref Guid id, [MarshalAs(UnmanagedType.IUnknown)] out object symReader);
+        private static extern unsafe void CreateSymReaderArm64(ref Guid id, [MarshalAs(UnmanagedType.IUnknown)] out object symReader);
 
         [DefaultDllImportSearchPaths(DllImportSearchPath.AssemblyDirectory | DllImportSearchPath.SafeDirectories)]
         [DllImport(DiaSymReaderModuleName32, EntryPoint = CreateSymWriterFactoryName)]
-        private static extern void CreateSymWriter32(ref Guid id, [MarshalAs(UnmanagedType.IUnknown)] out object symWriter);
+        private static extern unsafe void CreateSymWriter32(ref Guid id, [MarshalAs(UnmanagedType.IUnknown)] out object symWriter);
 
         [DefaultDllImportSearchPaths(DllImportSearchPath.AssemblyDirectory | DllImportSearchPath.SafeDirectories)]
         [DllImport(DiaSymReaderModuleNameAmd64, EntryPoint = CreateSymWriterFactoryName)]
-        private static extern void CreateSymWriterAmd64(ref Guid id, [MarshalAs(UnmanagedType.IUnknown)] out object symWriter);
+        private static extern unsafe void CreateSymWriterAmd64(ref Guid id, [MarshalAs(UnmanagedType.IUnknown)] out object symWriter);
 
         [DefaultDllImportSearchPaths(DllImportSearchPath.AssemblyDirectory | DllImportSearchPath.SafeDirectories)]
         [DllImport(DiaSymReaderModuleNameArm64, EntryPoint = CreateSymWriterFactoryName)]
-        private static extern void CreateSymWriterArm64(ref Guid id, [MarshalAs(UnmanagedType.IUnknown)] out object symWriter);
+        private static extern unsafe void CreateSymWriterArm64(ref Guid id, [MarshalAs(UnmanagedType.IUnknown)] out object symWriter);
 
         [DllImport("kernel32")]
-        private static extern IntPtr LoadLibrary(string path);
+        private static extern unsafe IntPtr LoadLibrary(string path);
 
         [DllImport("kernel32")]
-        private static extern bool FreeLibrary(IntPtr hModule);
+        private static extern unsafe bool FreeLibrary(IntPtr hModule);
 
         [DllImport("kernel32")]
-        private static extern IntPtr GetProcAddress(IntPtr hModule, string procedureName);
+        private static extern unsafe IntPtr GetProcAddress(IntPtr hModule, string procedureName);
 
         private delegate void NativeFactory(ref Guid id, [MarshalAs(UnmanagedType.IUnknown)] out object instance);
 
@@ -111,43 +111,46 @@ namespace Microsoft.DiaSymReader
 
         private static object TryLoadFromAlternativePath(Guid clsid, string factoryName)
         {
-            var dir = GetEnvironmentVariable(AlternateLoadPathEnvironmentVariableName);
-            if (string.IsNullOrEmpty(dir))
+            unsafe
             {
-                return null;
-            }
+                var dir = GetEnvironmentVariable(AlternateLoadPathEnvironmentVariableName);
+                if (string.IsNullOrEmpty(dir))
+                {
+                    return null;
+                }
 
-            var moduleHandle = LoadLibrary(Path.Combine(dir, DiaSymReaderModuleName));
-            if (moduleHandle == IntPtr.Zero)
-            {
-                Marshal.ThrowExceptionForHR(Marshal.GetHRForLastWin32Error());
-            }
-
-            object instance = null;
-            try
-            {
-                var createAddress = GetProcAddress(moduleHandle, factoryName);
-                if (createAddress == IntPtr.Zero)
+                var moduleHandle = LoadLibrary(Path.Combine(dir, DiaSymReaderModuleName));
+                if (moduleHandle == IntPtr.Zero)
                 {
                     Marshal.ThrowExceptionForHR(Marshal.GetHRForLastWin32Error());
                 }
+
+                object instance = null;
+                try
+                {
+                    var createAddress = GetProcAddress(moduleHandle, factoryName);
+                    if (createAddress == IntPtr.Zero)
+                    {
+                        Marshal.ThrowExceptionForHR(Marshal.GetHRForLastWin32Error());
+                    }
 
 #if NETSTANDARD1_1
                 var creator = (NativeFactory)Marshal.GetDelegateForFunctionPointer(createAddress, typeof(NativeFactory));
 #else
-                var creator = Marshal.GetDelegateForFunctionPointer<NativeFactory>(createAddress);
+                    var creator = Marshal.GetDelegateForFunctionPointer<NativeFactory>(createAddress);
 #endif
-                creator(ref clsid, out instance);
-            }
-            finally
-            {
-                if (instance == null && !FreeLibrary(moduleHandle))
-                {
-                    Marshal.ThrowExceptionForHR(Marshal.GetHRForLastWin32Error());
+                    creator(ref clsid, out instance);
                 }
-            }
+                finally
+                {
+                    if (instance == null && !FreeLibrary(moduleHandle))
+                    {
+                        Marshal.ThrowExceptionForHR(Marshal.GetHRForLastWin32Error());
+                    }
+                }
 
-            return instance;
+                return instance;
+            }
         }
 
         private static Type GetComTypeType(ref Type lazyType, Guid clsid)
@@ -165,79 +168,82 @@ namespace Microsoft.DiaSymReader
 
         internal static object CreateObject(bool createReader, bool useAlternativeLoadPath, bool useComRegistry, out string moduleName, out Exception loadException)
         {
-            object instance = null;
-            loadException = null;
-            moduleName = null;
-
-            var clsid = new Guid(createReader ? SymReaderClsid : SymWriterClsid);
-
-            try
+            unsafe
             {
+                object instance = null;
+                loadException = null;
+                moduleName = null;
+
+                var clsid = new Guid(createReader ? SymReaderClsid : SymWriterClsid);
+
                 try
                 {
-                    switch (RuntimeInformation.ProcessArchitecture, createReader)
+                    try
                     {
-                        case (Architecture.X86, true):
-                            CreateSymReader32(ref clsid, out instance);
-                            break;
-                        case (Architecture.X86, false):
-                            CreateSymWriter32(ref clsid, out instance);
-                            break;
-                        case (Architecture.X64, true):
-                            CreateSymReaderAmd64(ref clsid, out instance);
-                            break;
-                        case (Architecture.X64, false):
-                            CreateSymWriterAmd64(ref clsid, out instance);
-                            break;
-                        case (Architecture.Arm64, true):
-                            CreateSymReaderArm64(ref clsid, out instance);
-                            break;
-                        case (Architecture.Arm64, false):
-                            CreateSymWriterArm64(ref clsid, out instance);
-                            break;
-                        default:
-                            throw new NotSupportedException();
+                        switch (RuntimeInformation.ProcessArchitecture, createReader)
+                        {
+                            case (Architecture.X86, true):
+                                CreateSymReader32(ref clsid, out instance);
+                                break;
+                            case (Architecture.X86, false):
+                                CreateSymWriter32(ref clsid, out instance);
+                                break;
+                            case (Architecture.X64, true):
+                                CreateSymReaderAmd64(ref clsid, out instance);
+                                break;
+                            case (Architecture.X64, false):
+                                CreateSymWriterAmd64(ref clsid, out instance);
+                                break;
+                            case (Architecture.Arm64, true):
+                                CreateSymReaderArm64(ref clsid, out instance);
+                                break;
+                            case (Architecture.Arm64, false):
+                                CreateSymWriterArm64(ref clsid, out instance);
+                                break;
+                            default:
+                                throw new NotSupportedException();
+                        }
                     }
-                }
-                catch (DllNotFoundException e) when (useAlternativeLoadPath)
-                {
-                    instance = TryLoadFromAlternativePath(clsid, createReader ? CreateSymReaderFactoryName : CreateSymWriterFactoryName);
-                    if (instance == null)
+                    catch (DllNotFoundException e) when (useAlternativeLoadPath)
                     {
-                        loadException = e;
+                        instance = TryLoadFromAlternativePath(clsid, createReader ? CreateSymReaderFactoryName : CreateSymWriterFactoryName);
+                        if (instance == null)
+                        {
+                            loadException = e;
+                        }
                     }
-                }
-            }
-            catch (Exception e)
-            {
-                loadException = e;
-                instance = null;
-            }
-
-            if (instance != null)
-            {
-                moduleName = DiaSymReaderModuleName;
-            }
-            else if (useComRegistry)
-            {
-                // Try to find a registered CLR implementation
-                try
-                {
-                    var comType = createReader ?
-                        GetComTypeType(ref s_lazySymReaderComType, clsid) :
-                        GetComTypeType(ref s_lazySymWriterComType, clsid);
-
-                    instance = Activator.CreateInstance(comType);
-                    moduleName = LegacyDiaSymReaderModuleName;
                 }
                 catch (Exception e)
                 {
                     loadException = e;
                     instance = null;
                 }
-            }
 
-            return instance;
+                if (instance != null)
+                {
+                    moduleName = DiaSymReaderModuleName;
+                }
+                else if (useComRegistry)
+                {
+                    // Try to find a registered CLR implementation
+                    try
+                    {
+                        var comType = createReader ?
+                            GetComTypeType(ref s_lazySymReaderComType, clsid) :
+                            GetComTypeType(ref s_lazySymWriterComType, clsid);
+
+                        instance = Activator.CreateInstance(comType);
+                        moduleName = LegacyDiaSymReaderModuleName;
+                    }
+                    catch (Exception e)
+                    {
+                        loadException = e;
+                        instance = null;
+                    }
+                }
+
+                return instance;
+            }
         }
 
     }

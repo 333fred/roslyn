@@ -49,20 +49,26 @@ namespace Microsoft.CodeAnalysis.CSharp
                 return UintAsFloat(FloatAsUint(value) + 1);
             }
 
-            private static unsafe uint FloatAsUint(float d)
+            private static uint FloatAsUint(float d)
             {
-                if (d == 0)
-                    return 0;
-                float* dp = &d;
-                uint* lp = (uint*)dp;
-                return *lp;
+                unsafe
+                {
+                    if (d == 0)
+                        return 0;
+                    float* dp = &d;
+                    uint* lp = (uint*)dp;
+                    return *lp;
+                }
             }
 
-            private static unsafe float UintAsFloat(uint l)
+            private static float UintAsFloat(uint l)
             {
-                uint* lp = &l;
-                float* dp = (float*)lp;
-                return *dp;
+                unsafe
+                {
+                    uint* lp = &l;
+                    float* dp = (float*)lp;
+                    return *dp;
+                }
             }
 
             bool INumericTC<float>.Related(BinaryOperatorKind relation, float left, float right)

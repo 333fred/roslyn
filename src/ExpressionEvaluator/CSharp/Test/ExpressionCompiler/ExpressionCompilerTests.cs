@@ -5732,7 +5732,7 @@ class C
 
             using (var pinnedMetadata = new PinnedBlob(TestResources.ExpressionCompiler.NoValidTables))
             {
-                var corruptMetadata = ModuleInstance.Create(pinnedMetadata.Pointer, pinnedMetadata.Size, id: default);
+                var corruptMetadata = unsafe (ModuleInstance.Create(pinnedMetadata.Pointer, pinnedMetadata.Size, id: default));
 
                 var runtime = RuntimeInstance.Create(new[] { corruptMetadata, comp.ToModuleInstance(), MscorlibRef.ToModuleInstance() });
                 var context = CreateMethodContext(runtime, "C.M");

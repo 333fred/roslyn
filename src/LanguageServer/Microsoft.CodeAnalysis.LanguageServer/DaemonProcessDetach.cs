@@ -38,5 +38,5 @@ internal static class DaemonProcessDetach
     }
 
     [DllImport("libc", SetLastError = true)]
-    private static extern int setsid();
+    private static extern safe int setsid();
 }

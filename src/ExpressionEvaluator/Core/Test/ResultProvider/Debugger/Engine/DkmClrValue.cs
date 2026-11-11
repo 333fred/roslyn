@@ -110,7 +110,7 @@ namespace Microsoft.VisualStudio.Debugger.Evaluation.ClrCompilation
             try
             {
                 var intPtr = Environment.Is64BitProcess ? new IntPtr((long)RawValue) : new IntPtr((int)RawValue);
-                value = Dereference(intPtr, elementType);
+                value = unsafe (Dereference(intPtr, elementType));
             }
             catch (Exception e)
             {
@@ -561,7 +561,7 @@ namespace Microsoft.VisualStudio.Debugger.Evaluation.ClrCompilation
                 access: access);
         }
 
-        internal static unsafe object UnboxPointer(object value)
+        internal static object UnboxPointer(object value)
         {
             unsafe
             {
@@ -807,22 +807,25 @@ namespace Microsoft.VisualStudio.Debugger.Evaluation.ClrCompilation
 
         private static unsafe object Dereference(IntPtr ptr, Type elementType)
         {
-            // Only handling a subset of types currently.
-            switch (Metadata.Type.GetTypeCode(elementType))
+            unsafe
             {
-                case TypeCode.Int32:
-                    return *(int*)ptr;
-                case TypeCode.Object:
-                    if (ptr == IntPtr.Zero)
-                    {
-                        throw new InvalidOperationException("Dereferencing null");
-                    }
-                    var destinationType = elementType.IsPointer
-                        ? (Environment.Is64BitProcess ? typeof(long) : typeof(int))
-                        : ((TypeImpl)elementType).Type;
-                    return Marshal.PtrToStructure(ptr, destinationType);
-                default:
-                    throw new InvalidOperationException();
+                // Only handling a subset of types currently.
+                switch (Metadata.Type.GetTypeCode(elementType))
+                {
+                    case TypeCode.Int32:
+                        return *(int*)ptr;
+                    case TypeCode.Object:
+                        if (ptr == IntPtr.Zero)
+                        {
+                            throw new InvalidOperationException("Dereferencing null");
+                        }
+                        var destinationType = elementType.IsPointer
+                            ? (Environment.Is64BitProcess ? typeof(long) : typeof(int))
+                            : ((TypeImpl)elementType).Type;
+                        return Marshal.PtrToStructure(ptr, destinationType);
+                    default:
+                        throw new InvalidOperationException();
+                }
             }
         }
 

@@ -283,16 +283,19 @@ internal static class FilePathNormalizer
         charsWritten = write;
     }
 
-    private static unsafe string CreateString(ReadOnlySpan<char> source)
+    private static string CreateString(ReadOnlySpan<char> source)
     {
-        if (source.IsEmpty)
+        unsafe
         {
-            return string.Empty;
-        }
+            if (source.IsEmpty)
+            {
+                return string.Empty;
+            }
 
-        fixed (char* ptr = source)
-        {
-            return new string(ptr, 0, source.Length);
+            fixed (char* ptr = source)
+            {
+                return new string(ptr, 0, source.Length);
+            }
         }
     }
 }

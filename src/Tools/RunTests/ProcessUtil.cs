@@ -118,6 +118,7 @@ namespace RunTests
             throw new Exception($"Unknown operating system: {RuntimeInformation.OSDescription}");
 
             [SupportedOSPlatform("windows")]
+
             static Dictionary<int, int> GetParentProcessIdsWindows()
             {
                 const uint TH32CS_SNAPPROCESS = 0x00000002;
@@ -201,14 +202,14 @@ namespace RunTests
         }
 
         [DllImport("kernel32.dll", ExactSpelling = true, SetLastError = true)]
-        private static extern SafeFileHandle CreateToolhelp32Snapshot(uint flags, uint processId);
+        private static extern safe SafeFileHandle CreateToolhelp32Snapshot(uint flags, uint processId);
 
         [DllImport("kernel32.dll", ExactSpelling = true, SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
-        private static extern bool Process32FirstW(SafeFileHandle snapshot, ref ProcessEntry32 entry);
+        private static extern safe bool Process32FirstW(SafeFileHandle snapshot, ref ProcessEntry32 entry);
 
         [DllImport("kernel32.dll", ExactSpelling = true, SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
-        private static extern bool Process32NextW(SafeFileHandle snapshot, ref ProcessEntry32 entry);
+        private static extern safe bool Process32NextW(SafeFileHandle snapshot, ref ProcessEntry32 entry);
     }
 }

@@ -4,18 +4,21 @@
 
 namespace Microsoft.CodeAnalysis.ExpressionEvaluator;
 
-internal unsafe struct SampleFixedBuffer
+internal struct SampleFixedBuffer
 {
     public fixed byte Buffer[4];
 
     public static SampleFixedBuffer Create()
     {
-        SampleFixedBuffer val = default;
-        val.Buffer[0] = 0;
-        val.Buffer[1] = 1;
-        val.Buffer[2] = 2;
-        val.Buffer[3] = 3;
+        unsafe
+        {
+            SampleFixedBuffer val = default;
+            val.Buffer[0] = 0;
+            val.Buffer[1] = 1;
+            val.Buffer[2] = 2;
+            val.Buffer[3] = 3;
 
-        return val;
+            return val;
+        }
     }
 }

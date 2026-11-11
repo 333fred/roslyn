@@ -2513,7 +2513,7 @@ class ExpressionPrinter : System.Linq.Expressions.ExpressionVisitor
         /// - winmd
         /// - global methods
         /// </remarks>
-        internal static unsafe string VisualizeRealIL(PEModuleSymbol peModule, CompilationTestData.MethodData methodData, IReadOnlyDictionary<int, string>? markers, bool areLocalsZeroed)
+        internal static string VisualizeRealIL(PEModuleSymbol peModule, CompilationTestData.MethodData methodData, IReadOnlyDictionary<int, string>? markers, bool areLocalsZeroed)
         {
             var typeName = GetContainingTypeMetadataName(methodData.Method);
             Debug.Assert(typeName is not null);

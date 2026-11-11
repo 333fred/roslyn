@@ -51,17 +51,20 @@ internal sealed class NoMessagePumpSyncContext : SynchronizationContext
     /// </returns>
     public override int Wait(IntPtr[] waitHandles, bool waitAll, int millisecondsTimeout)
     {
-        // On .NET Framework we must take special care to NOT end up in a call to CoWait (which lets in RPC calls).
-        // Off Windows, we can't p/invoke to kernel32, but it appears that .NET Core never calls CoWait, so we can rely on default behavior.
-        // We're just going to use the OS as the switch instead of the framework so that (one day) if we drop our .NET Framework specific target,
-        // and if .NET Core ever adds CoWait support on Windows, we'll still behave properly.
-        if (Environment.OSVersion.Platform == PlatformID.Win32NT)
+        unsafe
         {
-            return (int)WaitForMultipleObjects((uint)waitHandles.Length, waitHandles, waitAll, (uint)millisecondsTimeout);
-        }
-        else
-        {
-            return WaitHelper(waitHandles, waitAll, millisecondsTimeout);
+            // On .NET Framework we must take special care to NOT end up in a call to CoWait (which lets in RPC calls).
+            // Off Windows, we can't p/invoke to kernel32, but it appears that .NET Core never calls CoWait, so we can rely on default behavior.
+            // We're just going to use the OS as the switch instead of the framework so that (one day) if we drop our .NET Framework specific target,
+            // and if .NET Core ever adds CoWait support on Windows, we'll still behave properly.
+            if (Environment.OSVersion.Platform == PlatformID.Win32NT)
+            {
+                return (int)WaitForMultipleObjects((uint)waitHandles.Length, waitHandles, waitAll, (uint)millisecondsTimeout);
+            }
+            else
+            {
+                return WaitHelper(waitHandles, waitAll, millisecondsTimeout);
+            }
         }
     }
 
@@ -75,5 +78,5 @@ internal sealed class NoMessagePumpSyncContext : SynchronizationContext
     /// <param name="waitAll">A flag indicating whether all handles must be signaled before returning.</param>
     /// <param name="millisecondsTimeout">A timeout that will cause this method to return.</param>
     [DllImport("kernel32.dll", SetLastError = true, ExactSpelling = true)]
-    private static extern int WaitForMultipleObjects(uint handleCount, IntPtr[] waitHandles, [MarshalAs(UnmanagedType.Bool)] bool waitAll, uint millisecondsTimeout);
+    private static extern unsafe int WaitForMultipleObjects(uint handleCount, IntPtr[] waitHandles, [MarshalAs(UnmanagedType.Bool)] bool waitAll, uint millisecondsTimeout);
 }

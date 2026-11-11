@@ -43,11 +43,11 @@ internal static class MonoMSBuildDiscovery
     // http://man7.org/linux/man-pages/man3/realpath.3.html
     // CharSet.Ansi is UTF8 on Unix
     [DllImport("libc", EntryPoint = "realpath", CharSet = CharSet.Ansi, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl)]
-    private static extern IntPtr Unix_realpath(string path, IntPtr buffer);
+    private static extern unsafe IntPtr Unix_realpath(string path, IntPtr buffer);
 
     // http://man7.org/linux/man-pages/man3/free.3.html
     [DllImport("libc", EntryPoint = "free", ExactSpelling = true, CallingConvention = CallingConvention.Cdecl)]
-    private static extern void Unix_free(IntPtr ptr);
+    private static extern unsafe void Unix_free(IntPtr ptr);
 
     /// <summary>
     /// Returns the canonicalized absolute path from a given path, expanding symbolic links and resolving
@@ -55,13 +55,16 @@ internal static class MonoMSBuildDiscovery
     /// </summary>
     private static string? RealPath(string path)
     {
-        RequireUnix();
+        unsafe
+        {
+            RequireUnix();
 
-        var ptr = Unix_realpath(path, IntPtr.Zero);
-        var result = Marshal.PtrToStringAnsi(ptr); // uses UTF8 on Unix
-        Unix_free(ptr);
+            var ptr = Unix_realpath(path, IntPtr.Zero);
+            var result = Marshal.PtrToStringAnsi(ptr); // uses UTF8 on Unix
+            Unix_free(ptr);
 
-        return result;
+            return result;
+        }
     }
 
     /// <summary>

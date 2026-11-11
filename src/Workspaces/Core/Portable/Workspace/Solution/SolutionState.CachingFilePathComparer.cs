@@ -72,8 +72,9 @@ internal sealed partial class SolutionState
         // for both for big-endian and for little-endian.
         private const uint NormalizeToLowercase = 0x0020_0020u;
 
-        private unsafe int GetNonRandomizedHashCodeOrdinalIgnoreCase(string obj)
+        private int GetNonRandomizedHashCodeOrdinalIgnoreCase(string obj)
         {
+unsafe{
             uint hash1 = (5381 << 16) + 5381;
             uint hash2 = hash1;
 
@@ -116,6 +117,7 @@ internal sealed partial class SolutionState
 
 NotAscii:
             return s_comparer.GetHashCode(obj);
+}
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -11,66 +11,79 @@ namespace Microsoft.CodeAnalysis.Host;
 
 internal sealed partial class TemporaryStorageService
 {
-    private sealed unsafe class DirectMemoryAccessStreamReader : TextReaderWithLength
+    private sealed class DirectMemoryAccessStreamReader : TextReaderWithLength
     {
-        private char* _position;
-        private readonly char* _end;
+        private unsafe char* _position;
+        private readonly unsafe char* _end;
 
-        public DirectMemoryAccessStreamReader(char* src, int length)
+        // The caller must keep length characters at src readable and fixed in memory for the reader's lifetime.
+        public unsafe DirectMemoryAccessStreamReader(char* src, int length)
             : base(length)
         {
-            RoslynDebug.Assert(src != null);
-            RoslynDebug.Assert(length >= 0);
+            unsafe
+            {
+                RoslynDebug.Assert(src != null);
+                RoslynDebug.Assert(length >= 0);
 
-            _position = src;
-            _end = _position + length;
+                _position = src;
+                _end = _position + length;
+            }
         }
 
         public override int Peek()
         {
-            if (_position >= _end)
+            unsafe
             {
-                return -1;
-            }
+                if (_position >= _end)
+                {
+                    return -1;
+                }
 
-            return *_position;
+                return *_position;
+            }
         }
 
         public override int Read()
         {
-            if (_position >= _end)
+            unsafe
             {
-                return -1;
-            }
+                if (_position >= _end)
+                {
+                    return -1;
+                }
 
-            return *_position++;
+                return *_position++;
+            }
         }
 
         public override int Read(char[] buffer, int index, int count)
         {
-            if (buffer == null)
+            unsafe
             {
-                throw new ArgumentNullException(nameof(buffer));
-            }
+                if (buffer == null)
+                {
+                    throw new ArgumentNullException(nameof(buffer));
+                }
 
-            if (index < 0 || index >= buffer.Length)
-            {
-                throw new ArgumentOutOfRangeException(nameof(index));
-            }
+                if (index < 0 || index >= buffer.Length)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(index));
+                }
 
-            if (count < 0 || (index + count) > buffer.Length)
-            {
-                throw new ArgumentOutOfRangeException(nameof(count));
-            }
+                if (count < 0 || (index + count) > buffer.Length)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(count));
+                }
 
-            count = Math.Min(count, (int)(_end - _position));
-            if (count > 0)
-            {
-                Marshal.Copy((IntPtr)_position, buffer, index, count);
-                _position += count;
-            }
+                count = Math.Min(count, (int)(_end - _position));
+                if (count > 0)
+                {
+                    Marshal.Copy((IntPtr)_position, buffer, index, count);
+                    _position += count;
+                }
 
-            return count;
+                return count;
+            }
         }
     }
 }

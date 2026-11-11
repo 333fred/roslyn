@@ -71,7 +71,7 @@ internal static class IntegrationHelper
     /// </remarks>
     public static string GetTitleForWindow(IntPtr window)
     {
-        var titleLength = NativeMethods.SendMessage(window, NativeMethods.WM_GETTEXTLENGTH, IntPtr.Zero, IntPtr.Zero);
+        var titleLength = unsafe (NativeMethods.SendMessage(window, NativeMethods.WM_GETTEXTLENGTH, IntPtr.Zero, IntPtr.Zero));
 
         if (titleLength == IntPtr.Zero)
         {
@@ -80,7 +80,10 @@ internal static class IntegrationHelper
 
         var title = new StringBuilder(titleLength.ToInt32() + 1);
 
-        NativeMethods.SendMessage(window, NativeMethods.WM_GETTEXT, (IntPtr)(title.Capacity), title);
+        unsafe
+        {
+            NativeMethods.SendMessage(window, NativeMethods.WM_GETTEXT, (IntPtr)(title.Capacity), title);
+        }
         return title.ToString();
     }
 

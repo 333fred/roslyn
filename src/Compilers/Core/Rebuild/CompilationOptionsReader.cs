@@ -268,32 +268,35 @@ namespace Microsoft.CodeAnalysis.Rebuild
             return reader.ReadBytes(reader.Length);
         }
 
-        public unsafe ResourceDescription[]? GetManifestResources()
+        public ResourceDescription[]? GetManifestResources()
         {
-            var metadataReader = PeReader.GetMetadataReader();
-            if (PeReader.PEHeaders.CorHeader is not { } corHeader
-                || !PeReader.PEHeaders.TryGetDirectoryOffset(corHeader.ResourcesDirectory, out var resourcesOffset))
+            unsafe
             {
-                return null;
+                var metadataReader = PeReader.GetMetadataReader();
+                if (PeReader.PEHeaders.CorHeader is not { } corHeader
+                    || !PeReader.PEHeaders.TryGetDirectoryOffset(corHeader.ResourcesDirectory, out var resourcesOffset))
+                {
+                    return null;
+                }
+
+                var result = metadataReader.ManifestResources.Select(handle =>
+                {
+                    var resource = metadataReader.GetManifestResource(handle);
+                    var name = metadataReader.GetString(resource.Name);
+
+                    var resourceStart = PeReader.GetEntireImage().Pointer + resourcesOffset + resource.Offset;
+                    var length = *(int*)resourceStart;
+                    var contentPtr = resourceStart + sizeof(int);
+                    var content = new byte[length];
+                    Marshal.Copy(new IntPtr(contentPtr), content, 0, length);
+
+                    var isPublic = (resource.Attributes & ManifestResourceAttributes.Public) != 0;
+                    var description = new ResourceDescription(name, dataProvider: () => new MemoryStream(content), isPublic);
+                    return description;
+                }).ToArray();
+
+                return result;
             }
-
-            var result = metadataReader.ManifestResources.Select(handle =>
-            {
-                var resource = metadataReader.GetManifestResource(handle);
-                var name = metadataReader.GetString(resource.Name);
-
-                var resourceStart = PeReader.GetEntireImage().Pointer + resourcesOffset + resource.Offset;
-                var length = *(int*)resourceStart;
-                var contentPtr = resourceStart + sizeof(int);
-                var content = new byte[length];
-                Marshal.Copy(new IntPtr(contentPtr), content, 0, length);
-
-                var isPublic = (resource.Attributes & ManifestResourceAttributes.Public) != 0;
-                var description = new ResourceDescription(name, dataProvider: () => new MemoryStream(content), isPublic);
-                return description;
-            }).ToArray();
-
-            return result;
         }
 
         public (ImmutableArray<SyntaxTree> SyntaxTrees, ImmutableArray<MetadataReference> MetadataReferences) ResolveArtifacts(

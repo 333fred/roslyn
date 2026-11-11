@@ -7771,9 +7771,9 @@ class C
         }
 
         [DllImport("kernel32.dll", SetLastError = true)]
-        private static extern IntPtr LoadLibraryEx(string lpFileName, IntPtr hFile, uint dwFlags);
+        private static extern safe IntPtr LoadLibraryEx(string lpFileName, IntPtr hFile, uint dwFlags);
         [DllImport("kernel32.dll", SetLastError = true)]
-        private static extern bool FreeLibrary([In] IntPtr hFile);
+        private static extern safe bool FreeLibrary([In] IntPtr hFile);
 
         private void CheckManifestString(string source, OutputKind outputKind, string explicitManifest, string expectedManifest)
         {

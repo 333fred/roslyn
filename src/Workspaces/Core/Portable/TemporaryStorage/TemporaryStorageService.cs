@@ -308,15 +308,18 @@ internal sealed partial class TemporaryStorageService : ITemporaryStorageService
             }
         }
 
-        private static unsafe DirectMemoryAccessStreamReader CreateTextReaderFromTemporaryStorage(UnmanagedMemoryStream stream)
+        private static DirectMemoryAccessStreamReader CreateTextReaderFromTemporaryStorage(UnmanagedMemoryStream stream)
         {
-            var src = (char*)stream.PositionPointer;
+            unsafe
+            {
+                var src = (char*)stream.PositionPointer;
 
-            // BOM: Unicode, little endian
-            // Skip the BOM when creating the reader
-            Debug.Assert(*src == 0xFEFF);
+                // BOM: Unicode, little endian
+                // Skip the BOM when creating the reader
+                Debug.Assert(*src == 0xFEFF);
 
-            return new DirectMemoryAccessStreamReader(src + 1, (int)stream.Length / sizeof(char) - 1);
+                return new DirectMemoryAccessStreamReader(src + 1, (int)stream.Length / sizeof(char) - 1);
+            }
         }
     }
 }

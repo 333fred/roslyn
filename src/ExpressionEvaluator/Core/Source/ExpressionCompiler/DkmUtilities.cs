@@ -23,7 +23,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
 {
     internal static class DkmUtilities
     {
-        internal unsafe delegate IntPtr GetMetadataBytesPtrFunction(AssemblyIdentity assemblyIdentity, out uint uSize);
+        internal delegate IntPtr GetMetadataBytesPtrFunction(AssemblyIdentity assemblyIdentity, out uint uSize);
 
         // Return the set of managed module instances from the AppDomain.
         private static IEnumerable<DkmClrModuleInstance> GetModulesInAppDomain(this DkmClrRuntimeInstance runtime, DkmClrAppDomain appDomain)
@@ -52,157 +52,175 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
             DkmClrAppDomain appDomain,
             ImmutableArray<MetadataBlock> previousMetadataBlocks)
         {
-            // Add a dummy data item to the appdomain to add it to the disposal queue when the debugged process is shutting down.
-            // This should prevent from attempts to use the Metadata pointer for dead debugged processes.
-            if (appDomain.GetDataItem<AppDomainLifetimeDataItem>() == null)
+            unsafe
             {
-                appDomain.SetDataItem(DkmDataCreationDisposition.CreateNew, new AppDomainLifetimeDataItem());
+                // Add a dummy data item to the appdomain to add it to the disposal queue when the debugged process is shutting down.
+                // This should prevent from attempts to use the Metadata pointer for dead debugged processes.
+                if (appDomain.GetDataItem<AppDomainLifetimeDataItem>() == null)
+                {
+                    appDomain.SetDataItem(DkmDataCreationDisposition.CreateNew, new AppDomainLifetimeDataItem());
+                }
+
+                var builder = ArrayBuilder<MetadataBlock>.GetInstance();
+                IntPtr ptr;
+                uint size;
+                int index = 0;
+                foreach (DkmClrModuleInstance module in runtime.GetModulesInAppDomain(appDomain))
+                {
+                    try
+                    {
+                        ptr = module.GetMetaDataBytesPtr(out size);
+                        Debug.Assert(size > 0);
+                    }
+                    catch (NotImplementedException e) when (module is DkmClrNcModuleInstance)
+                    {
+                        // DkmClrNcModuleInstance.GetMetaDataBytesPtr not implemented in Dev14.
+                        throw new NotImplementedMetadataException(e);
+                    }
+                    catch (Exception e) when (DkmExceptionUtilities.IsBadOrMissingMetadataException(e))
+                    {
+                        continue;
+                    }
+
+                    if (!TryGetMetadataBlock(previousMetadataBlocks, index, ptr, size, out var block))
+                    {
+                        // ignore modules with bad metadata headers
+                        continue;
+                    }
+
+                    Debug.Assert(block.ModuleId.Id == module.Mvid);
+                    builder.Add(block);
+                    index++;
+                }
+
+                // Include "intrinsic method" assembly.
+                ptr = runtime.GetIntrinsicAssemblyMetaDataBytesPtr(out size);
+                if (!TryGetMetadataBlock(previousMetadataBlocks, index, ptr, size, out var intrinsicsBlock))
+                {
+                    throw ExceptionUtilities.Unreachable();
+                }
+
+                builder.Add(intrinsicsBlock);
+                return builder.ToImmutableAndFree();
             }
-
-            var builder = ArrayBuilder<MetadataBlock>.GetInstance();
-            IntPtr ptr;
-            uint size;
-            int index = 0;
-            foreach (DkmClrModuleInstance module in runtime.GetModulesInAppDomain(appDomain))
-            {
-                try
-                {
-                    ptr = module.GetMetaDataBytesPtr(out size);
-                    Debug.Assert(size > 0);
-                }
-                catch (NotImplementedException e) when (module is DkmClrNcModuleInstance)
-                {
-                    // DkmClrNcModuleInstance.GetMetaDataBytesPtr not implemented in Dev14.
-                    throw new NotImplementedMetadataException(e);
-                }
-                catch (Exception e) when (DkmExceptionUtilities.IsBadOrMissingMetadataException(e))
-                {
-                    continue;
-                }
-
-                if (!TryGetMetadataBlock(previousMetadataBlocks, index, ptr, size, out var block))
-                {
-                    // ignore modules with bad metadata headers
-                    continue;
-                }
-
-                Debug.Assert(block.ModuleId.Id == module.Mvid);
-                builder.Add(block);
-                index++;
-            }
-
-            // Include "intrinsic method" assembly.
-            ptr = runtime.GetIntrinsicAssemblyMetaDataBytesPtr(out size);
-            if (!TryGetMetadataBlock(previousMetadataBlocks, index, ptr, size, out var intrinsicsBlock))
-            {
-                throw ExceptionUtilities.Unreachable();
-            }
-
-            builder.Add(intrinsicsBlock);
-            return builder.ToImmutableAndFree();
         }
 
-        internal static ImmutableArray<MetadataBlock> GetMetadataBlocks(GetMetadataBytesPtrFunction getMetaDataBytesPtrFunction, ImmutableArray<AssemblyIdentity> missingAssemblyIdentities)
+        // Callback buffers must remain readable, at fixed addresses, and unchanged while the returned blocks are used.
+        internal static unsafe ImmutableArray<MetadataBlock> GetMetadataBlocks(GetMetadataBytesPtrFunction getMetaDataBytesPtrFunction, ImmutableArray<AssemblyIdentity> missingAssemblyIdentities)
         {
-            ArrayBuilder<MetadataBlock>? builder = null;
-            foreach (var missingAssemblyIdentity in missingAssemblyIdentities)
+            unsafe
             {
-                uint size;
-                IntPtr ptr;
-                try
+                ArrayBuilder<MetadataBlock>? builder = null;
+                foreach (var missingAssemblyIdentity in missingAssemblyIdentities)
                 {
-                    ptr = getMetaDataBytesPtrFunction(missingAssemblyIdentity, out size);
-                    Debug.Assert(size > 0);
-                }
-                catch (Exception e) when (DkmExceptionUtilities.IsBadOrMissingMetadataException(e))
-                {
-                    continue;
+                    uint size;
+                    IntPtr ptr;
+                    try
+                    {
+                        ptr = getMetaDataBytesPtrFunction(missingAssemblyIdentity, out size);
+                        Debug.Assert(size > 0);
+                    }
+                    catch (Exception e) when (DkmExceptionUtilities.IsBadOrMissingMetadataException(e))
+                    {
+                        continue;
+                    }
+
+                    if (!TryGetMetadataBlock(ptr, size, out var block))
+                    {
+                        // ignore modules with bad metadata headers
+                        continue;
+                    }
+
+                    builder ??= ArrayBuilder<MetadataBlock>.GetInstance();
+                    builder.Add(block);
                 }
 
-                if (!TryGetMetadataBlock(ptr, size, out var block))
-                {
-                    // ignore modules with bad metadata headers
-                    continue;
-                }
-
-                builder ??= ArrayBuilder<MetadataBlock>.GetInstance();
-                builder.Add(block);
+                return builder == null ? ImmutableArray<MetadataBlock>.Empty : builder.ToImmutableAndFree();
             }
-
-            return builder == null ? ImmutableArray<MetadataBlock>.Empty : builder.ToImmutableAndFree();
         }
 
-        internal static unsafe ImmutableArray<AssemblyReaders> MakeAssemblyReaders(this DkmClrInstructionAddress instructionAddress)
+        internal static ImmutableArray<AssemblyReaders> MakeAssemblyReaders(this DkmClrInstructionAddress instructionAddress)
         {
-            var builder = ArrayBuilder<AssemblyReaders>.GetInstance();
-            foreach (DkmClrModuleInstance module in instructionAddress.RuntimeInstance.GetModulesInAppDomain(instructionAddress.ModuleInstance.AppDomain))
+            unsafe
             {
-                var symReader = module.GetSymReader();
-                if (symReader == null)
+                var builder = ArrayBuilder<AssemblyReaders>.GetInstance();
+                foreach (DkmClrModuleInstance module in instructionAddress.RuntimeInstance.GetModulesInAppDomain(instructionAddress.ModuleInstance.AppDomain))
                 {
-                    continue;
-                }
+                    var symReader = module.GetSymReader();
+                    if (symReader == null)
+                    {
+                        continue;
+                    }
 
-                uint size;
-                IntPtr ptr;
+                    uint size;
+                    IntPtr ptr;
+                    try
+                    {
+                        ptr = module.GetMetaDataBytesPtr(out size);
+                        Debug.Assert(size > 0);
+                    }
+                    catch (Exception e) when (DkmExceptionUtilities.IsBadOrMissingMetadataException(e))
+                    {
+                        continue;
+                    }
+
+                    MetadataReader reader;
+                    try
+                    {
+                        reader = new MetadataReader((byte*)ptr, (int)size);
+                    }
+                    catch (BadImageFormatException)
+                    {
+                        // ignore modules with bad metadata headers
+                        continue;
+                    }
+
+                    builder.Add(new AssemblyReaders(reader, symReader));
+                }
+                return builder.ToImmutableAndFree();
+            }
+        }
+
+        // The metadata must remain readable, at a fixed address, and unchanged while the returned block is in use.
+        private static unsafe bool TryGetMetadataBlock(IntPtr ptr, uint size, out MetadataBlock block)
+        {
+            unsafe
+            {
                 try
                 {
-                    ptr = module.GetMetaDataBytesPtr(out size);
-                    Debug.Assert(size > 0);
-                }
-                catch (Exception e) when (DkmExceptionUtilities.IsBadOrMissingMetadataException(e))
-                {
-                    continue;
-                }
-
-                MetadataReader reader;
-                try
-                {
-                    reader = new MetadataReader((byte*)ptr, (int)size);
+                    var reader = new MetadataReader((byte*)ptr, (int)size);
+                    var moduleDef = reader.GetModuleDefinition();
+                    var name = reader.GetString(moduleDef.Name);
+                    var mvid = reader.GetGuid(moduleDef.Mvid);
+                    var generationId = reader.GetGuid(moduleDef.GenerationId);
+                    block = new MetadataBlock(new ModuleId(mvid, name), generationId, ptr, (int)size);
+                    return true;
                 }
                 catch (BadImageFormatException)
                 {
-                    // ignore modules with bad metadata headers
-                    continue;
+                    block = default;
+                    return false;
                 }
-
-                builder.Add(new AssemblyReaders(reader, symReader));
-            }
-            return builder.ToImmutableAndFree();
-        }
-
-        private static unsafe bool TryGetMetadataBlock(IntPtr ptr, uint size, out MetadataBlock block)
-        {
-            try
-            {
-                var reader = new MetadataReader((byte*)ptr, (int)size);
-                var moduleDef = reader.GetModuleDefinition();
-                var name = reader.GetString(moduleDef.Name);
-                var mvid = reader.GetGuid(moduleDef.Mvid);
-                var generationId = reader.GetGuid(moduleDef.GenerationId);
-                block = new MetadataBlock(new ModuleId(mvid, name), generationId, ptr, (int)size);
-                return true;
-            }
-            catch (BadImageFormatException)
-            {
-                block = default;
-                return false;
             }
         }
 
-        private static bool TryGetMetadataBlock(ImmutableArray<MetadataBlock> previousMetadataBlocks, int index, IntPtr ptr, uint size, out MetadataBlock block)
+        // The metadata must remain readable and unchanged while the returned block is in use.
+        private static unsafe bool TryGetMetadataBlock(ImmutableArray<MetadataBlock> previousMetadataBlocks, int index, IntPtr ptr, uint size, out MetadataBlock block)
         {
-            if (!previousMetadataBlocks.IsDefault && index < previousMetadataBlocks.Length)
+            unsafe
             {
-                var previousBlock = previousMetadataBlocks[index];
-                if (previousBlock.Pointer == ptr && previousBlock.Size == size)
+                if (!previousMetadataBlocks.IsDefault && index < previousMetadataBlocks.Length)
                 {
-                    block = previousBlock;
-                    return true;
+                    var previousBlock = previousMetadataBlocks[index];
+                    if (previousBlock.Pointer == ptr && previousBlock.Size == size)
+                    {
+                        block = previousBlock;
+                        return true;
+                    }
                 }
-            }
 
-            return TryGetMetadataBlock(ptr, size, out block);
+                return unsafe (TryGetMetadataBlock(ptr, size, out block));
+            }
         }
 
         internal static object? GetSymReader(this DkmClrModuleInstance clrModule)

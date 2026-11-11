@@ -710,6 +710,7 @@ namespace Microsoft.VisualStudio.Extensibility.Testing
                 }
             }
 
+            // The caller must own a writable VARIANT and its unmanaged resources for the duration of the call.
             [DllImport("oleaut32.dll")]
             private static extern void VariantClear(IntPtr variant);
         }

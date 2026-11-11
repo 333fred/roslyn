@@ -14,7 +14,7 @@ namespace Microsoft.CodeAnalysis
     internal readonly struct ExtendedSpecialType
     {
         [FieldOffset(0)]
-        private readonly sbyte _value;
+        private readonly safe sbyte _value;
 
         private ExtendedSpecialType(int value)
         {

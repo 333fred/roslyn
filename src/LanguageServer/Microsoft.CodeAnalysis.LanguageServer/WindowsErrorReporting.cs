@@ -24,10 +24,10 @@ internal sealed class WindowsErrorReporting
     }
 
     [DllImport("kernel32.dll")]
-    private static extern ErrorModes SetErrorMode(ErrorModes uMode);
+    private static extern safe ErrorModes SetErrorMode(ErrorModes uMode);
 
     [DllImport("kernel32.dll")]
-    private static extern ErrorModes GetErrorMode();
+    private static extern safe ErrorModes GetErrorMode();
 
     [Flags]
     private enum ErrorModes : uint

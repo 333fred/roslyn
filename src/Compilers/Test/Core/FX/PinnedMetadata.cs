@@ -14,10 +14,13 @@ namespace Roslyn.Test.Utilities
     {
         public MetadataReader Reader;
 
-        public unsafe PinnedMetadata(ImmutableArray<byte> metadata)
+        public PinnedMetadata(ImmutableArray<byte> metadata)
             : base(metadata)
         {
-            this.Reader = new MetadataReader((byte*)Pointer, this.Size, MetadataReaderOptions.None, null);
+            unsafe
+            {
+                this.Reader = new MetadataReader((byte*)Pointer, this.Size, MetadataReaderOptions.None, null);
+            }
         }
 
         public override void Dispose()

@@ -14,9 +14,15 @@ namespace Microsoft.AspNetCore.Razor.Utilities;
 /// </summary>
 [StructLayout(LayoutKind.Explicit, Size = HashSize)]
 internal readonly partial record struct Checksum(
-    [field: FieldOffset(0)] long Data1,
-    [field: FieldOffset(8)] long Data2) : IComparable<Checksum>
+    long Data1,
+    long Data2) : IComparable<Checksum>
 {
+    [field: FieldOffset(0)]
+    public safe long Data1 { get; init; } = Data1;
+
+    [field: FieldOffset(8)]
+    public safe long Data2 { get; init; } = Data2;
+
     /// <summary>
     ///  The intended size of the <see cref="Checksum"/> in bytes.
     /// </summary>

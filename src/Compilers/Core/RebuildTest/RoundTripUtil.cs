@@ -65,98 +65,104 @@ namespace Microsoft.CodeAnalysis.Rebuild.UnitTests
             public void Dispose() => PEReader.Dispose();
         }
 
-        public static unsafe void VerifyRoundTrip<TCompilation>(TCompilation original, EmitOptions? emitOptions = null)
+        public static void VerifyRoundTrip<TCompilation>(TCompilation original, EmitOptions? emitOptions = null)
             where TCompilation : Compilation
         {
-            Assert.True(original.SyntaxTrees.All(x => !string.IsNullOrEmpty(x.FilePath)));
-            Assert.True(original.Options.Deterministic);
-
-            original.VerifyDiagnostics();
-            emitOptions ??= new EmitOptions(debugInformationFormat: DebugInformationFormat.Embedded);
-            using var originalEmit = emitOriginal();
-            var factory = LoggerFactory.Create(configure => { });
-            var logger = factory.CreateLogger("RoundTripVerification");
-            var optionsReader = new CompilationOptionsReader(logger, originalEmit.PdbReader, originalEmit.PEReader);
-            var assemblyFileName = original.AssemblyName!;
-            if (typeof(TCompilation) == typeof(CSharpCompilation))
+            unsafe
             {
-                var assemblyFileExtension = original.Options.OutputKind switch
+                Assert.True(original.SyntaxTrees.All(x => !string.IsNullOrEmpty(x.FilePath)));
+                Assert.True(original.Options.Deterministic);
+
+                original.VerifyDiagnostics();
+                emitOptions ??= new EmitOptions(debugInformationFormat: DebugInformationFormat.Embedded);
+                using var originalEmit = emitOriginal();
+                var factory = LoggerFactory.Create(configure => { });
+                var logger = factory.CreateLogger("RoundTripVerification");
+                var optionsReader = new CompilationOptionsReader(logger, originalEmit.PdbReader, originalEmit.PEReader);
+                var assemblyFileName = original.AssemblyName!;
+                if (typeof(TCompilation) == typeof(CSharpCompilation))
                 {
-                    OutputKind.DynamicallyLinkedLibrary => ".dll",
-                    OutputKind.ConsoleApplication => ".exe",
-                    _ => throw new InvalidOperationException(),
-                };
-                assemblyFileName += assemblyFileExtension;
-            }
+                    var assemblyFileExtension = original.Options.OutputKind switch
+                    {
+                        OutputKind.DynamicallyLinkedLibrary => ".dll",
+                        OutputKind.ConsoleApplication => ".exe",
+                        _ => throw new InvalidOperationException(),
+                    };
+                    assemblyFileName += assemblyFileExtension;
+                }
 
-            var compilationFactory = CompilationFactory.Create(assemblyFileName, optionsReader);
-            var rebuild = compilationFactory.CreateCompilation(
-                original.SyntaxTrees.SelectAsArray(x => compilationFactory.CreateSyntaxTree(x.FilePath, x.GetText())),
-                original.References.ToImmutableArray());
+                var compilationFactory = CompilationFactory.Create(assemblyFileName, optionsReader);
+                var rebuild = compilationFactory.CreateCompilation(
+                    original.SyntaxTrees.SelectAsArray(x => compilationFactory.CreateSyntaxTree(x.FilePath, x.GetText())),
+                    original.References.ToImmutableArray());
 
-            Assert.IsType<TCompilation>(rebuild);
-            VerifyCompilationOptions(original.Options, rebuild.Options);
+                Assert.IsType<TCompilation>(rebuild);
+                VerifyCompilationOptions(original.Options, rebuild.Options);
 
-            using var rebuildStream = new MemoryStream();
-            using var rebuildPdbStream = optionsReader.HasEmbeddedPdb ? null : new MemoryStream();
-            var result = compilationFactory.Emit(
-                rebuildStream,
-                rebuildPdbStream,
-                rebuild,
-                embeddedTexts: ImmutableArray<EmbeddedText>.Empty,
-                CancellationToken.None);
-            Assert.Empty(result.Diagnostics);
-            Assert.True(result.Success);
+                using var rebuildStream = new MemoryStream();
+                using var rebuildPdbStream = optionsReader.HasEmbeddedPdb ? null : new MemoryStream();
+                var result = compilationFactory.Emit(
+                    rebuildStream,
+                    rebuildPdbStream,
+                    rebuild,
+                    embeddedTexts: ImmutableArray<EmbeddedText>.Empty,
+                    CancellationToken.None);
+                Assert.Empty(result.Diagnostics);
+                Assert.True(result.Success);
 
-            var rebuildBytes = rebuildStream.ToImmutable();
-            using var rebuildReader = new PEReader(rebuildBytes);
+                var rebuildBytes = rebuildStream.ToImmutable();
+                using var rebuildReader = new PEReader(rebuildBytes);
 
-            ImmutableArray<byte> rebuildPdbBytes;
-            MetadataReader rebuildPdbReader;
-            if (rebuildPdbStream is null)
-            {
-                rebuildPdbReader = rebuildReader.GetEmbeddedPdbMetadataReader() ?? throw new InvalidOperationException();
-                rebuildPdbBytes = new ReadOnlySpan<byte>(rebuildPdbReader.MetadataPointer, rebuildPdbReader.MetadataLength).ToArray().ToImmutableArray();
-            }
-            else
-            {
-                rebuildPdbBytes = rebuildPdbStream.ToImmutable();
-                rebuildPdbReader = MetadataReaderProvider.FromPortablePdbImage(rebuildPdbBytes).GetMetadataReader();
-            }
-
-            var rebuildEmit = new EmitInfo(rebuildBytes, rebuildReader, rebuildPdbBytes, rebuildPdbReader);
-
-            // https://github.com/dotnet/roslyn/issues/52327
-            // This should be replaced with a CompilationDiff-based helper in MS.CA.RB which writes diffs
-            // out to the test output, not necessarily entire visualizations.
-            AssertImagesEqual(originalEmit, rebuildEmit);
-
-            unsafe EmitInfo emitOriginal()
-            {
-                switch (emitOptions.DebugInformationFormat)
+                ImmutableArray<byte> rebuildPdbBytes;
+                MetadataReader rebuildPdbReader;
+                if (rebuildPdbStream is null)
                 {
-                    case DebugInformationFormat.Embedded:
-                        {
-                            var originalBytes = original.EmitToArray(emitOptions);
-                            var originalReader = new PEReader(originalBytes);
-                            var originalPdbReader = originalReader.GetEmbeddedPdbMetadataReader();
-                            Assert.NotNull(originalPdbReader);
+                    rebuildPdbReader = rebuildReader.GetEmbeddedPdbMetadataReader() ?? throw new InvalidOperationException();
+                    rebuildPdbBytes = new ReadOnlySpan<byte>(rebuildPdbReader.MetadataPointer, rebuildPdbReader.MetadataLength).ToArray().ToImmutableArray();
+                }
+                else
+                {
+                    rebuildPdbBytes = rebuildPdbStream.ToImmutable();
+                    rebuildPdbReader = MetadataReaderProvider.FromPortablePdbImage(rebuildPdbBytes).GetMetadataReader();
+                }
 
-                            var pdbSpan = new ReadOnlySpan<byte>(originalPdbReader!.MetadataPointer, originalPdbReader.MetadataLength);
-                            return new EmitInfo(originalBytes, originalReader, pdbSpan.ToArray().ToImmutableArray(), originalPdbReader);
-                        }
-                    case DebugInformationFormat.PortablePdb:
-                        {
-                            using var pdbStream = new MemoryStream();
-                            var originalBytes = original.EmitToArray(emitOptions, pdbStream: pdbStream);
-                            var originalReader = new PEReader(originalBytes);
+                var rebuildEmit = new EmitInfo(rebuildBytes, rebuildReader, rebuildPdbBytes, rebuildPdbReader);
 
-                            var pdbBytes = pdbStream.ToImmutable();
-                            var originalPdbReader = MetadataReaderProvider.FromPortablePdbImage(pdbBytes).GetMetadataReader();
-                            return new EmitInfo(originalBytes, originalReader, pdbBytes, originalPdbReader);
+                // https://github.com/dotnet/roslyn/issues/52327
+                // This should be replaced with a CompilationDiff-based helper in MS.CA.RB which writes diffs
+                // out to the test output, not necessarily entire visualizations.
+                AssertImagesEqual(originalEmit, rebuildEmit);
+
+                EmitInfo emitOriginal()
+                {
+                    unsafe
+                    {
+                        switch (emitOptions.DebugInformationFormat)
+                        {
+                            case DebugInformationFormat.Embedded:
+                                {
+                                    var originalBytes = original.EmitToArray(emitOptions);
+                                    var originalReader = new PEReader(originalBytes);
+                                    var originalPdbReader = originalReader.GetEmbeddedPdbMetadataReader();
+                                    Assert.NotNull(originalPdbReader);
+
+                                    var pdbSpan = new ReadOnlySpan<byte>(originalPdbReader!.MetadataPointer, originalPdbReader.MetadataLength);
+                                    return new EmitInfo(originalBytes, originalReader, pdbSpan.ToArray().ToImmutableArray(), originalPdbReader);
+                                }
+                            case DebugInformationFormat.PortablePdb:
+                                {
+                                    using var pdbStream = new MemoryStream();
+                                    var originalBytes = original.EmitToArray(emitOptions, pdbStream: pdbStream);
+                                    var originalReader = new PEReader(originalBytes);
+
+                                    var pdbBytes = pdbStream.ToImmutable();
+                                    var originalPdbReader = MetadataReaderProvider.FromPortablePdbImage(pdbBytes).GetMetadataReader();
+                                    return new EmitInfo(originalBytes, originalReader, pdbBytes, originalPdbReader);
+                                }
+                            default:
+                                throw new ArgumentException("Unsupported DebugInformationFormat: " + emitOptions.DebugInformationFormat);
                         }
-                    default:
-                        throw new ArgumentException("Unsupported DebugInformationFormat: " + emitOptions.DebugInformationFormat);
+                    }
                 }
             }
         }

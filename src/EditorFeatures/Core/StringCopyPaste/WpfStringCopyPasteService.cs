@@ -108,7 +108,7 @@ internal sealed class WpfStringCopyPasteService() : IStringCopyPasteService
     }
 
     [DllImport("ole32.dll", ExactSpelling = true)]
-    public static extern int OleGetClipboard(ref IComDataObject? data);
+    public static extern safe int OleGetClipboard(ref IComDataObject? data);
 
     public string? TryGetClipboardData(string key)
     {

@@ -45,14 +45,14 @@ internal static class NativeMethods
 
     [DllImport(User32, SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
-    public static extern bool EnumWindows([MarshalAs(UnmanagedType.FunctionPtr)] WNDENUMPROC lpEnumFunc, IntPtr lParam);
+    public static safe extern bool EnumWindows([MarshalAs(UnmanagedType.FunctionPtr)] WNDENUMPROC lpEnumFunc, IntPtr lParam);
 
     [DllImport(User32)]
-    public static extern IntPtr GetAncestor(IntPtr hWnd, uint gaFlags);
+    public static safe extern IntPtr GetAncestor(IntPtr hWnd, uint gaFlags);
 
     [DllImport(User32, SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool GetCursorPos(out POINT point);
+    private static safe extern bool GetCursorPos(out POINT point);
 
     public static System.Windows.Point GetCursorPos()
     {
@@ -65,19 +65,21 @@ internal static class NativeMethods
     }
 
     [DllImport(User32, SetLastError = true)]
-    public static extern IntPtr GetParent(IntPtr hWnd);
+    public static safe extern IntPtr GetParent(IntPtr hWnd);
 
     [DllImport(User32, CharSet = CharSet.Unicode)]
-    public static extern int GetSystemMetrics(int nIndex);
+    public static safe extern int GetSystemMetrics(int nIndex);
 
     [DllImport(User32, SetLastError = true)]
-    public static extern IntPtr GetWindow(IntPtr hWnd, uint uCmd);
+    public static safe extern IntPtr GetWindow(IntPtr hWnd, uint uCmd);
 
     [DllImport(User32, CharSet = CharSet.Unicode, SetLastError = true)]
-    public static extern IntPtr SendMessage(IntPtr hWnd, uint uMsg, IntPtr wParam, IntPtr lParam);
+    // Pointer-valued message arguments must remain valid until the receiving window finishes processing the message.
+    public static unsafe extern IntPtr SendMessage(IntPtr hWnd, uint uMsg, IntPtr wParam, IntPtr lParam);
 
     [DllImport(User32, CharSet = CharSet.Unicode, SetLastError = true)]
-    public static extern IntPtr SendMessage(IntPtr hWnd, uint uMsg, IntPtr wParam, [Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder lParam);
+    // The message must accept a writable string buffer, with wParam no larger than its capacity.
+    public static unsafe extern IntPtr SendMessage(IntPtr hWnd, uint uMsg, IntPtr wParam, [Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder lParam);
 
     #endregion
 }

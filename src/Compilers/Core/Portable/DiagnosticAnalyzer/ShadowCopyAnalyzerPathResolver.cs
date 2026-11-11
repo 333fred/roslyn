@@ -499,53 +499,59 @@ namespace Microsoft.CodeAnalysis
         /// <seealso href="https://learn.microsoft.com/en-us/dotnet/api/system.io.file.createhardlink?view=net-11.0" />
         private bool TryCreateHardLink(string path, string pathToTarget)
         {
-            return EnableHardLinks && CreateHardLink(pathToTarget, path, IntPtr.Zero);
+            unsafe
+            {
+                return EnableHardLinks && CreateHardLink(pathToTarget, path, IntPtr.Zero);
 
-            // https://docs.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-createhardlinkw
-            [DllImport("Kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-            static extern bool CreateHardLink(string lpFileName, string lpExistingFileName, IntPtr lpSecurityAttributes);
+                // https://docs.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-createhardlinkw
+                [DllImport("Kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+                static extern unsafe bool CreateHardLink(string lpFileName, string lpExistingFileName, IntPtr lpSecurityAttributes);
+            }
         }
 
         /// <summary>Get number of hard links to a file.</summary>
         private static ByHandleFileInformation? TryGetWindowsFileInformation(string path)
         {
-            // https://learn.microsoft.com/en-us/windows/win32/fileio/file-access-rights-constants
-            const uint FILE_READ_ATTRIBUTES = 0x0080;
+            unsafe
+            {
+                // https://learn.microsoft.com/en-us/windows/win32/fileio/file-access-rights-constants
+                const uint FILE_READ_ATTRIBUTES = 0x0080;
 
-            // https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilew
-            const uint FILE_SHARE_READ = 0x00000001;
-            const uint FILE_SHARE_WRITE = 0x00000002;
-            const uint FILE_SHARE_DELETE = 0x00000004;
-            const uint OPEN_EXISTING = 3;
+                // https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilew
+                const uint FILE_SHARE_READ = 0x00000001;
+                const uint FILE_SHARE_WRITE = 0x00000002;
+                const uint FILE_SHARE_DELETE = 0x00000004;
+                const uint OPEN_EXISTING = 3;
 
-            using var handle = CreateFileW(
-                lpFileName: path,
-                dwDesiredAccess: FILE_READ_ATTRIBUTES,
-                dwShareMode: FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-                lpSecurityAttributes: IntPtr.Zero,
-                dwCreationDisposition: OPEN_EXISTING,
-                dwFlagsAndAttributes: 0,
-                hTemplateFile: IntPtr.Zero);
+                using var handle = CreateFileW(
+                    lpFileName: path,
+                    dwDesiredAccess: FILE_READ_ATTRIBUTES,
+                    dwShareMode: FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                    lpSecurityAttributes: IntPtr.Zero,
+                    dwCreationDisposition: OPEN_EXISTING,
+                    dwFlagsAndAttributes: 0,
+                    hTemplateFile: IntPtr.Zero);
 
-            if (!GetFileInformationByHandle(handle, out var fileInformation))
-                return null;
+                if (!GetFileInformationByHandle(handle, out var fileInformation))
+                    return null;
 
-            return fileInformation;
+                return fileInformation;
 
-            // https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilew
-            [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-            static extern SafeFileHandle CreateFileW(
-                string lpFileName,
-                uint dwDesiredAccess,
-                uint dwShareMode,
-                IntPtr lpSecurityAttributes,
-                uint dwCreationDisposition,
-                uint dwFlagsAndAttributes,
-                IntPtr hTemplateFile);
+                // https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilew
+                [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+                static extern unsafe SafeFileHandle CreateFileW(
+                    string lpFileName,
+                    uint dwDesiredAccess,
+                    uint dwShareMode,
+                    IntPtr lpSecurityAttributes,
+                    uint dwCreationDisposition,
+                    uint dwFlagsAndAttributes,
+                    IntPtr hTemplateFile);
 
-            // https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getfileinformationbyhandle
-            [DllImport("Kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-            static extern bool GetFileInformationByHandle(SafeFileHandle handle, out ByHandleFileInformation fileInformation);
+                // https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getfileinformationbyhandle
+                [DllImport("Kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+                static extern unsafe bool GetFileInformationByHandle(SafeFileHandle handle, out ByHandleFileInformation fileInformation);
+            }
         }
 
         [StructLayout(LayoutKind.Sequential)]
